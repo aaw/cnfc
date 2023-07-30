@@ -16,5 +16,7 @@ f.AddClause(Implies(x,y) | (z & w))
 
 f.AddClause(NumTrue(x,y,z) >= 1)
 
+f.AddClause(Tuple(x,y) < Tuple(z,w))
+
 f.Write('/tmp/myfile.cnf')
 ```
