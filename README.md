@@ -11,9 +11,10 @@ f.AddClause(-x,y)  # Equivalent to f.AddClause(And(-x,y))
 f.AddClause(-y,z)
 f.AddClause(-z,x)
 
-f.AddClause(Or(IfThen(x,y), And(z,w)))
+# Same as f.AddClause(Or(Implies(x,y),And(z,w)))
+f.AddClause(Implies(x,y) | (z & w))
 
-f.AddClause(ExactlyNTrue(2, [x,y,z]))
+f.AddClause(NumTrue(x,y,z) >= 1)
 
 f.Write('/tmp/myfile.cnf')
 ```
