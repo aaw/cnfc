@@ -7,12 +7,12 @@ from cnfc import Formula, And, Or, IfThen
 f = Formula()
 x, y, z, w = f.AddVars('x,y,z,w')
 
-f.AddClause(-x,y)  # Equivalent to f.AddClause(And(-x,y))
-f.AddClause(-y,z)
-f.AddClause(-z,x)
+f.AddClause(~x,y)  # Equivalent to f.AddClause(And(~x,y))
+f.AddClause(~y,z)
+f.AddClause(~z,x)
 
-# Same as f.AddClause(Or(Implies(x,y),And(z,w)))
-f.AddClause(Implies(x,y) | (z & w))
+# Same as f.AddClause(Or(Implies(x,y),Not(And(z,w))))
+f.AddClause(Implies(x,y) | ~(z & w))
 
 f.AddClause(NumTrue(x,y,z) >= 1)
 
