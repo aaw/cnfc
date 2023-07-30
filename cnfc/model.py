@@ -84,12 +84,6 @@ class Le(MultiBoolExpr): pass
 class Gt(MultiBoolExpr): pass
 class Ge(MultiBoolExpr): pass
 
-class TupleEq(MultiBoolExpr): pass
-class TupleLt(MultiBoolExpr): pass
-class TupleLe(MultiBoolExpr): pass
-class TupleGt(MultiBoolExpr): pass
-class TupleGe(MultiBoolExpr): pass
-
 class Tuple:
     def __init__(self, *exprs):
         self.exprs = exprs
@@ -107,27 +101,27 @@ class Tuple:
 
     def __eq__(self, other: 'Tuple'):
         self.__check_length(other)
-        return TupleEq(self, other)
+        return Eq(self, other)
 
     def __ne__(self, other: 'Tuple'):
         self.__check_length(other)
-        return Not(TupleEq(self, other))
+        return Not(Eq(self, other))
 
     def __lt__(self, other: 'Tuple'):
         self.__check_length(other)
-        return TupleLt(self, other)
+        return Lt(self, other)
 
     def __le__(self, other: 'Tuple'):
         self.__check_length(other)
-        return TupleLe(self, other)
+        return Le(self, other)
 
     def __gt__(self, other: 'Tuple'):
         self.__check_length(other)
-        return TupleGt(self, other)
+        return Gt(self, other)
 
     def __ge__(self, other: 'Tuple'):
         self.__check_length(other)
-        return TupleGe(self, other)
+        return Ge(self, other)
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr
