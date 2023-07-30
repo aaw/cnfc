@@ -40,29 +40,17 @@ class NumExpr:
     def __ge__(self, other):
         return Ge(self, other)
 
-class NumTrue(NumExpr):
+class CountingRelation(NumExpr):
     def __init__(self, *exprs):
-        if len(exprs) == 1 and type(exprs) == list:
-            self.exprs = exprs[0]
-        else:
-            self.exprs = exprs
+        self.exprs = exprs
         for expr in self.exprs:
-            assert issubclass(type(expr), BoolExpr), "NumTrue needs a boolean argument, got {}".format(expr)
+            assert issubclass(type(expr), BoolExpr), "{} needs boolean expressions, got {}".format(self.__class__.__name__, expr)
 
     def __repr__(self):
-        return 'NumTrue({})'.format(','.join(repr(e) for e in self.exprs))
+        return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
 
-class NumFalse(NumExpr):
-    def __init__(self, *exprs):
-        if len(exprs) == 1 and type(exprs) == list:
-            self.exprs = exprs[0]
-        else:
-            self.exprs = exprs
-        for expr in self.exprs:
-            assert issubclass(type(expr), BoolExpr), "NumFalse needs a boolean argument, got {}".format(expr)
-
-    def __repr__(self):
-        return 'NumFalse({})'.format(','.join(repr(e) for e in self.exprs))
+class NumTrue(CountingRelation): pass
+class NumFalse(CountingRelation): pass
 
 class Var(BoolExpr):
     def __init__(self, name, vid):
@@ -72,61 +60,27 @@ class Var(BoolExpr):
     def __repr__(self):
         return 'Var({},{})'.format(self.name, self.vid)
 
-class Eq(BoolExpr):
+class MultiBoolExpr(BoolExpr):
     def __init__(self, *exprs):
         self.exprs = exprs
 
     def __repr__(self):
-        return 'Eq({})'.format(','.join(repr(expr) for expr in self.exprs))
+        return '{}({})'.format(self.__class__.__name__, ','.join(repr(expr) for expr in self.exprs))
 
 class Not(BoolExpr):
-    def __init__(self, var):
-        self.var = var
+    def __init__(self, expr):
+        self.expr = expr
 
     def __repr__(self):
-        return 'Not({})'.format(self.var)
+        return 'Not({})'.format(self.expr)
 
-class And(BoolExpr):
-    def __init__(self, *exprs):
-        self.exprs = exprs
-
-    def __repr__(self):
-        return 'And({})'.format(','.join(repr(expr) for expr in self.exprs))
-
-class Or(BoolExpr):
-    def __init__(self, *exprs):
-        self.exprs = exprs
-
-    def __repr__(self):
-        return 'Or({})'.format(','.join(repr(expr) for expr in self.exprs))
-
-class Lt(BoolExpr):
-    def __init__(self, *exprs):
-        self.exprs = exprs
-
-    def __repr__(self):
-        return 'Lt({})'.format(','.join(repr(expr) for expr in self.exprs))
-
-class Le(BoolExpr):
-    def __init__(self, *exprs):
-        self.exprs = exprs
-
-    def __repr__(self):
-        return 'Le({})'.format(','.join(repr(expr) for expr in self.exprs))
-
-class Gt(BoolExpr):
-    def __init__(self, *exprs):
-        self.exprs = exprs
-
-    def __repr__(self):
-        return 'Gt({})'.format(','.join(repr(expr) for expr in self.exprs))
-
-class Ge(BoolExpr):
-    def __init__(self, *exprs):
-        self.exprs = exprs
-
-    def __repr__(self):
-        return 'Ge({})'.format(','.join(repr(expr) for expr in self.exprs))
+class Eq(MultiBoolExpr): pass
+class And(MultiBoolExpr): pass
+class Or(MultiBoolExpr): pass
+class Lt(MultiBoolExpr): pass
+class Le(MultiBoolExpr): pass
+class Gt(MultiBoolExpr): pass
+class Ge(MultiBoolExpr): pass
 
 class Formula:
     def __init__(self):
