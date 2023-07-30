@@ -32,6 +32,7 @@ class TestFormula(unittest.TestCase):
         x,y,z,w = f.AddVars('x,y,z,w')
         self.assertEqual(repr(NumFalse(x,y,z) == 2), 'Eq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
         self.assertEqual(repr(3 > NumTrue(x,y,z,w)), 'Lt(NumTrue(Var(x,1),Var(y,2),Var(z,3),Var(w,4)),3)')
+        self.assertEqual(repr(Implies(NumTrue(x,y) == 0, z & w)), 'Implies(Eq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
 
 if __name__ == '__main__':
     unittest.main()

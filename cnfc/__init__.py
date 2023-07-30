@@ -74,6 +74,13 @@ class Not(BoolExpr):
     def __repr__(self):
         return 'Not({})'.format(self.expr)
 
+class Implies(BoolExpr):
+    def __init__(self, antecedent, consequent) :
+        self.antecedent, self.consequent = antecedent, consequent
+
+    def __repr__(self):
+        return 'Implies({},{})'.format(self.antecedent, self.consequent)
+
 class Eq(MultiBoolExpr): pass
 class And(MultiBoolExpr): pass
 class Or(MultiBoolExpr): pass
