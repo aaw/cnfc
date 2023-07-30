@@ -84,6 +84,51 @@ class Le(MultiBoolExpr): pass
 class Gt(MultiBoolExpr): pass
 class Ge(MultiBoolExpr): pass
 
+class TupleEq(MultiBoolExpr): pass
+class TupleLt(MultiBoolExpr): pass
+class TupleLe(MultiBoolExpr): pass
+class TupleGt(MultiBoolExpr): pass
+class TupleGe(MultiBoolExpr): pass
+
+class Tuple:
+    def __init__(self, *exprs):
+        self.exprs = exprs
+        for expr in self.exprs:
+            assert issubclass(type(expr), BoolExpr), "{} needs boolean expressions, got {}".format(self.__class__.__name__, expr)
+
+    def __check_length(self, other: 'Tuple'):
+        assert len(self) == len(other), "Can't compare tuples of different dimensions: {} vs. {}".format(self, other)
+
+    def __len__(self):
+        return len(self.exprs)
+
+    def __repr__(self):
+        return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
+
+    def __eq__(self, other: 'Tuple'):
+        self.__check_length(other)
+        return TupleEq(self, other)
+
+    def __ne__(self, other: 'Tuple'):
+        self.__check_length(other)
+        return Not(TupleEq(self, other))
+
+    def __lt__(self, other: 'Tuple'):
+        self.__check_length(other)
+        return TupleLt(self, other)
+
+    def __le__(self, other: 'Tuple'):
+        self.__check_length(other)
+        return TupleLe(self, other)
+
+    def __gt__(self, other: 'Tuple'):
+        self.__check_length(other)
+        return TupleGt(self, other)
+
+    def __ge__(self, other: 'Tuple'):
+        self.__check_length(other)
+        return TupleGe(self, other)
+
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr
 

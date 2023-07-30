@@ -34,5 +34,15 @@ class TestFormula(unittest.TestCase):
         self.assertEqual(repr(3 > NumTrue(x,y,z,w)), 'Lt(NumTrue(Var(x,1),Var(y,2),Var(z,3),Var(w,4)),3)')
         self.assertEqual(repr(Implies(NumTrue(x,y) == 0, z & w)), 'Implies(Eq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
 
+    def test_tuple_parsing(self):
+        f = Formula()
+        xs = f.AddVars('x1,x2,x3')
+        ys = f.AddVars('y1,y2,y3')
+        zs = f.AddVars('z1,z2')
+        self.assertEqual(repr(Tuple(*xs) < Tuple(*ys)), 'TupleLt(Tuple(Var(x1,1),Var(x2,2),Var(x3,3)),Tuple(Var(y1,4),Var(y2,5),Var(y3,6)))')
+
+        with self.assertRaises(AssertionError):
+            Tuple(*xs) >= Tuple(*zs)
+
 if __name__ == '__main__':
     unittest.main()
