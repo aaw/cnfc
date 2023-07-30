@@ -2,7 +2,7 @@
 A Python module that generates DIMACS CNF files
 
 ```python
-from cnfc import Formula, And, Or, IfThen
+from cnfc import *
 
 f = Formula()
 x, y, z, w = f.AddVars('x,y,z,w')
