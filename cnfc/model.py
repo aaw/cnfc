@@ -69,20 +69,23 @@ class Not(BoolExpr):
     def __repr__(self):
         return 'Not({})'.format(self.expr)
 
-class Implies(BoolExpr):
-    def __init__(self, antecedent, consequent) :
-        self.antecedent, self.consequent = antecedent, consequent
+class OrderedBinaryBoolExpr(BoolExpr):
+    def __init__(self, first, second):
+        self.first, self.second = first, second
 
     def __repr__(self):
-        return 'Implies({},{})'.format(self.antecedent, self.consequent)
+        return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
+
+class Implies(OrderedBinaryBoolExpr):
+    pass
 
 class Eq(MultiBoolExpr): pass
 class And(MultiBoolExpr): pass
 class Or(MultiBoolExpr): pass
-class Lt(MultiBoolExpr): pass
-class Le(MultiBoolExpr): pass
-class Gt(MultiBoolExpr): pass
-class Ge(MultiBoolExpr): pass
+class Lt(OrderedBinaryBoolExpr): pass
+class Le(OrderedBinaryBoolExpr): pass
+class Gt(OrderedBinaryBoolExpr): pass
+class Ge(OrderedBinaryBoolExpr): pass
 
 class Tuple:
     def __init__(self, *exprs):
@@ -125,3 +128,17 @@ class Tuple:
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr
+
+# Return the Var that holds the value of this expr, or None if there is none
+# TODO: mmmm, maybe just want to use a cache instead of embedding
+def get_var(expr):
+    if isinstance(expr, Var):
+        return expr
+    else:
+        return getattr(expr, '_var', None)
+
+def register_var(expr, v):
+    expr._var = v
+
+def generate_cnf(expr, cache):
+    pass

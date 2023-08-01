@@ -1,8 +1,10 @@
 from model import Var
+from cache import Cache
 
 class Formula:
     def __init__(self):
         self.vars = {}
+        self.cache = Cache()
         self.clauses = []
         self.nextvar = 1
 
@@ -20,6 +22,7 @@ class Formula:
         return (self.AddVar(name.strip()) for name in names.split(','))
 
     def AddClause(self, clause):
+        # TODO: ensure all variables exist in self.vars
         pass
 
     def AddClauses(self, clauses):
