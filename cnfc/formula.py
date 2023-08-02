@@ -38,3 +38,6 @@ class Formula:
     def AddClauses(self, clauses):
         for clause in clauses:
             self.AddClause(clause)
+
+    def WriteCNF(self, fd):
+        self.buffer.Flush(fd)
