@@ -1,10 +1,18 @@
 from model import Var
-from cache import Cache
+from buffer import Buffer
+
+def literal(expr):
+    if isinstance(expr, Not) and isinstance(expr.expr, Var):
+        return -expr.expr.vid
+    elif isinstance(expr, Var):
+        return expr.vid
+    else:
+        raise ValueError("{} can't be converted to a literal".format(expr))
 
 class Formula:
     def __init__(self):
         self.vars = {}
-        self.cache = Cache()
+        self.buffer = Buffer()
         self.clauses = []
         self.nextvar = 1
 
@@ -21,9 +29,11 @@ class Formula:
     def AddVars(self, names):
         return (self.AddVar(name.strip()) for name in names.split(','))
 
+    # TODO: perform light optimizations like removing duplicate literals,
+    # suppressing tautologies, and supressing duplicate clauses
     def AddClause(self, clause):
         # TODO: ensure all variables exist in self.vars
-        pass
+        buffer.Append(tuple(literal(expr) for expr in clause))
 
     def AddClauses(self, clauses):
         for clause in clauses:

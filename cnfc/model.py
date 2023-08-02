@@ -55,6 +55,12 @@ class Var(BoolExpr):
     def __repr__(self):
         return 'Var({},{})'.format(self.name, self.vid)
 
+    def generate_var(self, formula):
+        return self
+
+    def generate_cnf(self, formula):
+        formula.AddClause((self,))
+
 class MultiBoolExpr(BoolExpr):
     def __init__(self, *exprs):
         self.exprs = exprs
@@ -69,6 +75,14 @@ class Not(BoolExpr):
     def __repr__(self):
         return 'Not({})'.format(self.expr)
 
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        var = self.expr.generate_var()
+        formula.AddClause((~var,))
+
 class OrderedBinaryBoolExpr(BoolExpr):
     def __init__(self, first, second):
         self.first, self.second = first, second
@@ -77,11 +91,41 @@ class OrderedBinaryBoolExpr(BoolExpr):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
 class Implies(OrderedBinaryBoolExpr):
-    pass
+    def generate_var(self, formula):
+        # TODO
+        pass
 
-class Eq(MultiBoolExpr): pass
-class And(MultiBoolExpr): pass
-class Or(MultiBoolExpr): pass
+    def generate_cnf(self, formula):
+        fv = self.first.generate_var()
+        sv = self.second.generate_var()
+        formula.AddClause((~fv,sv))
+
+class Eq(MultiBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        # TODO
+        pass
+
+class And(MultiBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        for expr in self.exprs:
+            formula.AddClause((expr.generate_var(formula),))
+
+class Or(MultiBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        formula.AddClause(tuple(expr.generate_var(formula) for expr in self.exprs))
+
 class Lt(OrderedBinaryBoolExpr): pass
 class Le(OrderedBinaryBoolExpr): pass
 class Gt(OrderedBinaryBoolExpr): pass
@@ -130,7 +174,7 @@ class Tuple:
 #       for now, we just cache based on repr
 
 # Return the Var that holds the value of this expr, or None if there is none
-# TODO: mmmm, maybe just want to use a cache instead of embedding
+# TODO: make this a decorator that can wrap generate_var for each class
 def get_var(expr):
     if isinstance(expr, Var):
         return expr
@@ -139,6 +183,3 @@ def get_var(expr):
 
 def register_var(expr, v):
     expr._var = v
-
-def generate_cnf(expr, cache):
-    pass
