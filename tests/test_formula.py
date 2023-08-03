@@ -77,5 +77,20 @@ class TestFormula(unittest.TestCase):
         )
         self.assertEqual(write_cnf_to_string(f), expected)
 
+    def test_basic_conjunction_output(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(x & ~w)
+        f.AddClause(~y & z)
+
+        expected = (
+            'p cnf 4 4\n' +
+            '1 0\n' +
+            '-4 0\n' +
+            '-2 0\n' +
+            '3 0\n'
+        )
+        self.assertEqual(write_cnf_to_string(f), expected)
+
 if __name__ == '__main__':
     unittest.main()
