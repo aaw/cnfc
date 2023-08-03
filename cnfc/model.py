@@ -57,10 +57,10 @@ class Literal(BoolExpr):
     def __invert__(self):
         return Literal(self.var, sign=-self.sign)
 
-    def generate_literal(self):
+    def generate_var(self, formula):
         return self
 
-    def generate_cnf(self):
+    def generate_cnf(self, formula):
         yield (self,)
 
 class Var(BoolExpr):
@@ -74,10 +74,10 @@ class Var(BoolExpr):
     def __invert__(self):
         return Literal(self, sign=-1)
 
-    def generate_literal(self):
+    def generate_var(self, formula):
         return Literal(self, sign=1)
 
-    def generate_cnf(self):
+    def generate_cnf(self, formula):
         yield (self,)
 
 class MultiBoolExpr(BoolExpr):
@@ -94,12 +94,12 @@ class Not(BoolExpr):
     def __repr__(self):
         return 'Not({})'.format(self.expr)
 
-    def generate_literal(self):
+    def generate_var(self, formula):
         # TODO
         pass
 
-    def generate_cnf(self):
-        yield Not(self.expr.generate_literal())
+    def generate_cnf(self, formula):
+        yield Not(self.expr.generate_var())
 
 class OrderedBinaryBoolExpr(BoolExpr):
     def __init__(self, first, second):
@@ -109,40 +109,40 @@ class OrderedBinaryBoolExpr(BoolExpr):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
 class Implies(OrderedBinaryBoolExpr):
-    def generate_literal(self):
+    def generate_var(self, formula):
         # TODO
         pass
 
-    def generate_cnf(self):
-        fv = self.first.generate_literal()
-        sv = self.second.generate_literal()
+    def generate_cnf(self, formula):
+        fv = self.first.generate_var(formula)
+        sv = self.second.generate_var(formula)
         yield (Not(fv), sv)
 
 class Eq(MultiBoolExpr):
-    def generate_literal(self):
+    def generate_var(self, formula):
         # TODO
         pass
 
-    def generate_cnf(self):
+    def generate_cnf(self, formula):
         # TODO
         pass
 
 class And(MultiBoolExpr):
-    def generate_literal(self):
+    def generate_var(self, formula):
         # TODO
         pass
 
-    def generate_cnf(self):
+    def generate_cnf(self, formula):
         for expr in self.exprs:
-            yield (expr.generate_literal(),)
+            yield (expr.generate_var(formula),)
 
 class Or(MultiBoolExpr):
-    def generate_literal(self):
+    def generate_var(self, formula):
         # TODO
         pass
 
-    def generate_cnf(self):
-        yield tuple(expr.generate_literal() for expr in self.exprs)
+    def generate_cnf(self, formula):
+        yield tuple(expr.generate_var(formula) for expr in self.exprs)
 
 class Lt(OrderedBinaryBoolExpr): pass
 class Le(OrderedBinaryBoolExpr): pass
