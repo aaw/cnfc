@@ -1,5 +1,12 @@
 from cnfc import *
+import io
 import unittest
+
+def write_cnf_to_string(f):
+    out = io.StringIO()
+    f.WriteCNF(out)
+    out.seek(0)
+    return out.read()
 
 class TestFormula(unittest.TestCase):
     def test_add_variables(self):
@@ -25,7 +32,7 @@ class TestFormula(unittest.TestCase):
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
         c = (~x == y) & ((z != w) | x)
-        self.assertEqual(repr(c), 'And(Eq(Not(Var(x,1)),Var(y,2)),Or(Not(Eq(Var(z,3),Var(w,4))),Var(x,1)))')
+        self.assertEqual(repr(c), 'And(Eq(Literal(Var(x,1),-1),Var(y,2)),Or(Not(Eq(Var(z,3),Var(w,4))),Var(x,1)))')
 
     def test_numeric_expr_parsing(self):
         f = Formula()
@@ -43,6 +50,32 @@ class TestFormula(unittest.TestCase):
 
         with self.assertRaises(AssertionError):
             Tuple(*xs) >= Tuple(*zs)
+
+    def test_implicit_disjunction_output(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(x,~w)
+        f.AddClause(~y,z)
+
+        expected = (
+            'p cnf 4 2\n' +
+            '1 -4 0\n' +
+            '-2 3 0\n'
+        )
+        self.assertEqual(write_cnf_to_string(f), expected)
+
+    def test_basic_disjunction_output(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(x | ~w)
+        f.AddClause(~y | z)
+
+        expected = (
+            'p cnf 4 2\n' +
+            '1 -4 0\n' +
+            '-2 3 0\n'
+        )
+        self.assertEqual(write_cnf_to_string(f), expected)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,13 +1,5 @@
-from model import Var
+from model import Var, Literal
 from buffer import Buffer
-
-def literal(expr):
-    if isinstance(expr, Not) and isinstance(expr.expr, Var):
-        return -expr.expr.vid
-    elif isinstance(expr, Var):
-        return expr.vid
-    else:
-        raise ValueError("{} can't be converted to a literal".format(expr))
 
 class Formula:
     def __init__(self):
@@ -31,13 +23,17 @@ class Formula:
 
     # TODO: perform light optimizations like removing duplicate literals,
     # suppressing tautologies, and supressing duplicate clauses
-    def AddClause(self, clause):
+    def AddClause(self, *expr):
         # TODO: ensure all variables exist in self.vars
-        buffer.Append(tuple(literal(expr) for expr in clause))
-
-    def AddClauses(self, clauses):
-        for clause in clauses:
-            self.AddClause(clause)
+        if len(expr) > 1:
+            def raw_lit(expr):
+                if isinstance(expr, Var): return expr.vid
+                elif isinstance(expr, Literal): return expr.sign*expr.var.vid
+                else: raise ValueError("Expected Var or Literal, got {}".format(expr))
+            self.buffer.Append(tuple(raw_lit(x) for x in expr))
+        else:
+            for clause in expr[0].generate_cnf():
+                self.buffer.Append(tuple(lit.sign*lit.var.vid for lit in clause))
 
     def WriteCNF(self, fd):
         self.buffer.Flush(fd)

@@ -7,7 +7,7 @@ from cnfc import *
 f = Formula()
 x, y, z, w = f.AddVars('x,y,z,w')
 
-f.AddClause(~x,y)  # Equivalent to f.AddClause(And(~x,y))
+f.AddClause(~x,y)  # Equivalent to f.AddClause(Or(~x,y))
 f.AddClause(~y,z)
 f.AddClause(~z,x)
 
