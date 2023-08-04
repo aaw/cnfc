@@ -1,4 +1,5 @@
 from cnfc import *
+from dpll import Satisfiable
 import io
 import unittest
 
@@ -9,6 +10,12 @@ def write_cnf_to_string(f):
     return out.read()
 
 class TestFormula(unittest.TestCase):
+    def assertSat(self, formula):
+        self.assertTrue(Satisfiable(write_cnf_to_string(formula)))
+
+    def assertUnsat(self, formula):
+        self.assertFalse(Satisfiable(write_cnf_to_string(formula)))
+
     def test_add_variables(self):
         f = Formula()
         x = f.AddVar('x')
@@ -91,6 +98,25 @@ class TestFormula(unittest.TestCase):
             '3 0\n'
         )
         self.assertEqual(write_cnf_to_string(f), expected)
+
+    def test_disjunctive_cnf(self):
+        f = Formula()
+        x,y = f.AddVars('x,y')
+        f.AddClause(x | y)
+        self.assertSat(f)
+        f.AddClause(~x | ~y)
+        self.assertSat(f)
+        f.AddClause(~x | y)
+        self.assertSat(f)
+        f.AddClause(x | ~y)
+        self.assertUnsat(f)
+
+    def test_conjunctive_cnf(self):
+        f = Formula()
+        x = f.AddVars('x')
+        self.assertSat(f)
+        f.AddClause(~x & x)
+        self.assertUnsat(f)
 
 if __name__ == '__main__':
     unittest.main()
