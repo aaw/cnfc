@@ -29,11 +29,8 @@ def dpll_search(num_vars, clauses):
         elif len(watches[var]) == 0 and len(watches[-var]) > 0:
             for clause_id in watches[-var]: clauses[clause_id] = None
 
-    # Clean up tombstoned clauses
-    clauses = [clause for clause in clauses if clause is not None]
-
-    if len(clauses) == 0: return True
-    if len([clause for clause in clauses if len(clause) == 0]) > 0: return False
+    if len([clause for clause in clauses if clause is not None]) == 0: return True
+    if len([clause for clause in clauses if clause is not None and len(clause) == 0]) > 0: return False
 
     false_clauses, true_clauses = clauses[:], clauses[:]
 
@@ -46,6 +43,7 @@ def dpll_search(num_vars, clauses):
 
     # Set variable num_var to false in false_clauses
     for clause_id in watches[num_vars]:
+        if clauses[clause_id] is None: continue  # Already tombstoned
         false_clauses[clause_id] = [lit for lit in clauses[clause_id] if lit != num_vars]
     for clause_id in watches[-num_vars]:
         false_clauses[clause_id] = None
