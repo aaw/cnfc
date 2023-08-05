@@ -25,15 +25,15 @@ class Formula:
     # suppressing tautologies, and supressing duplicate clauses
     def AddClause(self, *expr):
         # TODO: ensure all variables exist in self.vars
+        def raw_lit(expr):
+            if isinstance(expr, Var): return expr.vid
+            elif isinstance(expr, Literal): return expr.sign*expr.var.vid
+            else: raise ValueError("Expected Var or Literal, got {}".format(expr))
         if len(expr) > 1:
-            def raw_lit(expr):
-                if isinstance(expr, Var): return expr.vid
-                elif isinstance(expr, Literal): return expr.sign*expr.var.vid
-                else: raise ValueError("Expected Var or Literal, got {}".format(expr))
             self.buffer.Append(tuple(raw_lit(x) for x in expr))
         else:
             for clause in expr[0].generate_cnf(self):
-                self.buffer.Append(tuple(lit.sign*lit.var.vid for lit in clause))
+                self.buffer.Append(tuple(raw_lit(x) for x in clause))
 
     def WriteCNF(self, fd):
         self.buffer.Flush(fd)

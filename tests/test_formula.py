@@ -113,10 +113,46 @@ class TestFormula(unittest.TestCase):
 
     def test_conjunctive_cnf(self):
         f = Formula()
-        x = f.AddVars('x')
+        x = f.AddVar('x')
         self.assertSat(f)
         f.AddClause(~x & x)
         self.assertUnsat(f)
+
+    def test_eq_cnf(self):
+        f = Formula()
+        x,y = f.AddVars('x,y')
+        f.AddClause(x == ~y)
+        f.AddClause(x)
+        f.AddClause(y)
+        self.assertUnsat(f)
+
+        f = Formula()
+        x,y = f.AddVars('x,y')
+        f.AddClause(x == ~y)
+        f.AddClause(x)
+        f.AddClause(~y)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        f.AddClause(Eq(x,y,z))
+        f.AddClause(x)
+        f.AddClause(~y)
+        self.assertUnsat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        f.AddClause(Eq(x,y,~z))
+        f.AddClause(x)
+        f.AddClause(y)
+        f.AddClause(~z)
+        self.assertSat(f)
+
+    def test_implies_cnf(self):
+        pass
+
+    def test_not_cnf(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

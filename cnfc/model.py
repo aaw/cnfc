@@ -95,11 +95,10 @@ class Not(BoolExpr):
         return 'Not({})'.format(self.expr)
 
     def generate_var(self, formula):
-        # TODO
         pass
 
     def generate_cnf(self, formula):
-        yield Not(self.expr.generate_var())
+        yield ~self.expr.generate_var(formula)
 
 class OrderedBinaryBoolExpr(BoolExpr):
     def __init__(self, first, second):
@@ -110,13 +109,12 @@ class OrderedBinaryBoolExpr(BoolExpr):
 
 class Implies(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        # TODO
-        pass
+        return Or(Not(self.first), self.second).generate_var(formula)
 
     def generate_cnf(self, formula):
         fv = self.first.generate_var(formula)
         sv = self.second.generate_var(formula)
-        yield (Not(fv), sv)
+        yield (~fv, sv)
 
 class Eq(MultiBoolExpr):
     def generate_var(self, formula):
@@ -124,8 +122,13 @@ class Eq(MultiBoolExpr):
         pass
 
     def generate_cnf(self, formula):
-        # TODO
-        pass
+        prev = None
+        for expr in self.exprs:
+            var = expr.generate_var(formula)
+            if prev is not None:
+                yield (~prev, var)
+                yield (~var, prev)
+            prev = var
 
 class And(MultiBoolExpr):
     def generate_var(self, formula):
