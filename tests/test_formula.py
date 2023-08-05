@@ -149,10 +149,23 @@ class TestFormula(unittest.TestCase):
         self.assertSat(f)
 
     def test_implies_cnf(self):
-        pass
+        f = Formula()
+        x,y = f.AddVars('x,y')
+        f.AddClause(Implies(x,y))
+        f.AddClause(x)
+        self.assertSat(f)
+        f.AddClause(~y)
+        self.assertUnsat(f)
 
     def test_not_cnf(self):
-        pass
+        f = Formula()
+        x,y = f.AddVars('x,y')
+        f.AddClause(~x | ~y)
+        self.assertSat(f)
+        f.AddClause(x)
+        self.assertSat(f)
+        f.AddClause(y)
+        self.assertUnsat(f)
 
 if __name__ == '__main__':
     unittest.main()
