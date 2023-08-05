@@ -132,8 +132,12 @@ class Eq(MultiBoolExpr):
 
 class And(MultiBoolExpr):
     def generate_var(self, formula):
-        # TODO
-        pass
+        v = formula.AddVar()
+        subvars = [expr.generate_var(formula) for expr in self.exprs]
+        formula.AddClause(*([~sv for sv in subvars] + [v]))
+        for subvar in subvars:
+            formula.AddClause(~v, subvar)
+        return v
 
     def generate_cnf(self, formula):
         for expr in self.exprs:
@@ -141,8 +145,12 @@ class And(MultiBoolExpr):
 
 class Or(MultiBoolExpr):
     def generate_var(self, formula):
-        # TODO
-        pass
+        v = formula.AddVar()
+        subvars = [expr.generate_var(formula) for expr in self.exprs]
+        formula.AddClause(*(subvars + [~v]))
+        for subvar in subvars:
+            formula.AddClause(v, ~subvar)
+        return v
 
     def generate_cnf(self, formula):
         yield tuple(expr.generate_var(formula) for expr in self.exprs)

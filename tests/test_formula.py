@@ -167,5 +167,16 @@ class TestFormula(unittest.TestCase):
         f.AddClause(y)
         self.assertUnsat(f)
 
+    def test_embedded_conjunction_disjunction(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause((x | y) & (z | w))
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(~z)
+        self.assertSat(f)
+        f.AddClause(~y)
+        self.assertUnsat(f)
+
 if __name__ == '__main__':
     unittest.main()
