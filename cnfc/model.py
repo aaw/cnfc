@@ -201,14 +201,3 @@ class Tuple:
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr
-
-# Return the Var that holds the value of this expr, or None if there is none
-# TODO: make this a decorator that can wrap generate_var for each class
-def get_var(expr):
-    if isinstance(expr, Var):
-        return expr
-    else:
-        return getattr(expr, '_var', None)
-
-def register_var(expr, v):
-    expr._var = v
