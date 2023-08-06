@@ -74,19 +74,19 @@ def n_true(formula, vin, n, at_most_n_true, at_least_n_true):
     n = n+1  # We'll select the top n+1, verify exactly one true.
     batches = len(vin) // n
     for b in range(1, batches):
-        for clause in pairwise_sorting_network(formula, vin, 0, n): formula.AddClause(clause)
-        for clause in pairwise_sorting_network(formula, vin, b*n, (b+1)*n): formula.AddClause(clause)
-        for clause in filter_network(formula, vin, 0, b*n, n): formula.AddClause(clause)
+        for clause in pairwise_sorting_network(formula, vin, 0, n): formula.AddClause(*clause)
+        for clause in pairwise_sorting_network(formula, vin, b*n, (b+1)*n): formula.AddClause(*clause)
+        for clause in filter_network(formula, vin, 0, b*n, n): formula.AddClause(*clause)
     # Now take care of the remainder, if there is one.
     rem = len(vin) - batches * n
     if rem > 0:
-        for clause in pairwise_sorting_network(formula, vin, 0, n): formula.AddClause(clause)
-        for clause in pairwise_sorting_network(formula, vin, batches*n, len(vin)): formula.AddClause(clause)
-        for clause in filter_network(formula, vin, n-rem, batches*n, rem): formula.AddClause(clause)
+        for clause in pairwise_sorting_network(formula, vin, 0, n): formula.AddClause(*clause)
+        for clause in pairwise_sorting_network(formula, vin, batches*n, len(vin)): formula.AddClause(*clause)
+        for clause in filter_network(formula, vin, n-rem, batches*n, rem): formula.AddClause(*clause)
     if at_least_n_true:
         # Assert that at most 1 of the first n are false
         for clause in at_most_one_false(vin[:n]):
-            formula.AddClause(clause)
+            formula.AddClause(*clause)
     if at_most_n_true:
         # Assert that at least 1 of the first n are false
-        formula.AddClause([~v for v in vin[:n]])
+        formula.AddClause(*[~v for v in vin[:n]])
