@@ -10,7 +10,7 @@ def flush_buffer_to_str(b):
     return f.read()
 
 class TestBuffer(unittest.TestCase):
-    def test_something(self):
+    def test_basic(self):
         b = Buffer()
         b.Append((1,2,3))
         b.Append((-1,-2))
