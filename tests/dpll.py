@@ -13,8 +13,6 @@ def dpll_search(num_vars, clauses):
         if len(clause) == 0:
             return False
 
-    print('nv: {}, clauses: {}'.format(num_vars, clauses))
-
     # Unit propagation
     while len(units) > 0:
         new_units = set()
@@ -34,8 +32,6 @@ def dpll_search(num_vars, clauses):
             for clause_id in watches[var]: clauses[clause_id] = None
         elif len(watches[var]) == 0 and len(watches[-var]) > 0:
             for clause_id in watches[-var]: clauses[clause_id] = None
-
-    print('  after unit prop & pure lit elim: {}'.format(clauses))
 
     if len([clause for clause in clauses if clause is not None]) == 0: return True
     if len([clause for clause in clauses if clause is not None and len(clause) == 0]) > 0: return False
