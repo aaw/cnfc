@@ -35,7 +35,7 @@ class NumExpr:
     def __ge__(self, other):
         return Ge(self, other)
 
-class CountingRelation(NumExpr):
+class CardinalityConstraint(NumExpr):
     def __init__(self, *exprs):
         self.exprs = exprs
         for expr in self.exprs:
@@ -44,8 +44,8 @@ class CountingRelation(NumExpr):
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
 
-class NumTrue(CountingRelation): pass
-class NumFalse(CountingRelation): pass
+class NumTrue(CardinalityConstraint): pass
+class NumFalse(CardinalityConstraint): pass
 
 class Literal(BoolExpr):
     def __init__(self, var, sign):
@@ -116,20 +116,6 @@ class Implies(OrderedBinaryBoolExpr):
         sv = self.second.generate_var(formula)
         yield (~fv, sv)
 
-class Eq(MultiBoolExpr):
-    def generate_var(self, formula):
-        # TODO
-        pass
-
-    def generate_cnf(self, formula):
-        prev = None
-        for expr in self.exprs:
-            var = expr.generate_var(formula)
-            if prev is not None:
-                yield (~prev, var)
-                yield (~var, prev)
-            prev = var
-
 class And(MultiBoolExpr):
     def generate_var(self, formula):
         v = formula.AddVar()
@@ -154,6 +140,21 @@ class Or(MultiBoolExpr):
 
     def generate_cnf(self, formula):
         yield tuple(expr.generate_var(formula) for expr in self.exprs)
+
+# TODO: for eq,lt, etc. support CardinalityConstraint compared to CardinalityConstraint.
+class Eq(MultiBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        prev = None
+        for expr in self.exprs:
+            var = expr.generate_var(formula)
+            if prev is not None:
+                yield (~prev, var)
+                yield (~var, prev)
+            prev = var
 
 class Lt(OrderedBinaryBoolExpr): pass
 class Le(OrderedBinaryBoolExpr): pass
