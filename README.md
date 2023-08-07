@@ -21,3 +21,10 @@ f.AddClause(Tuple(x,y) < Tuple(z,w))
 with fd as open('/tmp/output.cnf', 'w'):
     f.WriteCNF(fd)
 ```
+
+Running tests
+=============
+
+```
+poetry run python3 -m unittest discover
+```

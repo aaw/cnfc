@@ -1,4 +1,4 @@
-from buffer import Buffer
+from cnfc.buffer import Buffer
 import io
 import tempfile
 import unittest

@@ -1,5 +1,5 @@
-from model import Var, Literal
-from buffer import Buffer
+from .model import Var, Literal
+from .buffer import Buffer
 
 class Formula:
     def __init__(self):

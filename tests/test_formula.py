@@ -1,5 +1,5 @@
 from cnfc import *
-from dpll import Satisfiable
+from .dpll import Satisfiable
 import io
 import unittest
 

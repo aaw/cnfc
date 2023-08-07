@@ -1,4 +1,4 @@
-from cache import Cache
+from cnfc.cache import Cache
 import unittest
 
 class TestCache(unittest.TestCase):

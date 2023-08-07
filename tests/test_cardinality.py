@@ -1,6 +1,6 @@
-from cardinality import exactly_n_true, at_least_n_true, at_most_n_true
+from cnfc.cardinality import exactly_n_true, at_least_n_true, at_most_n_true
 from cnfc import *
-from dpll import Satisfiable
+from .dpll import Satisfiable
 
 import io
 import unittest

@@ -1,5 +1,7 @@
 # Data model
 
+from multimethod import multimethod
+
 class BoolExpr:
     def __eq__(self, other):
         return Eq(self, other)
