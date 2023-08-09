@@ -44,9 +44,10 @@ class TestFormula(unittest.TestCase):
     def test_numeric_expr_parsing(self):
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        self.assertEqual(repr(NumFalse(x,y,z) == 2), 'Eq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
-        self.assertEqual(repr(3 > NumTrue(x,y,z,w)), 'Lt(NumTrue(Var(x,1),Var(y,2),Var(z,3),Var(w,4)),3)')
-        self.assertEqual(repr(Implies(NumTrue(x,y) == 0, z & w)), 'Implies(Eq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
+        self.assertEqual(repr(NumFalse(x,y,z) == 2), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
+        self.assertEqual(repr(2 == NumFalse(x,y,z)), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
+        self.assertEqual(repr(3 > NumTrue(x,y,z,w)), 'NumLt(NumTrue(Var(x,1),Var(y,2),Var(z,3),Var(w,4)),3)')
+        self.assertEqual(repr(Implies(NumTrue(x,y) == 0, z & w)), 'Implies(NumEq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
 
     def test_tuple_parsing(self):
         f = Formula()
@@ -188,6 +189,37 @@ class TestFormula(unittest.TestCase):
         f.AddClause(~w)
         self.assertSat(f)
         f.AddClause(~y)
+        self.assertUnsat(f)
+
+    def test_cardinality_equality(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(NumTrue(x,y,z,w) == 2)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(z)
+        f.AddClause(~w)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(NumTrue(x,y,z,w) == 2)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        f.AddClause(~w)
+        self.assertUnsat(f)
+
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(NumTrue(x,y,z,w) == 2)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(y)
+        f.AddClause(~z)
+        f.AddClause(w)
         self.assertUnsat(f)
 
 if __name__ == '__main__':

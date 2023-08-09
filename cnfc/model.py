@@ -1,4 +1,5 @@
 # Data model
+from .cardinality import exactly_n_true, at_least_n_true, at_most_n_true
 
 class BoolExpr:
     def __eq__(self, other):
@@ -18,22 +19,22 @@ class BoolExpr:
 
 class NumExpr:
     def __eq__(self, other):
-        return Eq(self, other)
+        return NumEq(self, other)
 
     def __ne__(self, other):
-        return Not(Eq(self, other))
+        return NumNeq(self, other)
 
     def __lt__(self, other):
-        return Lt(self, other)
+        return NumLt(self, other)
 
     def __le__(self, other):
-        return Le(self, other)
+        return NumLe(self, other)
 
     def __gt__(self, other):
-        return Gt(self, other)
+        return NumGt(self, other)
 
     def __ge__(self, other):
-        return Ge(self, other)
+        return NumGe(self, other)
 
 class CardinalityConstraint(NumExpr):
     def __init__(self, *exprs):
@@ -160,6 +161,26 @@ class Lt(OrderedBinaryBoolExpr): pass
 class Le(OrderedBinaryBoolExpr): pass
 class Gt(OrderedBinaryBoolExpr): pass
 class Ge(OrderedBinaryBoolExpr): pass
+
+# TODO: support expressions like NumTrue(x,y,z,w) > NumFalse(a,b,c).
+#       right now we expect one of the operands to be an int so we
+#       only support things like NumTrue(x,y,z) < 2
+class NumEq(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        assert type(self.second) is int, "Only cardinality comparisons to integers supported"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        for clause in exactly_n_true(formula, vars, self.second):
+            yield clause
+
+class NumNeq(OrderedBinaryBoolExpr): pass
+class NumLt(OrderedBinaryBoolExpr): pass
+class NumLe(OrderedBinaryBoolExpr): pass
+class NumGt(OrderedBinaryBoolExpr): pass
+class NumGe(OrderedBinaryBoolExpr): pass
 
 class Tuple:
     def __init__(self, *exprs):
