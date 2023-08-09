@@ -23,7 +23,8 @@ class TestCardinality(unittest.TestCase):
     def test_exact_basic(self):
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        exactly_n_true(f, [x,y,z,w], 2)
+        for clause in exactly_n_true(f, [x,y,z,w], 2):
+            f.AddClause(*clause)
         self.assertSat(f)
         f.AddClause(x)
         f.AddClause(z)
@@ -33,7 +34,8 @@ class TestCardinality(unittest.TestCase):
 
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        exactly_n_true(f, [x,y,z,w], 2)
+        for clause in exactly_n_true(f, [x,y,z,w], 2):
+            f.AddClause(*clause)
         f.AddClause(x)
         f.AddClause(~z)
         f.AddClause(~y)
@@ -42,7 +44,8 @@ class TestCardinality(unittest.TestCase):
 
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        exactly_n_true(f, [x,y,z,w], 2)
+        for clause in exactly_n_true(f, [x,y,z,w], 2):
+            f.AddClause(*clause)
         f.AddClause(x)
         f.AddClause(z)
         f.AddClause(y)
@@ -52,7 +55,8 @@ class TestCardinality(unittest.TestCase):
     def test_at_least_basic(self):
         f = Formula()
         x,y,z = f.AddVars('x,y,z')
-        at_least_n_true(f, [x,y,z], 2)
+        for clause in at_least_n_true(f, [x,y,z], 2):
+            f.AddClause(*clause)
         self.assertSat(f)
         f.AddClause(x)
         f.AddClause(~y)
@@ -61,7 +65,8 @@ class TestCardinality(unittest.TestCase):
 
         f = Formula()
         x,y,z = f.AddVars('x,y,z')
-        at_least_n_true(f, [x,y,z], 2)
+        for clause in at_least_n_true(f, [x,y,z], 2):
+            f.AddClause(*clause)
         f.AddClause(x)
         f.AddClause(~y)
         f.AddClause(~z)
@@ -69,7 +74,8 @@ class TestCardinality(unittest.TestCase):
 
         f = Formula()
         x,y,z = f.AddVars('x,y,z')
-        at_least_n_true(f, [x,y,z], 2)
+        for clause in at_least_n_true(f, [x,y,z], 2):
+            f.AddClause(*clause)
         f.AddClause(~x)
         f.AddClause(~y)
         f.AddClause(~z)
@@ -78,7 +84,8 @@ class TestCardinality(unittest.TestCase):
     def test_at_most_basic(self):
         f = Formula()
         x,y,z,w,v = f.AddVars('x,y,z,w,v')
-        at_most_n_true(f, [x,y,z,w,v], 2)
+        for clause in at_most_n_true(f, [x,y,z,w,v], 2):
+            f.AddClause(*clause)
         self.assertSat(f)
         f.AddClause(x)
         f.AddClause(~y)
@@ -89,7 +96,8 @@ class TestCardinality(unittest.TestCase):
 
         f = Formula()
         x,y,z,w,v = f.AddVars('x,y,z,w,v')
-        at_most_n_true(f, [x,y,z,w,v], 2)
+        for clause in at_most_n_true(f, [x,y,z,w,v], 2):
+            f.AddClause(*clause)
         self.assertSat(f)
         f.AddClause(x)
         f.AddClause(~y)
@@ -100,7 +108,8 @@ class TestCardinality(unittest.TestCase):
 
         f = Formula()
         x,y,z,w,v = f.AddVars('x,y,z,w,v')
-        at_most_n_true(f, [x,y,z,w,v], 2)
+        for clause in at_most_n_true(f, [x,y,z,w,v], 2):
+            f.AddClause(*clause)
         self.assertSat(f)
         f.AddClause(x)
         f.AddClause(y)
@@ -111,7 +120,8 @@ class TestCardinality(unittest.TestCase):
 
         f = Formula()
         x,y,z,w,v = f.AddVars('x,y,z,w,v')
-        at_most_n_true(f, [x,y,z,w,v], 2)
+        for clause in at_most_n_true(f, [x,y,z,w,v], 2):
+            f.AddClause(*clause)
         self.assertSat(f)
         f.AddClause(~x)
         f.AddClause(~y)

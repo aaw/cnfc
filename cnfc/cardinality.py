@@ -57,36 +57,36 @@ def filter_network(formula, vin, i, j, n):
 
 # Assert that exactly n of the vars in vin are true.
 def exactly_n_true(formula, vin, n):
-    n_true(formula, vin, n, True, True)
+    yield from n_true(formula, vin, n, True, True)
 
 def at_most_n_true(formula, vin, n):
-    n_true(formula, vin, n, True, False)
+    yield from n_true(formula, vin, n, True, False)
 
 def at_least_n_true(formula, vin, n):
-    n_true(formula, vin, n, False, True)
+    yield from n_true(formula, vin, n, False, True)
 
 def n_true(formula, vin, n, at_most_n_true, at_least_n_true):
     if n == 0:
         if at_least_n_true: return
         for v in vin:
-            formula.AddClause((~v,))
+            yield (~v,)
         return
     n = n+1  # We'll select the top n+1, verify exactly one true.
     batches = len(vin) // n
     for b in range(1, batches):
-        for clause in pairwise_sorting_network(formula, vin, 0, n): formula.AddClause(*clause)
-        for clause in pairwise_sorting_network(formula, vin, b*n, (b+1)*n): formula.AddClause(*clause)
-        for clause in filter_network(formula, vin, 0, b*n, n): formula.AddClause(*clause)
+        yield from pairwise_sorting_network(formula, vin, 0, n)
+        yield from pairwise_sorting_network(formula, vin, b*n, (b+1)*n)
+        yield from filter_network(formula, vin, 0, b*n, n)
     # Now take care of the remainder, if there is one.
     rem = len(vin) - batches * n
     if rem > 0:
-        for clause in pairwise_sorting_network(formula, vin, 0, n): formula.AddClause(*clause)
-        for clause in pairwise_sorting_network(formula, vin, batches*n, len(vin)): formula.AddClause(*clause)
-        for clause in filter_network(formula, vin, n-rem, batches*n, rem): formula.AddClause(*clause)
+        yield from pairwise_sorting_network(formula, vin, 0, n)
+        yield from pairwise_sorting_network(formula, vin, batches*n, len(vin))
+        yield from filter_network(formula, vin, n-rem, batches*n, rem)
     if at_least_n_true:
         # Assert that at most 1 of the first n are false
         for clause in at_most_one_false(vin[:n]):
-            formula.AddClause(*clause)
+            yield clause
     if at_most_n_true:
         # Assert that at least 1 of the first n are false
-        formula.AddClause(*[~v for v in vin[:n]])
+        yield [~v for v in vin[:n]]
