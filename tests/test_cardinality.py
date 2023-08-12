@@ -129,3 +129,155 @@ class TestCardinality(unittest.TestCase):
         f.AddClause(~w)
         f.AddClause(v)
         self.assertSat(f)
+
+    # Test some boundary conditions for equality
+    def test_eq_boundary(self):
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in exactly_n_true(f, [x,y,z], 0):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in exactly_n_true(f, [x,y,z], 0):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(y)
+        f.AddClause(~z)
+        self.assertUnsat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in exactly_n_true(f, [x,y,z], 3):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(y)
+        f.AddClause(z)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in exactly_n_true(f, [x,y,z], 3):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(y)
+        f.AddClause(z)
+        self.assertUnsat(f)
+
+    # Test some boundary conditions for inequality
+    def test_eq_boundary(self):
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in not_exactly_n_true(f, [x,y,z], 0):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in not_exactly_n_true(f, [x,y,z], 0):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        self.assertUnsat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in not_exactly_n_true(f, [x,y,z], 3):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(y)
+        f.AddClause(z)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in not_exactly_n_true(f, [x,y,z], 3):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(y)
+        f.AddClause(z)
+        self.assertUnsat(f)
+
+    # Test some boundary conditions for 'at least' comparisons
+    def test_eq_boundary(self):
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in at_least_n_true(f, [x,y,z], 0):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        self.assertSat(f)
+
+        # At least 0 are true is a tautology, no way to create unsat formula.
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in at_least_n_true(f, [x,y,z], 3):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(y)
+        f.AddClause(z)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in at_least_n_true(f, [x,y,z], 3):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(z)
+        self.assertUnsat(f)
+
+    # Test some boundary conditions for 'at most' comparisons
+    def test_eq_boundary(self):
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in at_most_n_true(f, [x,y,z], 0):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in at_most_n_true(f, [x,y,z], 0):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        self.assertUnsat(f)
+
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        for clause in at_most_n_true(f, [x,y,z], 3):
+            f.AddClause(*clause)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(z)
+        self.assertSat(f)
+
+        # At most n true is a tautology, no way to create an unsat formula.
