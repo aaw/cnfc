@@ -1,1 +1,2 @@
 * Add some specializations in cardinality.py for 'at most 1 true' and 'at least one true'
+* Rename AddClause, make it return an ID, implement RemoveClause(id). Maybe only want PopClause()? Or RemoveClauseAndDependents(id)?
