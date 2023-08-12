@@ -172,8 +172,14 @@ class NumEq(OrderedBinaryBoolExpr):
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
+        if isinstance(self.first, NumTrue):
+            n = self.second
+        elif isinstance(self.first, NumFalse):
+            n = len(vars) - self.second
+        else:
+            raise ValueError("Only NumTrue and NumFalse are supported.")
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
-        for clause in exactly_n_true(formula, vars, self.second):
+        for clause in exactly_n_true(formula, vars, n):
             yield clause
 
 class NumNeq(OrderedBinaryBoolExpr):
@@ -183,8 +189,14 @@ class NumNeq(OrderedBinaryBoolExpr):
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
+        if isinstance(self.first, NumTrue):
+            n = self.second
+        elif isinstance(self.first, NumFalse):
+            n = len(vars) - self.second
+        else:
+            raise ValueError("Only NumTrue and NumFalse are supported.")
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
-        for clause in not_exactly_n_true(formula, vars, self.second):
+        for clause in not_exactly_n_true(formula, vars, n):
             yield clause
 
 class NumLt(OrderedBinaryBoolExpr):
@@ -195,8 +207,14 @@ class NumLt(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
-        for clause in at_most_n_true(formula, vars, self.second-1):
-            yield clause
+        if isinstance(self.first, NumTrue):
+            for clause in at_most_n_true(formula, vars, self.second-1):
+                yield clause
+        elif isinstance(self.first, NumFalse):
+            for clause in at_least_n_true(formula, vars, seld.second):
+                yield clause
+        else:
+            raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumLe(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
@@ -206,8 +224,14 @@ class NumLe(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
-        for clause in at_most_n_true(formula, vars, self.second):
-            yield clause
+        if isinstance(self.first, NumTrue):
+            for clause in at_most_n_true(formula, vars, self.second):
+                yield clause
+        elif isinstance(self.first, NumFalse):
+            for clause in at_least_n_true(formula, vars, self.second+1):
+                yield clause
+        else:
+            raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumGt(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
@@ -217,8 +241,14 @@ class NumGt(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
-        for clause in at_least_n_true(formula, vars, self.second+1):
-            yield clause
+        if isinstance(self.first, NumTrue):
+            for clause in at_least_n_true(formula, vars, self.second+1):
+                yield clause
+        elif isinstance(self.first, NumFalse):
+            for clause in at_most_n_true(formula, vars, self.second):
+                yield clause
+        else:
+            raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumGe(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
@@ -228,8 +258,14 @@ class NumGe(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
-        for clause in at_least_n_true(formula, vars, self.second):
-            yield clause
+        if isinstance(self.first, NumTrue):
+            for clause in at_least_n_true(formula, vars, self.second):
+                yield clause
+        elif isinstance(self.first, NumFalse):
+            for clause in at_most_n_true(formula, vars, self.second-1):
+                yield clause
+        else:
+            raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class Tuple:
     def __init__(self, *exprs):
