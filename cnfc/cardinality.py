@@ -1,14 +1,12 @@
 from itertools import combinations
 
-# Generates clauses satisfiable iff at most one of the variables in vs is true.
-def at_most_one_true(vs):
-    vvs = tuple(v for v in vs)
-    yield from combinations(vvs, 2)
-
 # Generates clauses satisfiable iff at most one of the variables in vs is false.
 def at_most_one_false(vs):
     vvs = tuple(v for v in vs)
     yield from combinations(vvs, 2)
+
+def at_least_one_false(vs):
+    yield [~v for v in vs]
 
 # Given variables a, b, minout, and maxout, generates clauses that are
 # satisfiable iff minout = min(a,b) and maxout = max(a,b).
@@ -55,23 +53,7 @@ def filter_network(formula, vin, i, j, n):
     for x in range(n):
         yield from apply_comparator(formula, vin, i+x, j+n-1-x)
 
-# Assert that exactly n of the vars in vin are true.
-def exactly_n_true(formula, vin, n):
-    yield from n_true(formula, vin, n, True, True)
-
-def at_most_n_true(formula, vin, n):
-    yield from n_true(formula, vin, n, True, False)
-
-def at_least_n_true(formula, vin, n):
-    yield from n_true(formula, vin, n, False, True)
-
-def n_true(formula, vin, n, at_most_n_true, at_least_n_true):
-    if n == 0:
-        if at_least_n_true: return
-        for v in vin:
-            yield (~v,)
-        return
-    n = n+1  # We'll select the top n+1, verify exactly one true.
+def select_max_n(formula, vin, n):
     batches = len(vin) // n
     for b in range(1, batches):
         yield from pairwise_sorting_network(formula, vin, 0, n)
@@ -83,10 +65,32 @@ def n_true(formula, vin, n, at_most_n_true, at_least_n_true):
         yield from pairwise_sorting_network(formula, vin, 0, n)
         yield from pairwise_sorting_network(formula, vin, batches*n, len(vin))
         yield from filter_network(formula, vin, n-rem, batches*n, rem)
-    if at_least_n_true:
-        # Assert that at most 1 of the first n are false
-        for clause in at_most_one_false(vin[:n]):
-            yield clause
-    if at_most_n_true:
-        # Assert that at least 1 of the first n are false
-        yield [~v for v in vin[:n]]
+
+# Assert that exactly n of the vars in vin are true.
+def exactly_n_true(formula, vin, n):
+    if n == 0:
+        for v in vin: yield (~v,)
+        return
+    # TODO: range check
+    yield from select_max_n(formula, vin, n+1)
+    yield from at_least_one_false(vin[:n+1])
+    yield from at_most_one_false(vin[:n+1])
+
+def not_exactly_n_true(formula, vin, n):
+    if n == 0:
+        yield [v for v in vin]
+        return
+    yield from select_max_n(formula, vin, n)
+    yield [~v for v in vin[:n]] + [v for v in vin[n:]]
+
+def at_most_n_true(formula, vin, n):
+    if n == 0:
+        for v in vin: yield (~v,)
+        return
+    yield from select_max_n(formula, vin, n+1)
+    yield from at_least_one_false(vin[:n+1])
+
+def at_least_n_true(formula, vin, n):
+    if n == 0: return
+    yield from select_max_n(formula, vin, n+1)
+    yield from at_most_one_false(vin[:n+1])

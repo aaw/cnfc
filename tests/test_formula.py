@@ -222,5 +222,36 @@ class TestFormula(unittest.TestCase):
         f.AddClause(w)
         self.assertUnsat(f)
 
+    def test_cardinality_inequality(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(NumTrue(x,y,z,w) != 2)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(z)
+        f.AddClause(~w)
+        self.assertUnsat(f)
+
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(NumTrue(x,y,z,w) != 2)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(~z)
+        f.AddClause(~w)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.AddClause(NumTrue(x,y,z,w) != 2)
+        self.assertSat(f)
+        f.AddClause(x)
+        f.AddClause(y)
+        f.AddClause(~z)
+        f.AddClause(w)
+        self.assertSat(f)
+
 if __name__ == '__main__':
     unittest.main()

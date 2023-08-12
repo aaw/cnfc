@@ -1,5 +1,5 @@
 # Data model
-from .cardinality import exactly_n_true, at_least_n_true, at_most_n_true
+from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
 
 class BoolExpr:
     def __eq__(self, other):
@@ -171,16 +171,65 @@ class NumEq(OrderedBinaryBoolExpr):
         pass
 
     def generate_cnf(self, formula):
-        assert type(self.second) is int, "Only cardinality comparisons to integers supported"
+        assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         for clause in exactly_n_true(formula, vars, self.second):
             yield clause
 
-class NumNeq(OrderedBinaryBoolExpr): pass
-class NumLt(OrderedBinaryBoolExpr): pass
-class NumLe(OrderedBinaryBoolExpr): pass
-class NumGt(OrderedBinaryBoolExpr): pass
-class NumGe(OrderedBinaryBoolExpr): pass
+class NumNeq(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        assert type(self.second) is int, "Cardinality comparisons require integers"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        for clause in not_exactly_n_true(formula, vars, self.second):
+            yield clause
+
+class NumLt(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        assert type(self.second) is int, "Cardinality comparisons require integers"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        for clause in at_most_n_true(formula, vars, self.second-1):
+            yield clause
+
+class NumLe(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        assert type(self.second) is int, "Cardinality comparisons require integers"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        for clause in at_most_n_true(formula, vars, self.second):
+            yield clause
+
+class NumGt(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        assert type(self.second) is int, "Cardinality comparisons require integers"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        for clause in at_least_n_true(formula, vars, self.second+1):
+            yield clause
+
+class NumGe(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        # TODO
+        pass
+
+    def generate_cnf(self, formula):
+        assert type(self.second) is int, "Cardinality comparisons require integers"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        for clause in at_least_n_true(formula, vars, self.second):
+            yield clause
 
 class Tuple:
     def __init__(self, *exprs):
