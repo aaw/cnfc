@@ -1,0 +1,1 @@
+* Add some specializations in cardinality.py for 'at most 1 true' and 'at least one true'
