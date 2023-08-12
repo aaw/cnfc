@@ -21,3 +21,64 @@ class TestBuffer(unittest.TestCase):
             '-1 -2 0\n'
         )
         self.assertEqual(flush_buffer_to_str(b), expected)
+
+    def test_push_pop(self):
+        b = Buffer()
+        b.Append((1,))
+        b.PushCheckpoint()
+        b.Append((2,))
+        b.Append((3,))
+        b.PushCheckpoint()
+        b.Append((4,))
+        b.PushCheckpoint()
+        b.Append((5,))
+
+        expected = (
+            'p cnf 5 5\n' +
+            '1 0\n' +
+            '2 0\n' +
+            '3 0\n' +
+            '4 0\n' +
+            '5 0\n'
+        )
+        self.assertEqual(flush_buffer_to_str(b), expected)
+
+        b.PopCheckpoint()
+
+        expected = (
+            'p cnf 4 4\n' +
+            '1 0\n' +
+            '2 0\n' +
+            '3 0\n' +
+            '4 0\n'
+        )
+        self.assertEqual(flush_buffer_to_str(b), expected)
+
+        b.PopCheckpoint()
+
+        expected = (
+            'p cnf 3 3\n' +
+            '1 0\n' +
+            '2 0\n' +
+            '3 0\n'
+        )
+        self.assertEqual(flush_buffer_to_str(b), expected)
+
+        b.PopCheckpoint()
+
+        expected = (
+            'p cnf 1 1\n' +
+            '1 0\n'
+        )
+        self.assertEqual(flush_buffer_to_str(b), expected)
+
+        b.Append((2,))
+        b.Append((3,))
+
+        expected = (
+            'p cnf 3 3\n' +
+            '1 0\n' +
+            '2 0\n' +
+            '3 0\n'
+        )
+        self.assertEqual(flush_buffer_to_str(b), expected)
