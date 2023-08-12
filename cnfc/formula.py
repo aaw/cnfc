@@ -35,5 +35,11 @@ class Formula:
             for clause in expr[0].generate_cnf(self):
                 self.buffer.Append(tuple(raw_lit(x) for x in clause))
 
+    def Checkpoint(self):
+        self.buffer.PushCheckpoint()
+
+    def Rollback(self):
+        self.buffer.PopCheckpoint()
+
     def WriteCNF(self, fd):
         self.buffer.Flush(fd)
