@@ -7,9 +7,18 @@ class Buffer:
         self.fd = open(path, 'r+')
         self.maxvar = 0
         self.num_clauses = 0
+        self.checkpoints = []
 
     def __del__(self):
         self.fd.close()
+
+    def PushCheckpoint(self):
+        self.checkpoints.append((self.num_clauses, self.maxvar, self.fd.tell()))
+
+    def PopCheckpoint(self):
+        self.num_clauses, self.maxvar, pos = self.checkpoints.pop()
+        self.fd.seek(pos)
+        self.fd.truncate()
 
     def Append(self, clause):
         self.maxvar = max(self.maxvar, *[abs(lit) for lit in clause])
