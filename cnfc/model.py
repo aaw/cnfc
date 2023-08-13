@@ -211,7 +211,7 @@ class NumLt(OrderedBinaryBoolExpr):
             for clause in at_most_n_true(formula, vars, self.second-1):
                 yield clause
         elif isinstance(self.first, NumFalse):
-            for clause in at_least_n_true(formula, vars, seld.second):
+            for clause in at_least_n_true(formula, vars, len(vars) - self.second + 1):
                 yield clause
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
@@ -228,7 +228,7 @@ class NumLe(OrderedBinaryBoolExpr):
             for clause in at_most_n_true(formula, vars, self.second):
                 yield clause
         elif isinstance(self.first, NumFalse):
-            for clause in at_least_n_true(formula, vars, self.second+1):
+            for clause in at_least_n_true(formula, vars, len(vars) - self.second):
                 yield clause
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
@@ -245,7 +245,7 @@ class NumGt(OrderedBinaryBoolExpr):
             for clause in at_least_n_true(formula, vars, self.second+1):
                 yield clause
         elif isinstance(self.first, NumFalse):
-            for clause in at_most_n_true(formula, vars, self.second):
+            for clause in at_most_n_true(formula, vars, len(vars) - self.second - 1):
                 yield clause
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
@@ -262,7 +262,7 @@ class NumGe(OrderedBinaryBoolExpr):
             for clause in at_least_n_true(formula, vars, self.second):
                 yield clause
         elif isinstance(self.first, NumFalse):
-            for clause in at_most_n_true(formula, vars, self.second-1):
+            for clause in at_most_n_true(formula, vars, len(vars) - self.second):
                 yield clause
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
