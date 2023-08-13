@@ -18,7 +18,7 @@ f.Add(NumTrue(x,y,z) >= 1)
 
 f.Add(Tuple(x,y) < Tuple(z,w))
 
-with fd as open('/tmp/output.cnf', 'w'):
+with open('/tmp/output.cnf', 'w') as fd:
     f.WriteCNF(fd)
 ```
 

@@ -158,6 +158,12 @@ class TestFormula(unittest.TestCase):
         f.Add(~y)
         self.assertUnsat(f)
 
+    def test_implies_subformula(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
+        f.Add(Implies(x,y) | ~(z & w))
+        self.assertSat(f)
+
     def test_not_cnf(self):
         f = Formula()
         x,y = f.AddVars('x,y')
