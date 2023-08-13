@@ -96,7 +96,7 @@ class Not(BoolExpr):
         return 'Not({})'.format(self.expr)
 
     def generate_var(self, formula):
-        pass
+        return ~self.expr.generate_var(formula)
 
     def generate_cnf(self, formula):
         yield ~self.expr.generate_var(formula)
