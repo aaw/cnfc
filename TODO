@@ -1,1 +1,3 @@
 * Add some specializations in cardinality.py for 'at most 1 true' and 'at least one true'
+* Support cardinality constraints compared to one another: NumTrue(x,y,z) >= NumFalse(w,v)
+* Support cardinality constraints as variable additions: Implies(NumTrue(x,y,z) > 1, NumFalse(w,v) > 0)

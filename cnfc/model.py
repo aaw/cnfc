@@ -142,7 +142,6 @@ class Or(MultiBoolExpr):
     def generate_cnf(self, formula):
         yield tuple(expr.generate_var(formula) for expr in self.exprs)
 
-# TODO: for eq,lt, etc. support CardinalityConstraint compared to CardinalityConstraint.
 class Eq(MultiBoolExpr):
     def generate_var(self, formula):
         # TODO
@@ -157,14 +156,6 @@ class Eq(MultiBoolExpr):
                 yield (~var, prev)
             prev = var
 
-class Lt(OrderedBinaryBoolExpr): pass
-class Le(OrderedBinaryBoolExpr): pass
-class Gt(OrderedBinaryBoolExpr): pass
-class Ge(OrderedBinaryBoolExpr): pass
-
-# TODO: support expressions like NumTrue(x,y,z,w) > NumFalse(a,b,c).
-#       right now we expect one of the operands to be an int so we
-#       only support things like NumTrue(x,y,z) < 2
 class NumEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
@@ -267,6 +258,13 @@ class NumGe(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
+class TupleEq(OrderedBinaryBoolExpr): pass
+class TupleNeq(OrderedBinaryBoolExpr): pass
+class TupleLt(OrderedBinaryBoolExpr): pass
+class TupleLe(OrderedBinaryBoolExpr): pass
+class TupleGt(OrderedBinaryBoolExpr): pass
+class TupleGe(OrderedBinaryBoolExpr): pass
+
 class Tuple:
     def __init__(self, *exprs):
         self.exprs = exprs
@@ -284,27 +282,27 @@ class Tuple:
 
     def __eq__(self, other: 'Tuple'):
         self.__check_length(other)
-        return Eq(self, other)
+        return TupleEq(self, other)
 
     def __ne__(self, other: 'Tuple'):
         self.__check_length(other)
-        return Not(Eq(self, other))
+        return TupleNot(Eq(self, other))
 
     def __lt__(self, other: 'Tuple'):
         self.__check_length(other)
-        return Lt(self, other)
+        return TupleLt(self, other)
 
     def __le__(self, other: 'Tuple'):
         self.__check_length(other)
-        return Le(self, other)
+        return TupleLe(self, other)
 
     def __gt__(self, other: 'Tuple'):
         self.__check_length(other)
-        return Gt(self, other)
+        return TupleGt(self, other)
 
     def __ge__(self, other: 'Tuple'):
         self.__check_length(other)
-        return Ge(self, other)
+        return TupleGe(self, other)
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr

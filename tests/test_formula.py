@@ -54,7 +54,7 @@ class TestFormula(unittest.TestCase):
         xs = f.AddVars('x1,x2,x3')
         ys = f.AddVars('y1,y2,y3')
         zs = f.AddVars('z1,z2')
-        self.assertEqual(repr(Tuple(*xs) < Tuple(*ys)), 'Lt(Tuple(Var(x1,1),Var(x2,2),Var(x3,3)),Tuple(Var(y1,4),Var(y2,5),Var(y3,6)))')
+        self.assertEqual(repr(Tuple(*xs) < Tuple(*ys)), 'TupleLt(Tuple(Var(x1,1),Var(x2,2),Var(x3,3)),Tuple(Var(y1,4),Var(y2,5),Var(y3,6)))')
 
         with self.assertRaises(AssertionError):
             Tuple(*xs) >= Tuple(*zs)
