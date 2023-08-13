@@ -91,18 +91,18 @@ def not_exactly_n_true(formula, vin, n):
     yield [~v for v in vin[:n]] + [v for v in vin[n:]]
 
 def at_most_n_true(formula, vin, n):
-    if n < 0 or n > len(vin): raise ValueError("n out of range")
+    if n < 0: raise ValueError("n out of range")
     if n == 0:
         for v in vin: yield (~v,)
         return
-    elif n == len(vin):
+    elif n >= len(vin):
         return
     yield from select_max_n(formula, vin, n+1)
     yield from at_least_one_false(vin[:n+1])
 
 def at_least_n_true(formula, vin, n):
-    if n < 0 or n > len(vin): raise ValueError("n out of range")
-    if n == 0:
+    if n > len(vin): raise ValueError("n out of range")
+    if n <= 0:
         return
     elif n == len(vin):
         for v in vin: yield (v,)

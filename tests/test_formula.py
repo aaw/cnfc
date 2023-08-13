@@ -398,7 +398,20 @@ class TestFormula(unittest.TestCase):
         f.PopCheckpoint()
 
     def test_inequality_trivial(self):
-        pass
+        f = Formula()
+        x,y,z = f.AddVars('x,y,z')
+        f.AddClause(x)
+        f.AddClause(~y)
+        f.AddClause(z)
+
+        f.AddClause(NumTrue(x,y,z) > -5)
+        self.assertSat(f)
+        f.AddClause(NumFalse(x,y,z) >= -10)
+        self.assertSat(f)
+        f.AddClause(NumTrue(x,y,z) <= 100)
+        self.assertSat(f)
+        f.AddClause(NumFalse(x,y,z) <= 1024)
+        self.assertSat(f)
 
 if __name__ == '__main__':
     unittest.main()
