@@ -194,64 +194,103 @@ class TestFormula(unittest.TestCase):
     def test_cardinality_equality(self):
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        f.AddClause(NumTrue(x,y,z,w) == 2)
-        self.assertSat(f)
         f.AddClause(x)
         f.AddClause(~y)
         f.AddClause(z)
         f.AddClause(~w)
         self.assertSat(f)
 
-        f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        f.PushCheckpoint()
         f.AddClause(NumTrue(x,y,z,w) == 2)
         self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.AddClause(2 == NumFalse(x,y,z,w))
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
         f.AddClause(x)
         f.AddClause(~y)
         f.AddClause(~z)
         f.AddClause(~w)
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.AddClause(2 == NumTrue(x,y,z,w))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.AddClause(NumFalse(x,y,z,w) == 2)
         self.assertUnsat(f)
 
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        f.AddClause(NumTrue(x,y,z,w) == 2)
-        self.assertSat(f)
         f.AddClause(x)
         f.AddClause(y)
         f.AddClause(~z)
         f.AddClause(w)
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.AddClause(NumTrue(x,y,z,w) == 2)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.AddClause(NumFalse(x,y,z,w) == 2)
         self.assertUnsat(f)
 
     def test_cardinality_inequality(self):
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        f.AddClause(NumTrue(x,y,z,w) != 2)
-        self.assertSat(f)
         f.AddClause(x)
         f.AddClause(~y)
         f.AddClause(z)
         f.AddClause(~w)
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.AddClause(NumTrue(x,y,z,w) != 2)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.AddClause(NumFalse(x,y,z,w) != 2)
         self.assertUnsat(f)
 
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
-        f.AddClause(NumTrue(x,y,z,w) != 2)
-        self.assertSat(f)
         f.AddClause(x)
         f.AddClause(~y)
         f.AddClause(~z)
         f.AddClause(~w)
         self.assertSat(f)
 
-        f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        f.PushCheckpoint()
         f.AddClause(NumTrue(x,y,z,w) != 2)
         self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.AddClause(NumFalse(x,y,z,w) != 2)
+        self.assertSat(f)
+
+        f = Formula()
+        x,y,z,w = f.AddVars('x,y,z,w')
         f.AddClause(x)
         f.AddClause(y)
         f.AddClause(~z)
         f.AddClause(w)
         self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.AddClause(2 != NumTrue(x,y,z,w))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.AddClause(2 != NumFalse(x,y,z,w))
+        self.assertSat(f)
+
+
+# TODO: finish testing NumTrue/NumFalse
 
 if __name__ == '__main__':
     unittest.main()

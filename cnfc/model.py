@@ -172,13 +172,13 @@ class NumEq(OrderedBinaryBoolExpr):
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             n = self.second
         elif isinstance(self.first, NumFalse):
             n = len(vars) - self.second
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
         for clause in exactly_n_true(formula, vars, n):
             yield clause
 
@@ -189,13 +189,13 @@ class NumNeq(OrderedBinaryBoolExpr):
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
+        vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             n = self.second
         elif isinstance(self.first, NumFalse):
             n = len(vars) - self.second
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
         for clause in not_exactly_n_true(formula, vars, n):
             yield clause
 
