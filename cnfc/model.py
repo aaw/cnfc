@@ -1,12 +1,13 @@
 # Data model
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
+from .tuples import tuple_less_than
 
 class BoolExpr:
     def __eq__(self, other):
         return Eq(self, other)
 
     def __ne__(self, other):
-        return Not(Eq(self, other))
+        return Neq(self, other)
 
     def __invert__(self):
         return Not(self)
@@ -142,20 +143,41 @@ class Or(MultiBoolExpr):
     def generate_cnf(self, formula):
         yield tuple(expr.generate_var(formula) for expr in self.exprs)
 
-class Eq(MultiBoolExpr):
+class Eq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        # TODO
-        pass
+        v = formula.AddVar()
+        fv = self.first.generate_var(formula)
+        sv = self.second.generate_var(formula)
+        formula.AddClause(~fv, ~sv, ~v)
+        formula.AddClause(fv, sv, ~v)
+        formula.AddClause(fv, ~sv, v)
+        formula.AddClause(~fv, sv, v)
+        return v
 
     def generate_cnf(self, formula):
-        prev = None
-        for expr in self.exprs:
-            var = expr.generate_var(formula)
-            if prev is not None:
-                yield (~prev, var)
-                yield (~var, prev)
-            prev = var
+        fv = self.first.generate_var(formula)
+        sv = self.second.generate_var(formula)
+        yield (~fv, sv)
+        yield (~sv, fv)
 
+class Neq(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        v = formula.AddVar()
+        fv = self.first.generate_var(formula)
+        sv = self.second.generate_var(formula)
+        formula.AddClause(~fv, ~sv, v)
+        formula.AddClause(fv, sv, v)
+        formula.AddClause(fv, ~sv, ~v)
+        formula.AddClause(~fv, sv, ~v)
+        return v
+
+    def generate_cnf(self, formula):
+        fv = self.first.generate_var(formula)
+        sv = self.second.generate_var(formula)
+        yield (fv, sv)
+        yield (~fv, ~sv)
+
+# TODO: replace yields in the next few generate_cnfs with 'yield from'
 class NumEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
@@ -258,12 +280,59 @@ class NumGe(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
-class TupleEq(OrderedBinaryBoolExpr): pass
-class TupleNeq(OrderedBinaryBoolExpr): pass
-class TupleLt(OrderedBinaryBoolExpr): pass
-class TupleLe(OrderedBinaryBoolExpr): pass
-class TupleGt(OrderedBinaryBoolExpr): pass
-class TupleGe(OrderedBinaryBoolExpr): pass
+class TupleEq(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        pass
+
+    def generate_cnf(self, formula):
+        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
+        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
+
+class TupleNeq(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        pass
+
+    def generate_cnf(self, formula):
+        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
+        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
+
+class TupleLt(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        pass
+
+    def generate_cnf(self, formula):
+        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
+        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        yield from tuple_less_than(formula, t1, t2, strict=True)
+
+class TupleLe(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        pass
+
+    def generate_cnf(self, formula):
+        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
+        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        yield from tuple_less_than(formula, t1, t2, strict=False)
+
+class TupleGt(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        pass
+
+    def generate_cnf(self, formula):
+        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
+        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        yield from tuple_less_than(formula, t2, t1, strict=True)
+
+class TupleGe(OrderedBinaryBoolExpr):
+    def generate_var(self, formula):
+        pass
+
+    def generate_cnf(self, formula):
+        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
+        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        yield from tuple_less_than(formula, t2, t1, strict=False)
 
 class Tuple:
     def __init__(self, *exprs):

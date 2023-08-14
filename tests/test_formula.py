@@ -39,7 +39,7 @@ class TestFormula(unittest.TestCase):
         f = Formula()
         x,y,z,w = f.AddVars('x,y,z,w')
         c = (~x == y) & ((z != w) | x)
-        self.assertEqual(repr(c), 'And(Eq(Literal(Var(x,1),-1),Var(y,2)),Or(Not(Eq(Var(z,3),Var(w,4))),Var(x,1)))')
+        self.assertEqual(repr(c), 'And(Eq(Literal(Var(x,1),-1),Var(y,2)),Or(Neq(Var(z,3),Var(w,4)),Var(x,1)))')
 
     def test_numeric_expr_parsing(self):
         f = Formula()
@@ -136,16 +136,15 @@ class TestFormula(unittest.TestCase):
 
         f = Formula()
         x,y,z = f.AddVars('x,y,z')
-        f.Add(Eq(x,y,z))
+        f.Add(Eq(x,y))
         f.Add(x)
         f.Add(~y)
         self.assertUnsat(f)
 
         f = Formula()
         x,y,z = f.AddVars('x,y,z')
-        f.Add(Eq(x,y,~z))
+        f.Add(Eq(x,~z))
         f.Add(x)
-        f.Add(y)
         f.Add(~z)
         self.assertSat(f)
 
@@ -418,6 +417,15 @@ class TestFormula(unittest.TestCase):
         self.assertSat(f)
         f.Add(NumFalse(x,y,z) <= 1024)
         self.assertSat(f)
+
+    def test_tuple_equal(self):
+        pass
+
+    def test_tuple_not_equal(self):
+        pass
+
+    def test_tuple_inequality(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
