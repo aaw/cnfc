@@ -20,7 +20,7 @@ class TestCardinality(unittest.TestCase):
     def assertUnsat(self, formula):
         self.assertFalse(Satisfiable(write_cnf_to_string(formula)))
 
-    def test_less_than_2(self):
+    def test_less_than_small_exhaustive(self):
         f = Formula()
         x1,x2,y1,y2 = f.AddVars('x1,x2,y1,y2')
 
