@@ -1,3 +1,5 @@
+* Finish implementing all tuple comparisons
+* Extract common unittest helpers
 * Write comments in the DIMACS file header that list variable name to ID
   associations.
 * Add some specializations in cardinality.py for 'at most 1 true' and 'at least
