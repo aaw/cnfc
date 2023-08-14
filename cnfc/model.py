@@ -148,10 +148,10 @@ class Eq(OrderedBinaryBoolExpr):
         v = formula.AddVar()
         fv = self.first.generate_var(formula)
         sv = self.second.generate_var(formula)
-        formula.AddClause(~fv, ~sv, ~v)
-        formula.AddClause(fv, sv, ~v)
-        formula.AddClause(fv, ~sv, v)
-        formula.AddClause(~fv, sv, v)
+        formula.AddClause(~fv, ~sv, v)
+        formula.AddClause(fv, sv, v)
+        formula.AddClause(fv, ~sv, ~v)
+        formula.AddClause(~fv, sv, ~v)
         return v
 
     def generate_cnf(self, formula):
@@ -165,10 +165,10 @@ class Neq(OrderedBinaryBoolExpr):
         v = formula.AddVar()
         fv = self.first.generate_var(formula)
         sv = self.second.generate_var(formula)
-        formula.AddClause(~fv, ~sv, v)
-        formula.AddClause(fv, sv, v)
-        formula.AddClause(fv, ~sv, ~v)
-        formula.AddClause(~fv, sv, ~v)
+        formula.AddClause(~fv, ~sv, ~v)
+        formula.AddClause(fv, sv, ~v)
+        formula.AddClause(fv, ~sv, v)
+        formula.AddClause(~fv, sv, v)
         return v
 
     def generate_cnf(self, formula):
@@ -355,7 +355,7 @@ class Tuple:
 
     def __ne__(self, other: 'Tuple'):
         self.__check_length(other)
-        return TupleNot(Eq(self, other))
+        return TupleNeq(self, other)
 
     def __lt__(self, other: 'Tuple'):
         self.__check_length(other)

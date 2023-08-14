@@ -418,11 +418,48 @@ class TestFormula(unittest.TestCase):
         f.Add(NumFalse(x,y,z) <= 1024)
         self.assertSat(f)
 
-    def test_tuple_equal(self):
-        pass
+    def test_tuple_equal_not_equal(self):
+        f = Formula()
+        dimension = 4
+        x = [f.AddVar('x{}'.format(i)) for i in range(dimension)]
+        y = [f.AddVar('y{}'.format(i)) for i in range(dimension)]
 
-    def test_tuple_not_equal(self):
-        pass
+        f.PushCheckpoint()  # x[1] != y[1]
+        f.Add(x[1])
+        f.Add(~y[1])
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) == Tuple(*y))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) != Tuple(*y))
+        self.assertSat(f)
+        f.PopCheckpoint()
+        f.PopCheckpoint()  # x[1] != y[1]
+
+        f.PushCheckpoint()  # all coords equal
+        f.Add(~x[0])
+        f.Add(~y[0])
+        f.Add(x[1])
+        f.Add(y[1])
+        f.Add(~x[2])
+        f.Add(~y[2])
+        f.Add(x[3])
+        f.Add(y[3])
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) == Tuple(*y))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) != Tuple(*y))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PopCheckpoint()  # all coords equal
 
     def test_tuple_inequality(self):
         pass
