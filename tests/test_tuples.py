@@ -1,4 +1,4 @@
-from cnfc.tuple import tuple_less_than
+from cnfc.tuples import tuple_less_than
 from cnfc import *
 from .dpll import Satisfiable
 
