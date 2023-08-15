@@ -462,7 +462,57 @@ class TestFormula(unittest.TestCase):
         f.PopCheckpoint()  # all coords equal
 
     def test_tuple_inequality(self):
-        pass
+        f = Formula()
+        dimension = 5
+        x = [f.AddVar('x{}'.format(i)) for i in range(dimension)]
+        y = [f.AddVar('y{}'.format(i)) for i in range(dimension)]
+        z = [f.AddVar('z{}'.format(i)) for i in range(dimension)]
+
+        # x = 01011 (= 11)
+        f.Add(~x[0]); f.Add(x[1]); f.Add(~x[2]); f.Add(x[3]); f.Add(x[4])
+        # y = 01100 (= 12)
+        f.Add(~y[0]); f.Add(y[1]); f.Add(y[2]); f.Add(~y[3]); f.Add(~y[4])
+        # z = 01100 (= 12)
+        f.Add(~z[0]); f.Add(z[1]); f.Add(z[2]); f.Add(~z[3]); f.Add(~z[4])
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) < Tuple(*y))
+        self.assertSat(f)
+        f.Add(Tuple(*x) < Tuple(*z))
+        self.assertSat(f)
+        f.Add(Tuple(*y) > Tuple(*x))
+        self.assertSat(f)
+        f.Add(Tuple(*z) > Tuple(*x))
+        self.assertSat(f)
+        f.Add(Tuple(*x) <= Tuple(*y))
+        self.assertSat(f)
+        f.Add(Tuple(*x) <= Tuple(*z))
+        self.assertSat(f)
+        f.Add(Tuple(*y) >= Tuple(*x))
+        self.assertSat(f)
+        f.Add(Tuple(*z) >= Tuple(*x))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) > Tuple(*y))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) > Tuple(*z))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*y) < Tuple(*x))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*z) < Tuple(*x))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
 
 if __name__ == '__main__':
     unittest.main()
