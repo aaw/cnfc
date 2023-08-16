@@ -1,4 +1,3 @@
-* Finish implementing all tuple comparisons
 * Extract common unittest helpers
 * Write comments in the DIMACS file header that list variable name to ID
   associations.
