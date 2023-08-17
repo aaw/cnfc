@@ -6,7 +6,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
     def test_add_variables(self):
         f = Formula()
         x = f.AddVar('x')
-        y,z,w = f.AddVars('y,z,w')
+        y,z,w = f.AddVars('y z w')
         self.assertEqual([x.vid, y.vid, z.vid, w.vid], [1,2,3,4])
         self.assertEqual([x.name, y.name, z.name, w.name], ['x','y','z','w'])
         self.assertEqual(len(f.vars), 4)
@@ -24,13 +24,13 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_boolean_expr_parsing(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         c = (~x == y) & ((z != w) | x)
         self.assertEqual(repr(c), 'And(Eq(Literal(Var(x,1),-1),Var(y,2)),Or(Neq(Var(z,3),Var(w,4)),Var(x,1)))')
 
     def test_numeric_expr_parsing(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         self.assertEqual(repr(NumFalse(x,y,z) == 2), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
         self.assertEqual(repr(2 == NumFalse(x,y,z)), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
         self.assertEqual(repr(3 > NumTrue(x,y,z,w)), 'NumLt(NumTrue(Var(x,1),Var(y,2),Var(z,3),Var(w,4)),3)')
@@ -38,9 +38,9 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_tuple_parsing(self):
         f = Formula()
-        xs = f.AddVars('x1,x2,x3')
-        ys = f.AddVars('y1,y2,y3')
-        zs = f.AddVars('z1,z2')
+        xs = f.AddVars('x1 x2 x3')
+        ys = f.AddVars('y1 y2 y3')
+        zs = f.AddVars('z1 z2')
         self.assertEqual(repr(Tuple(*xs) < Tuple(*ys)), 'TupleLt(Tuple(Var(x1,1),Var(x2,2),Var(x3,3)),Tuple(Var(y1,4),Var(y2,5),Var(y3,6)))')
 
         with self.assertRaises(AssertionError):
@@ -48,7 +48,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_implicit_disjunction_output(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.AddClause(x,~w)
         f.AddClause(~y,z)
 
@@ -61,7 +61,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_basic_disjunction_output(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x | ~w)
         f.Add(~y | z)
 
@@ -74,7 +74,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_basic_conjunction_output(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x & ~w)
         f.Add(~y & z)
 
@@ -89,7 +89,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_disjunctive_cnf(self):
         f = Formula()
-        x,y = f.AddVars('x,y')
+        x,y = f.AddVars('x y')
         f.Add(x | y)
         self.assertSat(f)
         f.Add(~x | ~y)
@@ -108,28 +108,28 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_eq_cnf(self):
         f = Formula()
-        x,y = f.AddVars('x,y')
+        x,y = f.AddVars('x y')
         f.Add(x == ~y)
         f.Add(x)
         f.Add(y)
         self.assertUnsat(f)
 
         f = Formula()
-        x,y = f.AddVars('x,y')
+        x,y = f.AddVars('x y')
         f.Add(x == ~y)
         f.Add(x)
         f.Add(~y)
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         f.Add(Eq(x,y))
         f.Add(x)
         f.Add(~y)
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         f.Add(Eq(x,~z))
         f.Add(x)
         f.Add(~z)
@@ -137,7 +137,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_implies_cnf(self):
         f = Formula()
-        x,y = f.AddVars('x,y')
+        x,y = f.AddVars('x y')
         f.Add(Implies(x,y))
         f.Add(x)
         self.assertSat(f)
@@ -146,13 +146,13 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_implies_subformula(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(Implies(x,y) | ~(z & w))
         self.assertSat(f)
 
     def test_not_cnf(self):
         f = Formula()
-        x,y = f.AddVars('x,y')
+        x,y = f.AddVars('x y')
         f.Add(~x | ~y)
         self.assertSat(f)
         f.Add(x)
@@ -162,7 +162,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_embedded_disjunction_in_conjunction(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add((x | y) & (z | w))
         self.assertSat(f)
         f.Add(~x)
@@ -173,7 +173,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_embedded_conjunction_in_disjunction(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add((x & y) | (z & w))
         self.assertSat(f)
         f.Add(x)
@@ -185,7 +185,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_cardinality_equality(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x)
         f.Add(~y)
         f.Add(z)
@@ -201,7 +201,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x)
         f.Add(~y)
         f.Add(~z)
@@ -217,7 +217,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x)
         f.Add(y)
         f.Add(~z)
@@ -234,7 +234,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_cardinality_inequality(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x)
         f.Add(~y)
         f.Add(z)
@@ -250,7 +250,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x)
         f.Add(~y)
         f.Add(~z)
@@ -266,7 +266,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         f.Add(x)
         f.Add(y)
         f.Add(~z)
@@ -283,7 +283,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_cardinality_gt_gte(self):
         f = Formula()
-        x,y,z,w,v = f.AddVars('x,y,z,w,v')
+        x,y,z,w,v = f.AddVars('x y z w v')
         f.Add(x)
         f.Add(~y)
         f.Add(z)
@@ -337,7 +337,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_cardinality_lt_lte(self):
         f = Formula()
-        x,y,z,w,v = f.AddVars('x,y,z,w,v')
+        x,y,z,w,v = f.AddVars('x y z w v')
         f.Add(x)
         f.Add(y)
         f.Add(z)
@@ -391,7 +391,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_inequality_trivial(self):
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         f.Add(x)
         f.Add(~y)
         f.Add(z)

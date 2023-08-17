@@ -8,7 +8,7 @@ import unittest
 class TestCardinality(unittest.TestCase, SatTestCase):
     def test_exact_basic(self):
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         for clause in exactly_n_true(f, [x,y,z,w], 2):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -19,7 +19,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         for clause in exactly_n_true(f, [x,y,z,w], 2):
             f.AddClause(*clause)
         f.AddClause(x)
@@ -29,7 +29,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z,w = f.AddVars('x,y,z,w')
+        x,y,z,w = f.AddVars('x y z w')
         for clause in exactly_n_true(f, [x,y,z,w], 2):
             f.AddClause(*clause)
         f.AddClause(x)
@@ -40,7 +40,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
 
     def test_at_least_basic(self):
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_least_n_true(f, [x,y,z], 2):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -50,7 +50,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_least_n_true(f, [x,y,z], 2):
             f.AddClause(*clause)
         f.AddClause(x)
@@ -59,7 +59,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_least_n_true(f, [x,y,z], 2):
             f.AddClause(*clause)
         f.AddClause(~x)
@@ -69,7 +69,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
 
     def test_at_most_basic(self):
         f = Formula()
-        x,y,z,w,v = f.AddVars('x,y,z,w,v')
+        x,y,z,w,v = f.AddVars('x y z w v')
         for clause in at_most_n_true(f, [x,y,z,w,v], 2):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -81,7 +81,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z,w,v = f.AddVars('x,y,z,w,v')
+        x,y,z,w,v = f.AddVars('x y z w v')
         for clause in at_most_n_true(f, [x,y,z,w,v], 2):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -93,7 +93,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z,w,v = f.AddVars('x,y,z,w,v')
+        x,y,z,w,v = f.AddVars('x y z w v')
         for clause in at_most_n_true(f, [x,y,z,w,v], 2):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -105,7 +105,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z,w,v = f.AddVars('x,y,z,w,v')
+        x,y,z,w,v = f.AddVars('x y z w v')
         for clause in at_most_n_true(f, [x,y,z,w,v], 2):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -119,7 +119,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
     # Test some boundary conditions for equality
     def test_eq_boundary(self):
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in exactly_n_true(f, [x,y,z], 0):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -129,7 +129,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in exactly_n_true(f, [x,y,z], 0):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -139,7 +139,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in exactly_n_true(f, [x,y,z], 3):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -149,7 +149,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in exactly_n_true(f, [x,y,z], 3):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -161,7 +161,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
     # Test some boundary conditions for inequality
     def test_eq_boundary(self):
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in not_exactly_n_true(f, [x,y,z], 0):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -171,7 +171,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in not_exactly_n_true(f, [x,y,z], 0):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -181,7 +181,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in not_exactly_n_true(f, [x,y,z], 3):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -191,7 +191,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in not_exactly_n_true(f, [x,y,z], 3):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -203,7 +203,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
     # Test some boundary conditions for 'at least' comparisons
     def test_eq_boundary(self):
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_least_n_true(f, [x,y,z], 0):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -215,7 +215,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         # At least 0 are true is a tautology, no way to create unsat formula.
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_least_n_true(f, [x,y,z], 3):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -225,7 +225,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_least_n_true(f, [x,y,z], 3):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -237,7 +237,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
     # Test some boundary conditions for 'at most' comparisons
     def test_eq_boundary(self):
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_most_n_true(f, [x,y,z], 0):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -247,7 +247,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_most_n_true(f, [x,y,z], 0):
             f.AddClause(*clause)
         self.assertSat(f)
@@ -257,7 +257,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
 
         f = Formula()
-        x,y,z = f.AddVars('x,y,z')
+        x,y,z = f.AddVars('x y z')
         for clause in at_most_n_true(f, [x,y,z], 3):
             f.AddClause(*clause)
         self.assertSat(f)

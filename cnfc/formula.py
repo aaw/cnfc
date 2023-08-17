@@ -5,7 +5,6 @@ class Formula:
     def __init__(self):
         self.vars = {}
         self.buffer = Buffer()
-        self.clauses = []
         self.nextvar = 1
 
     def AddVar(self, name=None):
@@ -19,7 +18,7 @@ class Formula:
         return Var(name, vid)
 
     def AddVars(self, names):
-        return (self.AddVar(name.strip()) for name in names.split(','))
+        return (self.AddVar(name.strip()) for name in names.split(' '))
 
     def AddClause(self, *disjuncts):
         self.buffer.Append(tuple(self.__raw_lit(x) for x in disjuncts))

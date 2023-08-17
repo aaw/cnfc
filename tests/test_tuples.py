@@ -9,12 +9,12 @@ class TestCardinality(unittest.TestCase, SatTestCase):
     # Test all dimension 2 and 3 tuples with < and <=.
     def test_less_than_small_exhaustive(self):
         f = Formula()
-        x1,x2,y1,y2 = f.AddVars('x1,x2,y1,y2')
+        x1,x2,y1,y2 = f.AddVars('x1 x2 y1 y2')
 
         for dimension in (2,3):
             f = Formula()
-            x = list(f.AddVars(','.join('x{}'.format(i) for i in range(dimension))))
-            y = list(f.AddVars(','.join('y{}'.format(i) for i in range(dimension))))
+            x = list(f.AddVars(' '.join('x{}'.format(i) for i in range(dimension))))
+            y = list(f.AddVars(' '.join('y{}'.format(i) for i in range(dimension))))
 
             for xv in itertools.product([True,False], repeat=dimension):
                 for yv in itertools.product([True,False], repeat=dimension):

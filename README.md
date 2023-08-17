@@ -5,7 +5,7 @@ A Python module that generates DIMACS CNF files
 from cnfc import *
 
 f = Formula()
-x, y, z, w = f.AddVars('x,y,z,w')
+x, y, z, w = f.AddVars('x y z w')
 
 f.AddClause(~x,y)  # Equivalent to f.Add(Or(~x,y))
 f.AddClause(~y,z)
