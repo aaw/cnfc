@@ -71,8 +71,24 @@ p cnf 11 28
 4 -11 0
 ```
 
-Running tests
-=============
+Status
+======
+
+Basic functionality (boolean operations, cardinality tests, lexicographic tuple comparisons) is implemented.
+
+Next up: finish supporting all more complicated compound statements (an or-of-cardinality-constraints, etc.)
+
+Installation
+============
+
+```
+pip install cnfc
+```
+
+Development
+===========
+
+Install [poetry](https://python-poetry.org/docs/#installation) and run `poetry install`. Then you can bring up a shell, etc. Run tests with:
 
 ```
 poetry run python3 -m unittest discover
