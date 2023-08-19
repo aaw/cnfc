@@ -181,7 +181,7 @@ class Neq(OrderedBinaryBoolExpr):
 class NumEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
-        pass
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
@@ -198,7 +198,7 @@ class NumEq(OrderedBinaryBoolExpr):
 class NumNeq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
-        pass
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
@@ -215,7 +215,7 @@ class NumNeq(OrderedBinaryBoolExpr):
 class NumLt(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
-        pass
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
@@ -232,7 +232,7 @@ class NumLt(OrderedBinaryBoolExpr):
 class NumLe(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
-        pass
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
@@ -249,7 +249,7 @@ class NumLe(OrderedBinaryBoolExpr):
 class NumGt(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
-        pass
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
@@ -266,7 +266,7 @@ class NumGt(OrderedBinaryBoolExpr):
 class NumGe(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
-        pass
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         assert type(self.second) is int, "Cardinality comparisons require integers"
@@ -282,7 +282,8 @@ class NumGe(OrderedBinaryBoolExpr):
 
 class TupleEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        pass
+        # TODO
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         t1 = [expr.generate_var(formula) for expr in self.first.exprs]
@@ -291,7 +292,8 @@ class TupleEq(OrderedBinaryBoolExpr):
 
 class TupleNeq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        pass
+        # TODO
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         t1 = [expr.generate_var(formula) for expr in self.first.exprs]
@@ -300,7 +302,8 @@ class TupleNeq(OrderedBinaryBoolExpr):
 
 class TupleLt(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        pass
+        # TODO
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         t1 = [expr.generate_var(formula) for expr in self.first.exprs]
@@ -309,7 +312,8 @@ class TupleLt(OrderedBinaryBoolExpr):
 
 class TupleLe(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        pass
+        # TODO
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         t1 = [expr.generate_var(formula) for expr in self.first.exprs]
@@ -318,7 +322,8 @@ class TupleLe(OrderedBinaryBoolExpr):
 
 class TupleGt(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        pass
+        # TODO
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         t1 = [expr.generate_var(formula) for expr in self.first.exprs]
@@ -327,7 +332,8 @@ class TupleGt(OrderedBinaryBoolExpr):
 
 class TupleGe(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
-        pass
+        # TODO
+        raise NotImplementedError("Not yet implemented")
 
     def generate_cnf(self, formula):
         t1 = [expr.generate_var(formula) for expr in self.first.exprs]
