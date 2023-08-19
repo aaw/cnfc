@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cnfc"
-version = "0.1.0"
+version = "0.2.0"
 description = "A DIMACS CNF compiler"
 authors = ["Aaron Windsor <aaron.windsor@gmail.com>"]
 license = "Unlicense"
