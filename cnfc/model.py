@@ -177,7 +177,6 @@ class Neq(OrderedBinaryBoolExpr):
         yield (fv, sv)
         yield (~fv, ~sv)
 
-# TODO: replace yields in the next few generate_cnfs with 'yield from'
 class NumEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         # TODO
@@ -192,8 +191,7 @@ class NumEq(OrderedBinaryBoolExpr):
             n = len(vars) - self.second
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
-        for clause in exactly_n_true(formula, vars, n):
-            yield clause
+        yield from exactly_n_true(formula, vars, n)
 
 class NumNeq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
@@ -209,8 +207,7 @@ class NumNeq(OrderedBinaryBoolExpr):
             n = len(vars) - self.second
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
-        for clause in not_exactly_n_true(formula, vars, n):
-            yield clause
+        yield from not_exactly_n_true(formula, vars, n)
 
 class NumLt(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
@@ -221,11 +218,9 @@ class NumLt(OrderedBinaryBoolExpr):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            for clause in at_most_n_true(formula, vars, self.second-1):
-                yield clause
+            yield from at_most_n_true(formula, vars, self.second-1)
         elif isinstance(self.first, NumFalse):
-            for clause in at_least_n_true(formula, vars, len(vars) - self.second + 1):
-                yield clause
+            yield from at_least_n_true(formula, vars, len(vars) - self.second + 1)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
@@ -238,11 +233,9 @@ class NumLe(OrderedBinaryBoolExpr):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            for clause in at_most_n_true(formula, vars, self.second):
-                yield clause
+            yield from at_most_n_true(formula, vars, self.second)
         elif isinstance(self.first, NumFalse):
-            for clause in at_least_n_true(formula, vars, len(vars) - self.second):
-                yield clause
+            yield from at_least_n_true(formula, vars, len(vars) - self.second)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
@@ -255,11 +248,9 @@ class NumGt(OrderedBinaryBoolExpr):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            for clause in at_least_n_true(formula, vars, self.second+1):
-                yield clause
+            yield from at_least_n_true(formula, vars, self.second+1)
         elif isinstance(self.first, NumFalse):
-            for clause in at_most_n_true(formula, vars, len(vars) - self.second - 1):
-                yield clause
+            yield from at_most_n_true(formula, vars, len(vars) - self.second - 1)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
@@ -272,11 +263,9 @@ class NumGe(OrderedBinaryBoolExpr):
         assert type(self.second) is int, "Cardinality comparisons require integers"
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            for clause in at_least_n_true(formula, vars, self.second):
-                yield clause
+            yield from at_least_n_true(formula, vars, self.second)
         elif isinstance(self.first, NumFalse):
-            for clause in at_most_n_true(formula, vars, len(vars) - self.second):
-                yield clause
+            yield from at_most_n_true(formula, vars, len(vars) - self.second)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
