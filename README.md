@@ -95,5 +95,5 @@ poetry run python3 -m unittest discover
 To release a new version to PyPI, bump the version in `pyproject.toml` and run:
 
 ```
-poetry publish --build --username=__token__ --password=$PYPY_TOKEN
+poetry publish --build --username=__token__ --password=$PYPI_TOKEN
 ```
