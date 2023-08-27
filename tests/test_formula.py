@@ -501,5 +501,86 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+    def test_composite_tuple_inequality(self):
+        f = Formula()
+        dimension = 3
+        x = [f.AddVar('x{}'.format(i)) for i in range(dimension)]
+        y = [f.AddVar('y{}'.format(i)) for i in range(dimension)]
+        z = [f.AddVar('z{}'.format(i)) for i in range(dimension)]
+
+        x_greater_than_y = Tuple(*x) > Tuple(*y)
+        x_equal_to_z = Tuple(*x) == Tuple(*z)
+        f.Add(x_greater_than_y | x_equal_to_z)
+        self.assertSat(f)
+
+        f.PushCheckpoint()  # x <= y and x != z
+        # x = 010 (= 2)
+        f.Add(~x[0]); f.Add(x[1]); f.Add(~x[2])
+        # y = 011 (= 3)
+        f.Add(~y[0]); f.Add(y[1]); f.Add(y[2])
+        # z = 101 (= 5)
+        f.Add(z[0]); f.Add(~z[1]); f.Add(z[2])
+        self.assertUnsat(f)
+        f.PopCheckpoint()  # x <= y and x != z
+
+        f.PushCheckpoint() # x > y and x != z
+        # x = 010 (= 2)
+        f.Add(~x[0]); f.Add(x[1]); f.Add(~x[2])
+        # y = 001 (= 1)
+        f.Add(~y[0]); f.Add(~y[1]); f.Add(y[2])
+        # z = 111 (= 7)
+        f.Add(z[0]); f.Add(z[1]); f.Add(z[2])
+        self.assertSat(f)
+        f.PopCheckpoint() # x > y and x != z
+
+        f.PushCheckpoint() # x <= y and x == z
+        # x = 100 (= 4)
+        f.Add(x[0]); f.Add(~x[1]); f.Add(~x[2])
+        # y = 110 (= 6)
+        f.Add(y[0]); f.Add(y[1]); f.Add(~y[2])
+        # z = 100 (= 4)
+        f.Add(z[0]); f.Add(~z[1]); f.Add(~z[2])
+        self.assertSat(f)
+        f.PopCheckpoint() # x <= y and x == z
+
+    def test_composite_cardinality_test(self):
+        f = Formula()
+        a,b,c,d,e = f.AddVars('a b c d e')
+        f.Add(a)
+        f.Add(~b)
+        f.Add(c)
+        f.Add(~d)
+        f.Add(e)
+
+        f.PushCheckpoint()
+        f.Add((NumTrue(a,b,c) == 2) & (NumFalse(b,d,c,e) == 2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add((NumTrue(a,b,c) == 2) & (NumFalse(b,d,c,e) == 3))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add((NumTrue(a,b,c) == 3) & (NumFalse(b,d,c,e) == 2))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add((NumTrue(a,c,e) > 2) | (NumFalse(a,b,c,d,e) < 3))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add((NumTrue(a,c,e,b) > 3) | (NumFalse(a,b,c,d,e) < 3))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add((NumTrue(a,c,e) > 2) | (NumFalse(a,b,c,d,e) < 1))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
 if __name__ == '__main__':
     unittest.main()
