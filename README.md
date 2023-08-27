@@ -74,9 +74,7 @@ p cnf 11 28
 Status
 ======
 
-Basic functionality (boolean operations, cardinality tests, lexicographic tuple comparisons) is implemented.
-
-Next up: finish supporting all more complicated compound statements (an or-of-cardinality-constraints, etc.)
+Basic functionality (boolean operations, cardinality tests, lexicographic tuple comparisons) and arbitrary nesting of expressions is implemented.
 
 Installation
 ============
