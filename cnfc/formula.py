@@ -8,11 +8,13 @@ class Formula:
         self.nextvar = 1
 
     def AddVar(self, name=None):
-        if name is None:
-            name = '_' + str(self.nextvar)
         if self.vars.get(name) is not None:
             raise ValueError('Variable already exists in formula')
         vid = self.nextvar
+        if name is None:
+            name = '_' + str(self.nextvar)
+        else:
+            self.buffer.AddComment("var {} : {}".format(vid, name))
         self.vars[name] = vid
         self.nextvar += 1
         return Var(name, vid)

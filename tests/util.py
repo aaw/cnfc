@@ -5,8 +5,13 @@ import io
 def write_cnf_to_string(f):
     out = io.StringIO()
     f.WriteCNF(out)
+    final = io.StringIO()
     out.seek(0)
-    return out.read()
+    for line in out:
+        if line.startswith('c '): continue
+        final.write(line)
+    final.seek(0)
+    return final.read()
 
 class SatTestCase:
     def assertSat(self, formula):
