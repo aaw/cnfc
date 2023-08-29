@@ -82,3 +82,21 @@ class TestBuffer(unittest.TestCase):
             '3 0\n'
         )
         self.assertEqual(flush_buffer_to_str(b), expected)
+
+    def test_comments(self):
+        b = Buffer()
+        b.Append((1,))
+        b.Append((2,))
+        b.AddComment("hello, world")
+        b.Append((3,))
+        b.AddComment("that's all, folks!")
+
+        expected = (
+            'c hello, world\n' +
+            "c that's all, folks!\n" +
+            'p cnf 3 3\n' +
+            '1 0\n' +
+            '2 0\n' +
+            '3 0\n'
+        )
+        self.assertEqual(flush_buffer_to_str(b), expected)
