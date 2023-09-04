@@ -38,6 +38,55 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         f.AddClause(~w)
         self.assertUnsat(f)
 
+    def test_exactly_one(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x y z w')
+        for clause in exactly_n_true(f, [x,y,z,w], 1):
+            f.AddClause(*clause)
+
+        f.PushCheckpoint()
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(~z)
+        f.AddClause(~y)
+        f.AddClause(~w)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(z)
+        f.AddClause(~y)
+        f.AddClause(~w)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        self.assertSat(f)
+        f.AddClause(~x)
+        f.AddClause(z)
+        f.AddClause(~y)
+        f.AddClause(w)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_larger_set_exactly_one(self):
+        fm = Formula()
+        a,b,c,d,e,f,g,h,i = fm.AddVars('a b c d e f g h i')
+        for clause in exactly_n_true(fm, [a,b,c,d,e,f,g,h,i], 1):
+            fm.AddClause(*clause)
+
+        fm.AddClause(~a)
+        fm.AddClause(~c)
+        fm.AddClause(d)
+        fm.AddClause(~e)
+        fm.AddClause(~f)
+        fm.AddClause(~g)
+        fm.AddClause(~h)
+        fm.AddClause(~i)
+        self.assertSat(fm)
+
     def test_at_least_basic(self):
         f = Formula()
         x,y,z = f.AddVars('x y z')
