@@ -1,5 +1,6 @@
 from .model import Var, Literal
 from .buffer import Buffer
+from .extractor import generate_extractor
 
 class Formula:
     def __init__(self):
@@ -39,6 +40,9 @@ class Formula:
 
     def WriteCNF(self, fd):
         self.buffer.Flush(fd)
+
+    def WriteExtractor(self, fd, extractor_fn, extra_fns=None):
+        generate_extractor(fd, extractor_fn, extra_fns)
 
     def __raw_lit(self, expr):
         if isinstance(expr, Var): return expr.vid
