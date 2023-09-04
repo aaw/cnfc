@@ -30,7 +30,7 @@ $ kissat /tmp/out.cnf > /tmp/kissat-out.txt
 Finally, use the generated extractor to decode and print the solution:
 
 ```
-$ python3 /tmp/extractor /tmp/out /tmp/satout
+$ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat-out.txt
 Solution:
 +---------+---------+---------+
 | 4  1  7 | 3  6  9 | 8  2  5 |
