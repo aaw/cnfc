@@ -59,7 +59,7 @@ def encode_board_as_sat(board, formula):
             box_vars = (vs[(r,c,n)] for r in range(br,br+3) for c in range(bc,bc+3))
             formula.Add(NumTrue(*box_vars) == 1)
 
-def extract_board_from_solution(sol):
+def extract_board_from_solution(sol, *extra_args):
     board = [[None for c in range(9)] for r in range(9)]
     for r in range(1,10):
         for c in range(1,10):
@@ -69,9 +69,6 @@ def extract_board_from_solution(sol):
                     break
     print("Solution: ")
     print_board(board)
-
-# board:
-# 4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate a Sudoku solver")
