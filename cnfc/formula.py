@@ -41,8 +41,8 @@ class Formula:
     def WriteCNF(self, fd):
         self.buffer.Flush(fd)
 
-    def WriteExtractor(self, fd, extractor_fn, extra_fns=None):
-        generate_extractor(fd, extractor_fn, extra_fns)
+    def WriteExtractor(self, fd, extractor_fn, extra_fns=None, extra_args=None):
+        generate_extractor(fd, extractor_fn, extra_fns, extra_args)
 
     def __raw_lit(self, expr):
         if isinstance(expr, Var): return expr.vid
