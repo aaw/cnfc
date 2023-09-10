@@ -22,7 +22,9 @@ def get_vars_set_in_solution(f):
         pos += [int(x) for x in line[1:].strip().split(' ') if int(x) > 0]
     return set(pos)
 
-def generate_extractor(fd, extractor_fn, extra_fns=None):
+def generate_extractor(fd, extractor_fn, extra_fns=None, extra_args=None):
+    if extra_args is None:
+        extra_args = []
     imports = ['argparse', 're']
     for line in imports: fd.write(f'import {line}\n')
     fd.write('\n')
@@ -52,6 +54,6 @@ def generate_extractor(fd, extractor_fn, extra_fns=None):
         "  with open(args.solution_file) as f: ",
         "    solution = get_vars_set_in_solution(f)",
         "  sol = dict((name, id in solution) for name,id in mapping.items())",
-        "  {}(sol)".format(extractor_fn.__name__),
+        "  {}(sol, *{})".format(extractor_fn.__name__, extra_args),
     ]
     for line in main: fd.write(f'{line}\n')
