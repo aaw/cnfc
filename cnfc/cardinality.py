@@ -1,9 +1,18 @@
 from itertools import combinations
 
 # Generates clauses satisfiable iff at most one of the variables in vs is false.
-def at_most_one_false(vs):
-    vvs = tuple(v for v in vs)
-    yield from combinations(vvs, 2)
+# Uses Heule's encoding, see TAOCP 7.2.2.2 exercise 12.
+def at_most_one_false(formula, vs):
+    if len(vs) <= 4:
+        yield from at_most_one_false_exhaustive(vs)
+    else:
+        head, tail = vs[:3], vs[3:]
+        v = formula.AddVar()
+        yield from at_most_one_false_exhaustive(head + [v])
+        yield from at_most_one_false(formula, [~v] + tail)
+
+def at_most_one_false_exhaustive(vs):
+    yield from combinations(vs, 2)
 
 def at_least_one_false(vs):
     yield [~v for v in vs]
@@ -77,7 +86,7 @@ def exactly_n_true(formula, vin, n):
         return
     yield from select_max_n(formula, vin, n+1)
     yield from at_least_one_false(vin[:n+1])
-    yield from at_most_one_false(vin[:n+1])
+    yield from at_most_one_false(formula, vin[:n+1])
 
 def not_exactly_n_true(formula, vin, n):
     if n < 0 or n > len(vin): raise ValueError("n out of range")
@@ -108,4 +117,4 @@ def at_least_n_true(formula, vin, n):
         for v in vin: yield (v,)
         return
     yield from select_max_n(formula, vin, n+1)
-    yield from at_most_one_false(vin[:n+1])
+    yield from at_most_one_false(formula, vin[:n+1])
