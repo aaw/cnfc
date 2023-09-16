@@ -1,4 +1,4 @@
-from .model import Var, Literal
+from .model import Var, Literal, BooleanLiteral
 from .buffer import Buffer
 from .extractor import generate_extractor
 
@@ -24,6 +24,8 @@ class Formula:
         return (self.AddVar(name.strip()) for name in names.split(' '))
 
     def AddClause(self, *disjuncts):
+        # Convert any BooleanLiterals to actual bools
+        disjuncts = [(x.val if type(x) == BooleanLiteral else x) for x in  disjuncts]
         if any(b for b in disjuncts if b is True):
             return
         # Otherwise, any other bools are False and we can suppress them.
@@ -33,7 +35,7 @@ class Formula:
     # suppressing tautologies, and supressing duplicate clauses
     def Add(self, expr):
         for clause in expr.generate_cnf(self):
-            self.buffer.Append(tuple(self.__raw_lit(x) for x in clause))
+            self.AddClause(*clause)
 
     def PushCheckpoint(self):
         self.buffer.PushCheckpoint()
@@ -50,4 +52,5 @@ class Formula:
     def __raw_lit(self, expr):
         if isinstance(expr, Var): return expr.vid
         elif isinstance(expr, Literal): return expr.sign*expr.var.vid
-        else: raise ValueError("Expected Var or Literal, got {}".format(expr))
+        elif isinstance(expr, BooleanLiteral): return expr.val
+        else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))

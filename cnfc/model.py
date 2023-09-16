@@ -369,5 +369,28 @@ class Tuple:
         self.__check_length(other)
         return TupleGe(self, other)
 
+class BooleanLiteral:
+    def __init__(self, val):
+        assert type(val) == bool
+        self.val = val
+
+    def __repr__(self):
+        return 'BooleanLiteral({})'.format(self.val)
+
+    def __invert__(self):
+        return BooleanLiteral(not self.val)
+
+    def generate_var(self, formula):
+        return self
+
+    def generate_cnf(self, formula):
+        yield (self,)
+
+class Integer(Tuple):
+    def __init__(self, value, bits=None):
+        bitstring = bin(value)[2:] if bits is None else ('{0:0' + str(bits) + 'b}').format(value)
+        m = {'0': False, '1': True}
+        self.exprs = [BooleanLiteral(m[ch]) for ch in bitstring]
+
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr

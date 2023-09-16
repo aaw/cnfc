@@ -565,6 +565,54 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint() # x <= y and x == z
 
+    def test_integer_comparision(self):
+        f = Formula()
+        bits = 8
+        x = [f.AddVar('x{}'.format(i)) for i in range(bits)]
+        # x = 00001010 (= 10)
+        f.Add(~x[0]); f.Add(~x[1]); f.Add(~x[2]); f.Add(~x[3])
+        f.Add(x[4]);  f.Add(~x[5]); f.Add(x[6]);  f.Add(~x[7])
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) == Integer(10, 8))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) != Integer(11, 8))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) > Integer(9, 8))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) < Integer(12, 8))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(15,8) == Tuple(*x))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) != Integer(10, 8))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) > Integer(99, 8))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) < Integer(1, 8))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
     def test_composite_cardinality_test(self):
         f = Formula()
         a,b,c,d,e = f.AddVars('a b c d e')
