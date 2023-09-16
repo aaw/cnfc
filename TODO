@@ -1,3 +1,4 @@
+* Implement very simple clause caching/suppressing duplicate clauses
 * Add several examples
   * primality testing
   * commafree code

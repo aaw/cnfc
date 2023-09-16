@@ -95,7 +95,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f = Formula()
         # All "False"s get suppressed, so this is acutally the empty clause.
         f.AddClause(False)
-        self.assertSat(f)
+        self.assertUnsat(f)
 
     def test_add_literals_sat(self):
         f = Formula()
