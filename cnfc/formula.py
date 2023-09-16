@@ -24,7 +24,10 @@ class Formula:
         return (self.AddVar(name.strip()) for name in names.split(' '))
 
     def AddClause(self, *disjuncts):
-        self.buffer.Append(tuple(self.__raw_lit(x) for x in disjuncts))
+        if any(b for b in disjuncts if b is True):
+            return
+        # Otherwise, any other bools are False and we can suppress them.
+        self.buffer.Append(tuple(self.__raw_lit(x) for x in disjuncts if type(x) != bool))
 
     # TODO: perform light optimizations like removing duplicate literals,
     # suppressing tautologies, and supressing duplicate clauses

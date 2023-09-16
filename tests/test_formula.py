@@ -87,6 +87,28 @@ class TestFormula(unittest.TestCase, SatTestCase):
         )
         self.assertEqual(write_cnf_to_string(f), expected)
 
+    def test_trivial_sat(self):
+        f = Formula()
+        self.assertSat(f)
+
+    def test_trivial_unsat(self):
+        f = Formula()
+        # All "False"s get suppressed, so this is acutally the empty clause.
+        f.AddClause(False)
+        self.assertSat(f)
+
+    def test_add_literals_sat(self):
+        f = Formula()
+        f.AddClause(True, False, False)
+        f.AddClause(False, True)
+        self.assertSat(f)
+
+    def test_add_literals_unsat(self):
+        f = Formula()
+        f.AddClause(False, False)
+        f.AddClause(True)
+        self.assertUnsat(f)
+
     def test_disjunctive_cnf(self):
         f = Formula()
         x,y = f.AddVars('x y')

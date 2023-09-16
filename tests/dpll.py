@@ -75,6 +75,8 @@ def Satisfiable(cnf):
         if len(lits) == 0: continue
         if lits[-1] != '0': raise ValueError('Expected 0 as clause terminator, got "{}"'.format(line))
         lits = lits[:-1]
+        if len(lits) == 0:
+            return False  # Empty clause, trivially unsat formula.
         max_var = max(max_var, *(abs(int(x)) for x in lits))
         clauses.append([int(l) for l in lits])
     num_vars, num_clauses = (int(x) for x in header.groups())

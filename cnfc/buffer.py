@@ -24,7 +24,7 @@ class Buffer:
         self.fd.truncate()
 
     def Append(self, clause):
-        self.maxvar = max(self.maxvar, *[abs(lit) for lit in clause])
+        if len(clause) > 0: self.maxvar = max(self.maxvar, *[abs(lit) for lit in clause])
         self.num_clauses += 1
         self.fd.write("{} 0\n".format(' '.join(str(lit) for lit in clause)))
 
