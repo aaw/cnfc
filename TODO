@@ -1,4 +1,6 @@
 * Add several examples
+  * primality testing
+  * commafree code
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v)
 * Support cardinality constraints as variable additions:
