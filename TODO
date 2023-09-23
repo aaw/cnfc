@@ -1,3 +1,5 @@
+* Rename generate_var, generate_cnf
+* Allow tuple comparison, addition, etc. with different bit widths
 * Implement very simple clause caching/suppressing duplicate clauses
 * Add several examples
   * primality testing

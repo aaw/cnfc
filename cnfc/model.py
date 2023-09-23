@@ -1,6 +1,6 @@
 # Data model
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
-from .tuples import tuple_less_than
+from .tuples import tuple_less_than, tuple_add
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
@@ -276,13 +276,21 @@ class NumGe(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
+def zero_pad(x, y):
+    if len(x) == len(y): return x,y
+    if len(x) < len(y):
+        return [BooleanLiteral(False) for i in range(len(y) - len(x))] + x, y
+    else:  # len(x) > len(y)
+        return x, [BooleanLiteral(False) for i in range(len(x) - len(y))] + y
+
 class TupleEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
-        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        t1, t2 = zero_pad(t1, t2)
         yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleNeq(OrderedBinaryBoolExpr):
@@ -290,8 +298,9 @@ class TupleNeq(OrderedBinaryBoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
-        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        t1, t2 = zero_pad(t1, t2)
         yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleLt(OrderedBinaryBoolExpr):
@@ -299,8 +308,9 @@ class TupleLt(OrderedBinaryBoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
-        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t1, t2, strict=True)
 
 class TupleLe(OrderedBinaryBoolExpr):
@@ -308,8 +318,9 @@ class TupleLe(OrderedBinaryBoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
-        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t1, t2, strict=False)
 
 class TupleGt(OrderedBinaryBoolExpr):
@@ -317,8 +328,9 @@ class TupleGt(OrderedBinaryBoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
-        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t2, t1, strict=True)
 
 class TupleGe(OrderedBinaryBoolExpr):
@@ -326,48 +338,69 @@ class TupleGe(OrderedBinaryBoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = [expr.generate_var(formula) for expr in self.first.exprs]
-        t2 = [expr.generate_var(formula) for expr in self.second.exprs]
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t2, t1, strict=False)
 
-class Tuple:
+# Any expression that results in a Tuple.
+class TupleExpr:
+    def __len__(self):
+        return len(self.exprs)
+
+# An expression combining two Tuples (addition, multiplication) that results in a Tuple
+class TupleCompositeExpr(TupleExpr):
+    def __init__(self, first, second):
+        self.first, self.second = first, second
+        # TODO: dummy exprs to make asserts work, fix later when we don't do these asserts any more
+        self.exprs = [None]*(len(self.first))
+
+    def __repr__(self):
+        return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
+
+class TupleAdd(TupleCompositeExpr):
+    def evaluate(self, formula):
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        t1, t2 = zero_pad(t1, t2)
+        # Need room for all bits plus a carry.
+        result = [formula.AddVar() for i in range(len(t1)+1)]
+        for clause in tuple_add(formula, t1, t2, result):
+            formula.AddClause(*clause)
+        return result
+
+class Tuple(TupleExpr):
     def __init__(self, *exprs):
         self.exprs = exprs
         for expr in self.exprs:
             assert issubclass(type(expr), BoolExpr), "{} needs boolean expressions, got {}".format(self.__class__.__name__, expr)
 
-    def __check_length(self, other: 'Tuple'):
-        assert len(self) == len(other), "Can't compare tuples of different dimensions: {} vs. {}".format(self, other)
-
-    def __len__(self):
-        return len(self.exprs)
-
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
 
-    def __eq__(self, other: 'Tuple'):
-        self.__check_length(other)
+    def evaluate(self, formula):
+        return [expr.generate_var(formula) for expr in self.exprs]
+
+    def __eq__(self, other: 'TupleExpr'):
         return TupleEq(self, other)
 
-    def __ne__(self, other: 'Tuple'):
-        self.__check_length(other)
+    def __ne__(self, other: 'TupleExpr'):
         return TupleNeq(self, other)
 
-    def __lt__(self, other: 'Tuple'):
-        self.__check_length(other)
+    def __lt__(self, other: 'TupleExpr'):
         return TupleLt(self, other)
 
-    def __le__(self, other: 'Tuple'):
-        self.__check_length(other)
+    def __le__(self, other: 'TupleExpr'):
         return TupleLe(self, other)
 
-    def __gt__(self, other: 'Tuple'):
-        self.__check_length(other)
+    def __gt__(self, other: 'TupleExpr'):
         return TupleGt(self, other)
 
-    def __ge__(self, other: 'Tuple'):
-        self.__check_length(other)
+    def __ge__(self, other: 'TupleExpr'):
         return TupleGe(self, other)
+
+    def __add__(self, other: 'TupleExpr'):
+        return TupleAdd(self, other)
 
 class BooleanLiteral:
     def __init__(self, val):
@@ -387,10 +420,13 @@ class BooleanLiteral:
         yield (self,)
 
 class Integer(Tuple):
-    def __init__(self, value, bits=None):
-        bitstring = bin(value)[2:] if bits is None else ('{0:0' + str(bits) + 'b}').format(value)
+    def __init__(self, value):
+        bitstring = bin(value)[2:]
         m = {'0': False, '1': True}
         self.exprs = [BooleanLiteral(m[ch]) for ch in bitstring]
+        # TODO: we require tuples to be dimension 2 or greater in some places, so zero-pad
+        #       0 and 1 for now. But ultimately maybe drop this requirement?
+        if len(self.exprs) < 2: self.exprs = [BooleanLiteral(False) for i in range(2 - len(self.exprs))] + self.exprs
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr

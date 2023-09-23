@@ -40,11 +40,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f = Formula()
         xs = f.AddVars('x1 x2 x3')
         ys = f.AddVars('y1 y2 y3')
-        zs = f.AddVars('z1 z2')
         self.assertEqual(repr(Tuple(*xs) < Tuple(*ys)), 'TupleLt(Tuple(Var(x1,1),Var(x2,2),Var(x3,3)),Tuple(Var(y1,4),Var(y2,5),Var(y3,6)))')
-
-        with self.assertRaises(AssertionError):
-            Tuple(*xs) >= Tuple(*zs)
 
     def test_implicit_disjunction_output(self):
         f = Formula()
@@ -574,43 +570,70 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(x[4]);  f.Add(~x[5]); f.Add(x[6]);  f.Add(~x[7])
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) == Integer(10, 8))
+        f.Add(Tuple(*x) == Integer(10))
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) != Integer(11, 8))
+        f.Add(Tuple(*x) != Integer(11))
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) > Integer(9, 8))
+        f.Add(Tuple(*x) > Integer(9))
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) < Integer(12, 8))
+        f.Add(Tuple(*x) < Integer(12))
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Integer(15,8) == Tuple(*x))
+        f.Add(Integer(15) == Tuple(*x))
         self.assertUnsat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) != Integer(10, 8))
+        f.Add(Tuple(*x) != Integer(10))
         self.assertUnsat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) > Integer(99, 8))
+        f.Add(Tuple(*x) > Integer(99))
         self.assertUnsat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) < Integer(1, 8))
+        f.Add(Tuple(*x) < Integer(1))
         self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_integer_arithmetic_smol(self):
+        f = Formula()
+        x1, x0 = f.AddVars('x1 x0')
+        f.Add(x1); f.Add(~x0)
+
+        # (x1,x0) == 10b == 2. Does this equal 1 + 1?
+
+        f.PushCheckpoint()
+        f.Add(Tuple(x1, x0) == Integer(1) + Integer(1))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_integer_arithmetic(self):
+        f = Formula()
+        bits = 8
+        x = [f.AddVar('x{}'.format(i)) for i in range(bits)]
+
+        # x = 00001010 (== 10). Does this equal 5 + 5?
+
+        f.Add(~x[0]); f.Add(~x[1]); f.Add(~x[2]); f.Add(~x[3])
+        f.Add(x[4]);  f.Add(~x[5]); f.Add(x[6]);  f.Add(~x[7])
+
+        f.PushCheckpoint()
+        f.Add(Tuple(*x) == Integer(5) + Integer(5))
+        self.assertSat(f)
         f.PopCheckpoint()
 
     def test_composite_cardinality_test(self):
