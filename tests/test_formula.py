@@ -636,6 +636,28 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint()
 
+    def test_addition_exhaustive(self):
+        f = Formula()
+        # Test addition of all numbers x + y where x,y < 8
+        limit = 8
+        for x in range(limit):
+            for y in range(limit):
+                f.PushCheckpoint()
+                f.Add(Integer(x+y) == Integer(x) + Integer(y))
+                self.assertSat(f)
+                f.PopCheckpoint()
+
+                f.PushCheckpoint()
+                f.Add(Integer(x+y+1) == Integer(x) + Integer(y))
+                self.assertUnsat(f)
+                f.PopCheckpoint()
+
+                if x > 0 and y > 0:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x+y-1) == Integer(x) + Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
     def test_composite_cardinality_test(self):
         f = Formula()
         a,b,c,d,e = f.AddVars('a b c d e')
