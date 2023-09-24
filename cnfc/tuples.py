@@ -140,7 +140,7 @@ def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn, result):
     # Copy partials into result
     assert(len(partials) == 1)
     partial = partials[0]
-    assert(len(result) >= len(partial))
-    result, partial = pad_fn(result, partial)
+    # Don't want an rpad here, but need to redo how result is passed anyway...
+    rpad_fn(result, len(partial) - len(result))
     for i in range(len(result)):
         result[i] = partial[i]

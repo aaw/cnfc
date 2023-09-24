@@ -1,3 +1,5 @@
+* make generated extractor.py choke on unsat instances instead of returning
+  garbage
 * redo the interface for tuple_add, tuple_mul since we don't always use the
   vars passed in as result. sometimes we replace them.
 * fill out tseytin.py and replace any ad hoc tseytin transforms
