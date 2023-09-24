@@ -609,7 +609,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
-    def test_integer_arithmetic_smol(self):
+    def test_integer_addition_basic(self):
         f = Formula()
         x1, x0 = f.AddVars('x1 x0')
         f.Add(x1); f.Add(~x0)
@@ -655,6 +655,40 @@ class TestFormula(unittest.TestCase, SatTestCase):
                 if x > 0 and y > 0:
                     f.PushCheckpoint()
                     f.Add(Integer(x+y-1) == Integer(x) + Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+    def test_integer_multiplication_basic(self):
+        f = Formula()
+        x2, x1, x0 = f.AddVars('x2 x1 x0')
+        f.Add(x2); f.Add(~x1); f.Add(~x0)
+
+        # (x2,x1,x0) == 100b == 4. Does this equal 2 * 2?
+
+        f.PushCheckpoint()
+        f.Add(Tuple(x2, x1, x0) == Integer(2) * Integer(2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_multiplication_exhaustive(self):
+        f = Formula()
+        # Test multiplication of all numbers x * y where x,y < 8
+        limit = 8
+        for x in range(limit):
+            for y in range(limit):
+                f.PushCheckpoint()
+                f.Add(Integer(x*y) == Integer(x) * Integer(y))
+                self.assertSat(f)
+                f.PopCheckpoint()
+
+                f.PushCheckpoint()
+                f.Add(Integer(x*y+1) == Integer(x) * Integer(y))
+                self.assertUnsat(f)
+                f.PopCheckpoint()
+
+                if x > 0 and y > 0:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x*y-1) == Integer(x) * Integer(y))
                     self.assertUnsat(f)
                     f.PopCheckpoint()
 

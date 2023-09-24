@@ -1,6 +1,6 @@
 # Data model
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
-from .tuples import tuple_less_than, tuple_add
+from .tuples import tuple_less_than, tuple_add, tuple_mul
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
@@ -283,6 +283,11 @@ def zero_pad(x, y):
     else:  # len(x) > len(y)
         return x, [BooleanLiteral(False) for i in range(len(x) - len(y))] + y
 
+def rpad(x, n):
+    copy = x[:]
+    for i in range(n): copy.append(BooleanLiteral(False))
+    return copy
+
 class TupleEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
@@ -369,6 +374,15 @@ class TupleAdd(TupleCompositeExpr):
             formula.AddClause(*clause)
         return result
 
+class TupleMul(TupleCompositeExpr):
+    def evaluate(self, formula):
+        t1 = self.first.evaluate(formula)
+        t2 = self.second.evaluate(formula)
+        result = [formula.AddVar() for i in range(len(t1) + len(t2))]
+        for clause in tuple_mul(formula, t1, t2, zero_pad, rpad, result):
+            formula.AddClause(*clause)
+        return result
+
 class Tuple(TupleExpr):
     def __init__(self, *exprs):
         self.exprs = exprs
@@ -402,6 +416,9 @@ class Tuple(TupleExpr):
     def __add__(self, other: 'TupleExpr'):
         return TupleAdd(self, other)
 
+    def __mul__(self, other: 'TupleExpr'):
+        return TupleMul(self, other)
+
 class BooleanLiteral:
     def __init__(self, val):
         assert type(val) == bool
@@ -421,6 +438,7 @@ class BooleanLiteral:
 
 class Integer(Tuple):
     def __init__(self, value):
+        assert value >= 0
         bitstring = bin(value)[2:]
         m = {'0': False, '1': True}
         self.exprs = [BooleanLiteral(m[ch]) for ch in bitstring]

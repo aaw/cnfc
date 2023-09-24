@@ -1,3 +1,4 @@
+from .tseytin import *
 
 def tuple_less_than(formula, x, y, strict=False):
     n = len(x)
@@ -95,3 +96,51 @@ def tuple_add(formula, x_a, x_b, result):
     result[n] = gps[n-1][0]
 
     result.reverse()
+
+# Very naive multiplier implemented with repeated addition
+#
+#                      x1 x2 x3
+#                    * y1 y2 y3
+#                --------------
+#                y3x1 y3x2 y3x3
+#           y2x1 y2x2 y2x3    0
+#    + y3x1 y3x2 y3x3    0    0
+#    --------------------------
+#
+def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn, result):
+    # Make len(x_a) >= len(x_b) so that we minimize additions.
+    if len(x_a) < len(x_b): x_a, x_b = x_b, x_a
+    partials = []
+    for i in range(len(x_b)):
+        # AND each bit of x_a with x_b[i]
+        partial = x_a[:]
+        bit = x_b[len(x_b)-i-1]
+        for ia in range(len(partial)):
+            v = formula.AddVar()
+            yield from gen_and(partial[ia], bit, v)
+            partial[ia] = v
+        # Pad result on right with i zeros
+        partial = rpad_fn(partial, i)
+        partials.append(partial)
+
+    # Now reduce all of the partials pair-by-pair using addition
+    while len(partials) > 1:
+        reduced = []
+        for a, b in zip(partials[:-1:2], partials[1::2]):
+            a, b = pad_fn(a,b)
+            partial_result = [formula.AddVar() for i in range(len(a) + 1)]
+            yield from tuple_add(formula, a, b, partial_result)
+            reduced.append(partial_result)
+
+        # If there was an odd number of elements, we didn't reduce the last one.
+        if len(partials) % 2 == 1:
+            reduced.append(partials[-1])
+        partials = reduced
+
+    # Copy partials into result
+    assert(len(partials) == 1)
+    partial = partials[0]
+    assert(len(result) >= len(partial))
+    result, partial = pad_fn(result, partial)
+    for i in range(len(result)):
+        result[i] = partial[i]
