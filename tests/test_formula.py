@@ -632,7 +632,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(x[4]);  f.Add(~x[5]); f.Add(x[6]);  f.Add(~x[7])
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) == Integer(5) + Integer(5))
+        f.Add(Integer(*x) == Integer(5) + Integer(5))
         self.assertSat(f)
         f.PopCheckpoint()
 
@@ -666,7 +666,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         # (x2,x1,x0) == 100b == 4. Does this equal 2 * 2?
 
         f.PushCheckpoint()
-        f.Add(Tuple(x2, x1, x0) == Integer(2) * Integer(2))
+        f.Add(Integer(x2, x1, x0) == Integer(2) * Integer(2))
         self.assertSat(f)
         f.PopCheckpoint()
 
