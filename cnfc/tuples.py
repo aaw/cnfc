@@ -141,6 +141,6 @@ def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn, result):
     assert(len(partials) == 1)
     partial = partials[0]
     # Don't want an rpad here, but need to redo how result is passed anyway...
-    rpad_fn(result, len(partial) - len(result))
+    for i in range(len(partial)-len(result)): result.append(None)
     for i in range(len(result)):
         result[i] = partial[i]
