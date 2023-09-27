@@ -1,4 +1,5 @@
 from itertools import combinations
+from .tseytin import *
 
 # Generates clauses satisfiable iff at most one of the variables in vs is false.
 # Uses Heule's encoding, see TAOCP 7.2.2.2 exercise 12.
@@ -20,12 +21,8 @@ def at_least_one_false(vs):
 # Given variables a, b, minout, and maxout, generates clauses that are
 # satisfiable iff minout = min(a,b) and maxout = max(a,b).
 def comparator(a, b, minout, maxout):
-    yield (~maxout, a, b)
-    yield (~a, maxout)
-    yield (~b, maxout)
-    yield (minout, ~a, ~b)
-    yield (a, ~minout)
-    yield (b, ~minout)
+    yield from gen_or(a, b, maxout)
+    yield from gen_and(a, b, minout)
 
 def apply_comparator(formula, vin, i, j):
     newmin, newmax = formula.AddVar(), formula.AddVar()

@@ -2,7 +2,6 @@
   garbage
 * redo the interface for tuple_add, tuple_mul since we don't always use the
   vars passed in as result. sometimes we replace them.
-* fill out tseytin.py and replace any ad hoc tseytin transforms
 * Rename generate_var, generate_cnf
 * Rework model.py so that we don't need to pass pad_fn into tuple_mul. We
   currently need this because tuples.py would have a circular dependency
