@@ -1,5 +1,3 @@
-* make generated extractor.py choke on unsat instances instead of returning
-  garbage
 * redo the interface for tuple_add, tuple_mul since we don't always use the
   vars passed in as result. sometimes we replace them.
 * Rename generate_var, generate_cnf
@@ -12,8 +10,7 @@
 * Allow tuple comparison, addition, etc. with different bit widths
 * Implement very simple clause caching/suppressing duplicate clauses
 * Add several examples
-  * primality testing
-  * commafree code
+  * ?
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v)
 * Support cardinality constraints as variable additions:

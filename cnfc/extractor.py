@@ -1,8 +1,6 @@
 import inspect
 import re
 
-# inspect.getsource(func)
-
 def get_variable_mapping_from_cnf_file(f):
     mapping = {}
     p = re.compile(r'c var (\d+) : (.*)')
@@ -18,6 +16,7 @@ def get_variable_mapping_from_cnf_file(f):
 def get_vars_set_in_solution(f):
     pos = []
     for line in f:
+        if line.startswith('s UNSATISFIABLE'): return None
         if not line.startswith('v'): continue
         pos += [int(x) for x in line[1:].strip().split(' ') if int(x) > 0]
     return set(pos)
@@ -25,7 +24,7 @@ def get_vars_set_in_solution(f):
 def generate_extractor(fd, extractor_fn, extra_fns=None, extra_args=None):
     if extra_args is None:
         extra_args = []
-    imports = ['argparse', 're']
+    imports = ['argparse', 're', 'sys']
     for line in imports: fd.write(f'import {line}\n')
     fd.write('\n')
 
@@ -49,10 +48,13 @@ def generate_extractor(fd, extractor_fn, extra_fns=None, extra_args=None):
         "  parser.add_argument('solution_file', type=str, help='Path to output of SAT solver.')",
         "  args = parser.parse_args()",
         "",
-        "  with open(args.cnf_file) as f: ",
-        "    mapping = get_variable_mapping_from_cnf_file(f)",
         "  with open(args.solution_file) as f: ",
         "    solution = get_vars_set_in_solution(f)",
+        "  if not solution:",
+        "    print('UNSATISFIABLE')",
+        "    sys.exit(1)",
+        "  with open(args.cnf_file) as f: ",
+        "    mapping = get_variable_mapping_from_cnf_file(f)",
         "  sol = dict((name, id in solution) for name,id in mapping.items())",
         "  {}(sol, *{})".format(extractor_fn.__name__, extra_args),
     ]
