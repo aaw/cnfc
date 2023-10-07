@@ -1,3 +1,4 @@
+* implement DFA minimization
 * redo the interface for tuple_add, tuple_mul since we don't always use the
   vars passed in as result. sometimes we replace them.
 * Rename generate_var, generate_cnf

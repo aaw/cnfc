@@ -85,3 +85,21 @@ class TestRegex(unittest.TestCase, SatTestCase):
         self.assertTrue(regex_to_dfa('1{2,4}').accepts('1111'))
         self.assertFalse(regex_to_dfa('1{2,4}').accepts('11111'))
         self.assertFalse(regex_to_dfa('1{2,4}').accepts('0000'))
+
+    def test_branch(self):
+        regex = '((01)|(100))'
+        self.assertTrue(regex_to_dfa(regex).accepts('01'))
+        self.assertTrue(regex_to_dfa(regex).accepts('100'))
+        self.assertFalse(regex_to_dfa(regex).accepts('1000'))
+        self.assertFalse(regex_to_dfa(regex).accepts('0100'))
+        self.assertFalse(regex_to_dfa(regex).accepts('11'))
+        self.assertFalse(regex_to_dfa(regex).accepts('10'))
+        self.assertFalse(regex_to_dfa(regex).accepts(''))
+
+    def test_composition(self):
+        regex = '0(1|(00))+1?'
+        self.assertTrue(regex_to_dfa(regex).accepts('01'))
+        self.assertTrue(regex_to_dfa(regex).accepts('011'))
+        self.assertTrue(regex_to_dfa(regex).accepts('0001'))
+        self.assertTrue(regex_to_dfa(regex).accepts('000'))
+        self.assertTrue(regex_to_dfa(regex).accepts('000000000'))

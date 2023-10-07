@@ -92,7 +92,7 @@ def new_nfa_delta():
 
 def regex_to_dfa(s):
     parsed = sre_parse.parse(s)
-    return nfa_to_dfa(thompson_nfa(parsed))
+    return minimize_dfa(nfa_to_dfa(thompson_nfa(parsed)))
 
 def thompson_nfa(expr):
     if type(expr) == sre_parse.SubPattern:
@@ -120,8 +120,9 @@ def thompson_nfa(expr):
             delta = new_nfa_delta()
             delta[initial][lit].add(final)
             return NFA(initial, {final}, delta)
-        elif expr[0] == sre_parse.IN:
-            nfas = [thompson_nfa(subexpr) for subexpr in expr[1]]
+        elif expr[0] == sre_parse.IN or expr[0] == sre_parse.BRANCH:
+            exprs = expr[1] if expr[0] == sre_parse.IN else expr[1][1]
+            nfas = [thompson_nfa(subexpr) for subexpr in exprs]
             delta = new_nfa_delta()
             for nfa in nfas:
                 delta.update(nfa.delta)
@@ -206,3 +207,7 @@ def nfa_to_dfa(nfa):
                 delta[state_id][transition] = trans_state_id
 
     return DFA(set_id(initial), accepting, delta)
+
+def minimize_dfa(dfa):
+    # TODO
+    return dfa
