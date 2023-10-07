@@ -66,7 +66,14 @@ class DFA:
             if xch is None: return False
             state = self.delta[state].get(xch)
             if state is None: return False
-        return state == self.accepting
+        return state in self.accepting
+
+    def print(self):
+        print('initial: {}'.format(self.initial[:6]))
+        print('accept:  {}'.format([x[:6] for x in self.accepting]))
+        for k,v in self.delta.items():
+            print('d[{}][0] = {}'.format(k[:6], v[ZERO][:6]))
+            print('d[{}][1] = {}'.format(k[:6], v[ZERO][:6]))
 
 def new_state():
     return uuid.uuid4().hex
@@ -105,6 +112,25 @@ def thompson_nfa(expr):
             delta = new_nfa_delta()
             delta[initial][lit].add(final)
             return NFA(initial, {final}, delta)
+        elif expr[0] == sre_parse.IN:
+            nfas = [thompson_nfa(subexpr) for subexpr in expr[1]]
+            delta = new_nfa_delta()
+            for nfa in nfas:
+                delta.update(nfa.delta)
+            # make a new initial state with epsilon transitions to all nfas
+            initial = new_state()
+            for nfa in nfas:
+                delta[initial][EPSILON].add(nfa.initial)
+            accepting = reduce(lambda x,y: x | y, (nfa.accepting for nfa in nfas), set())
+            return NFA(initial, accepting, delta)
+        elif expr[0] == sre_parse.SUBPATTERN:
+            # SUBPATTERN appears like:
+            # sre_parse.parse('(0)') == (SUBPATTERN, (1, 0, 0, [(LITERAL, 48)]))
+            # I don't know what the 1,0,0 represent here but it's probably capture groups,
+            # which we don't support. So I'm just ignoring them.
+            return thompson_nfa(expr[-1][-1])
+        else:
+            raise ValueError("Unsupported regular expression construct: {}".format(expr))
     else:
         raise Exception("Unexpected input: {}".format(expr))
 
@@ -142,4 +168,4 @@ def nfa_to_dfa(nfa):
                     accepting.add(trans_state_id)
                 delta[state_id][transition] = trans_state_id
 
-    return DFA(set_id(initial), set_id(accepting), delta)
+    return DFA(set_id(initial), accepting, delta)
