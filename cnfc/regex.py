@@ -52,6 +52,14 @@ class NFA:
         self.accepting = accepting
         self.delta = delta
 
+    def print(self):
+        print('initial: {}'.format(self.initial[:6]))
+        print('accept:  {}'.format([x[:6] for x in self.accepting]))
+        for k,v in self.delta.items():
+            print('d[{}][0] = {}'.format(k[:6], [vv[:6] for vv in v[ZERO]]))
+            print('d[{}][1] = {}'.format(k[:6], [vv[:6] for vv in v[ONE]]))
+            print('d[{}][ε] = {}'.format(k[:6], [vv[:6] for vv in v[EPSILON]]))
+
 class DFA:
     def __init__(self, initial, accepting, delta):
         self.initial = initial
@@ -73,7 +81,7 @@ class DFA:
         print('accept:  {}'.format([x[:6] for x in self.accepting]))
         for k,v in self.delta.items():
             print('d[{}][0] = {}'.format(k[:6], v[ZERO][:6]))
-            print('d[{}][1] = {}'.format(k[:6], v[ZERO][:6]))
+            print('d[{}][1] = {}'.format(k[:6], v[ONE][:6]))
 
 def new_state():
     return uuid.uuid4().hex
@@ -129,6 +137,35 @@ def thompson_nfa(expr):
             # I don't know what the 1,0,0 represent here but it's probably capture groups,
             # which we don't support. So I'm just ignoring them.
             return thompson_nfa(expr[-1][-1])
+        elif expr[0] == sre_parse.MAX_REPEAT:
+            # MAX_REPEAT appears like:
+            # sre_parse.parse('0?') == (MAX_REPEAT, (0, 1, [(LITERAL, 48)])) or
+            # sre_parse.parse('0+') == (MAX_REPEAT, (1, MAXREPEAT, [(LITERAL, 48)]))
+            min_repeat, max_repeat = expr[1][0], expr[1][1]
+            initial, final = new_state(), new_state()
+            delta = new_nfa_delta()
+            # We need at least one copy of the underlying NFA. If max_repeat is MAXREPEAT
+            # need only one copy. Otherwise, we need max_repeat copies, with epsilon
+            # transitions to the final state from all states after the min_repeat copy.
+            num_copies = 1 if max_repeat == sre_parse.MAXREPEAT else max_repeat
+            copies = [thompson_nfa(expr[1][2]) for i in range(num_copies)]
+            for copy in copies:
+                delta.update(copy.delta)
+            for i in range(1,len(copies)):
+                for state in copies[i-1].accepting:
+                    delta[state][EPSILON].add(copies[i].initial)
+            delta[initial][EPSILON].add(copies[0].initial)
+            for state in copies[-1].accepting:
+                delta[state][EPSILON].add(final)
+            if max_repeat == sre_parse.MAXREPEAT:
+                delta[final][EPSILON].add(initial)
+            if min_repeat == 0:
+                delta[initial][EPSILON].add(final)
+            else:  # min_repeat > 0
+                for i in range(min_repeat, len(copies)):
+                    for state in copies[i-1].accepting:
+                        delta[state][EPSILON].add(final)
+            return NFA(initial, {final}, delta)
         else:
             raise ValueError("Unsupported regular expression construct: {}".format(expr))
     else:

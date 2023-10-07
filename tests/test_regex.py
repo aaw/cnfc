@@ -13,7 +13,7 @@ class TestRegex(unittest.TestCase, SatTestCase):
         delta['c'][EPSILON] = {'d'}
         delta['d'][EPSILON] = {'b'}
         delta['b'][ONE] = {'e'}
-        delta['e'][EPSILON] = {'a'}
+        delta['e'][EPSILON] = {'a','e'}
         n = NFA('a', {'y','z'}, delta)
         self.assertEqual(epsilon_closure(n, {'a'}), {'a','b','c','d'})
         self.assertEqual(epsilon_closure(n, {'b'}), {'a','b','c','d'})
@@ -46,3 +46,42 @@ class TestRegex(unittest.TestCase, SatTestCase):
         self.assertTrue(regex_to_dfa('0|1').accepts('1'))
         self.assertFalse(regex_to_dfa('0|1').accepts(''))
         self.assertFalse(regex_to_dfa('0|1').accepts('00'))
+
+    def test_question(self):
+        self.assertTrue(regex_to_dfa('0?').accepts('0'))
+        self.assertTrue(regex_to_dfa('0?').accepts(''))
+        self.assertFalse(regex_to_dfa('0?').accepts('00'))
+
+    def test_plus(self):
+        self.assertTrue(regex_to_dfa('0+').accepts('0'))
+        self.assertTrue(regex_to_dfa('0+').accepts('00'))
+        self.assertTrue(regex_to_dfa('0+').accepts('00000000000'))
+        self.assertFalse(regex_to_dfa('0+').accepts(''))
+        self.assertFalse(regex_to_dfa('0+').accepts('1'))
+
+    def test_kleene_star(self):
+        self.assertTrue(regex_to_dfa('1*').accepts(''))
+        self.assertTrue(regex_to_dfa('1*').accepts('1'))
+        self.assertTrue(regex_to_dfa('1*').accepts('11'))
+        self.assertTrue(regex_to_dfa('1*').accepts('1111111'))
+        self.assertFalse(regex_to_dfa('1*').accepts('1101111'))
+        self.assertFalse(regex_to_dfa('1*').accepts('00000'))
+        self.assertFalse(regex_to_dfa('1*').accepts('0'))
+
+    def test_fixed_repetitions(self):
+        self.assertFalse(regex_to_dfa('1{4}').accepts(''))
+        self.assertFalse(regex_to_dfa('1{4}').accepts('1'))
+        self.assertFalse(regex_to_dfa('1{4}').accepts('11'))
+        self.assertFalse(regex_to_dfa('1{4}').accepts('111'))
+        self.assertTrue(regex_to_dfa('1{4}').accepts('1111'))
+        self.assertFalse(regex_to_dfa('1{4}').accepts('11111'))
+        self.assertFalse(regex_to_dfa('1{4}').accepts('0000'))
+
+    def test_fixed_bounds(self):
+        self.assertFalse(regex_to_dfa('1{2,4}').accepts(''))
+        self.assertFalse(regex_to_dfa('1{2,4}').accepts('1'))
+        self.assertTrue(regex_to_dfa('1{2,4}').accepts('11'))
+        self.assertTrue(regex_to_dfa('1{2,4}').accepts('111'))
+        self.assertTrue(regex_to_dfa('1{2,4}').accepts('1111'))
+        self.assertFalse(regex_to_dfa('1{2,4}').accepts('11111'))
+        self.assertFalse(regex_to_dfa('1{2,4}').accepts('0000'))
