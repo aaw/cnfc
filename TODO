@@ -1,8 +1,7 @@
-* implement evaluate for TupleExpr
 * implement DFA minimization
 * redo the interface for tuple_add, tuple_mul since we don't always use the
   vars passed in as result. sometimes we replace them.
-* Rename generate_var, generate_cnf
+* Rename generate_var, generate_cnf to evaluate*
 * Rework model.py so that we don't need to pass pad_fn into tuple_mul. We
   currently need this because tuples.py would have a circular dependency
   if it knew about BooleanLiteral, which is defined in model.py. But it
@@ -11,7 +10,7 @@
   (This applies to rpad too, which we pass into tuple_mul)
 * Allow tuple comparison, addition, etc. with different bit widths
 * Implement very simple clause caching/suppressing duplicate clauses
-* Add several examples
+* Add several more examples
   * ?
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v)

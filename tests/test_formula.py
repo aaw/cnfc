@@ -779,6 +779,26 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+    def test_regex_match_composite_tuples(self):
+        f = Formula()
+
+        # Assert that 3 + 13 is a power of 2.
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Integer(3) + Integer(13), "0*10*"))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        # 8 is also a power of 2
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Integer(2) * Integer(2) * Integer(2), "0*10*"))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        # 127 is not a power of 2
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Integer(125) + Integer(1) + Integer(1), "0*10*"))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
 
 if __name__ == '__main__':
     unittest.main()

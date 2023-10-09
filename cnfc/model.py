@@ -354,16 +354,36 @@ class TupleExpr:
     def __len__(self):
         return len(self.exprs)
 
+    def __eq__(self, other: 'TupleExpr'):
+        return TupleEq(self, other)
+
+    def __ne__(self, other: 'TupleExpr'):
+        return TupleNeq(self, other)
+
+    def __lt__(self, other: 'TupleExpr'):
+        return TupleLt(self, other)
+
+    def __le__(self, other: 'TupleExpr'):
+        return TupleLe(self, other)
+
+    def __gt__(self, other: 'TupleExpr'):
+        return TupleGt(self, other)
+
+    def __ge__(self, other: 'TupleExpr'):
+        return TupleGe(self, other)
+
+    def __add__(self, other: 'TupleExpr'):
+        return TupleAdd(self, other)
+
+    def __mul__(self, other: 'TupleExpr'):
+        return TupleMul(self, other)
+
 # An expression combining two Tuples (addition, multiplication) that results in a Tuple
 class TupleCompositeExpr(TupleExpr):
     def __init__(self, first, second):
         self.first, self.second = first, second
         # TODO: dummy exprs to make asserts work, fix later when we don't do these asserts any more
         self.exprs = [None]*(len(self.first))
-
-    def evaluate(self, formula):
-        # TODO: implement, RegexMatch needs it so that RegexMatch(t1 + t2, "0*") will wokr
-        raise NotImplementedError
 
     def __repr__(self):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
@@ -399,30 +419,6 @@ class Tuple(TupleExpr):
 
     def evaluate(self, formula):
         return [expr.generate_var(formula) for expr in self.exprs]
-
-    def __eq__(self, other: 'TupleExpr'):
-        return TupleEq(self, other)
-
-    def __ne__(self, other: 'TupleExpr'):
-        return TupleNeq(self, other)
-
-    def __lt__(self, other: 'TupleExpr'):
-        return TupleLt(self, other)
-
-    def __le__(self, other: 'TupleExpr'):
-        return TupleLe(self, other)
-
-    def __gt__(self, other: 'TupleExpr'):
-        return TupleGt(self, other)
-
-    def __ge__(self, other: 'TupleExpr'):
-        return TupleGe(self, other)
-
-    def __add__(self, other: 'TupleExpr'):
-        return TupleAdd(self, other)
-
-    def __mul__(self, other: 'TupleExpr'):
-        return TupleMul(self, other)
 
 class BooleanLiteral:
     def __init__(self, val):
