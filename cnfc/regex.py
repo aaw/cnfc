@@ -5,8 +5,13 @@ from .cardinality import at_most_one_true
 import sre_parse
 import uuid
 
-# sre_parse.parse(r'0*1+').dump()
-
+# Functions in this module rely on Python's built-in sre_parse library to do the
+# initial parsing of a regex string into an abstract syntax tree. We then
+# convert that AST to an NFA, and the NFA to a DFA. We don't support everything
+# that sre_parse supports and just raise an error if we hit some unsupported
+# construct. Some examples of sre_parse output, since I couldn't find any
+# other good reference:
+#
 # >>> sre_parse.parse('01')
 # [(LITERAL, 48), (LITERAL, 49)]
 # >>> sre_parse.parse('0*')
@@ -44,6 +49,7 @@ import uuid
 #       LITERAL 49
 #       LITERAL 49
 
+# We only support a binary alphabet of {0,1}. NFAs also need an epsilon for transitions.
 ZERO = 48
 ONE = 49
 EPSILON = -1
@@ -54,7 +60,7 @@ class NFA:
         self.accepting = accepting
         self.delta = delta
 
-    def print(self):
+    def debug(self):
         print('initial: {}'.format(self.initial[:6]))
         print('accept:  {}'.format([x[:6] for x in self.accepting]))
         for k,v in self.delta.items():
@@ -68,17 +74,7 @@ class DFA:
         self.accepting = accepting
         self.delta = delta
 
-    def accepts(self, s):
-        state = self.initial
-        m = {'0': ZERO, '1': ONE}
-        for ch in s:
-            xch = m.get(ch)
-            if xch is None: return False
-            state = self.delta[state].get(xch)
-            if state is None: return False
-        return state in self.accepting
-
-    def print(self):
+    def debug(self):
         print('initial: {}'.format(self.initial[:6]))
         print('accept:  {}'.format([x[:6] for x in self.accepting]))
         for k,v in self.delta.items():
@@ -214,31 +210,18 @@ def minimize_dfa(dfa):
     # TODO
     return dfa
 
+# Generate CNF clauses that are true iff the given regex matches the tuple of literals.
 def regex_match(formula, tup, regex):
-    # We need variables v_{s,i} that represent the dfa in state s at time i, for
-    # i in {0,...,len(tup)}. We create transitions between these using the DFA's
-    # transition function and make the formula satisifiable iff v_{s,len(t)}
-    # for some accepting state s.
-    #
-    # if the DFA's transition function delta maps state s1 to state s2 on input
-    # 0, we add:
-    #    (v_{s1,i} AND ~t_i) => v_{s2,i+1}
-    #
-    # Then we add a single unit clause v_{si, 0} for the initial state si.
-    # Then we add (v_{s1,len(t)} OR v_{s2,len(t)} OR ... ) for all accepting
-    # states {s1, s2, ...}.
-    # Then we add clauses ensuring that we're only in a single state at every
-    # point in time.
-
-    states = set()
+    all_states = set()
     dfa = regex_to_dfa(regex)
     for k,v in dfa.delta.items():
-        states.add(k)
-        if v.get(ONE) is not None: states.add(v[ONE])
-        if v.get(ZERO) is not None: states.add(v[ZERO])
+        all_states.add(k)
+        if v.get(ONE) is not None: all_states.add(v[ONE])
+        if v.get(ZERO) is not None: all_states.add(v[ZERO])
 
     # zero_trans[s] = {a,b,c} if there's a transition from a,b,c to s on zero
     zero_trans = defaultdict(set)
+    # one_trans[s] = {a,b,c} if there's a transition from a,b,c to s on one
     one_trans = defaultdict(set)
     for k,v in dfa.delta.items():
         if v.get(ONE) is not None: one_trans[v[ONE]].add(k)
@@ -246,23 +229,27 @@ def regex_match(formula, tup, regex):
 
     # vs[(state,i)] == dfa is in state at time i
     vs = {}
-    for s in states:
+    for s in all_states:
         for i in range(len(tup)+1):
             vs[(s,i)] = formula.AddVar()
 
-    # Must start in initial state, can't start in any other state
-    for state in states:
+   #  i = 0: Must start in initial state, can't start in any other state.
+    for state in all_states:
         if state == dfa.initial:
             yield (vs[(state,0)],)
         else:
             yield (~vs[(state,0)],)
 
+    # For i > 0, set vs[(state,i)] equal to conditions from time i-1 that would
+    # make it true: you have to be in a state at time i-1 that could transition
+    # to the given state given tup[i-1].
     for i in range(1,len(tup)+1):
-        for state in states:
-            # vs[(state,i)] == (tup[i-1] AND (vs[(so',i-1)] OR vs[(so'',i-1)] OR ...)) OR
-            #                  (~tup[i-1] AND (vs[sz',i-1)] OR vs[(sz'',i-1)] OR ...))
-            # for all states so', so'', ... with transitions to state on 1 and sz', sz''
-            # with transitions to state on 0.
+        for state in all_states:
+            # vs[(s,i)] == (tup[i-1] AND (vs[(s1,i-1)] OR vs[(s2,i-1)] OR ...))
+            #              OR
+            #              (~tup[i-1] AND (vs[t1,i-1)] OR vs[(t2,i-1)] OR ...))
+            # for all states s1, s2, ... with transitions to s on 1 and t1, t2, ...
+            # with transitions to s on 0.
             zero_conj, one_conj = None, None
             if zero_trans[state]:
                 big_or = formula.AddVar()
@@ -275,7 +262,8 @@ def regex_match(formula, tup, regex):
                 one_conj = formula.AddVar()
                 yield from gen_and(big_or, tup[i-1], one_conj)
             # We can optimize the encoding a little bit because we know the transitions
-            # ahead of time and can use it to simplify the big disjunction of conjunctions above.
+            # ahead of time and can use them to simplify the big disjunction of conjunctions
+            # above.
             if zero_conj is None and one_conj is None:
                 yield (~vs[(state,i)],)
             elif zero_conj is None:
@@ -290,5 +278,5 @@ def regex_match(formula, tup, regex):
                 yield (vs[(state,i)], ~disj)
                 yield (~vs[(state,i)], disj)
 
-    # Must end in accepting state
+    # Must end in accepting state.
     yield [vs[(state,len(tup))] for state in dfa.accepting]
