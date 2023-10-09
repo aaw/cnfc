@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import reduce
-from .tseytin import gen_or_multi, gen_or, gen_and
+from .tseytin import *
 from .cardinality import at_most_one_true
 import sre_parse
 import uuid
@@ -253,14 +253,14 @@ def regex_match(formula, tup, regex):
             zero_conj, one_conj = None, None
             if zero_trans[state]:
                 big_or = formula.AddVar()
-                yield from gen_or_multi([vs[(s,i-1)] for s in zero_trans[state]], big_or)
+                yield from gen_or([vs[(s,i-1)] for s in zero_trans[state]], big_or)
                 zero_conj = formula.AddVar()
-                yield from gen_and(big_or, ~tup[i-1], zero_conj)
+                yield from gen_and((big_or, ~tup[i-1]), zero_conj)
             if one_trans[state]:
                 big_or = formula.AddVar()
-                yield from gen_or_multi([vs[(s,i-1)] for s in one_trans[state]], big_or)
+                yield from gen_or([vs[(s,i-1)] for s in one_trans[state]], big_or)
                 one_conj = formula.AddVar()
-                yield from gen_and(big_or, tup[i-1], one_conj)
+                yield from gen_and((big_or, tup[i-1]), one_conj)
             # We can optimize the encoding a little bit because we know the transitions
             # ahead of time and can use them to simplify the big disjunction of conjunctions
             # above.
@@ -274,7 +274,7 @@ def regex_match(formula, tup, regex):
                 yield (~vs[(state,i)], zero_conj)
             else:
                 disj = formula.AddVar()
-                yield from gen_or(one_conj, zero_conj, disj)
+                yield from gen_or((one_conj, zero_conj), disj)
                 yield (vs[(state,i)], ~disj)
                 yield (~vs[(state,i)], disj)
 

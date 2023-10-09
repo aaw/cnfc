@@ -34,8 +34,8 @@ def at_least_one_false(vs):
 # Given variables a, b, minout, and maxout, generates clauses that are
 # satisfiable iff minout = min(a,b) and maxout = max(a,b).
 def comparator(a, b, minout, maxout):
-    yield from gen_or(a, b, maxout)
-    yield from gen_and(a, b, minout)
+    yield from gen_or((a, b), maxout)
+    yield from gen_and((a, b), minout)
 
 def apply_comparator(formula, vin, i, j):
     newmin, newmax = formula.AddVar(), formula.AddVar()

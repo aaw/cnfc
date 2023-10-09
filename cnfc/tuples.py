@@ -29,11 +29,11 @@ def tuple_add(formula, x_a, x_b, result):
         g_b, p_b = b
         v = formula.AddVar()
         # v == (p_a AND g_b)
-        yield from gen_and(p_a, g_b, v)
+        yield from gen_and((p_a, g_b), v)
         # g_r == (g_a OR v)
-        yield from gen_or(g_a, v, g_r)
+        yield from gen_or((g_a, v), g_r)
         # p_r == (p_a AND p_b)
-        yield from gen_and(p_a, p_b, p_r)
+        yield from gen_and((p_a, p_b), p_r)
 
     n = len(x_a)
     assert n == len(x_b), "Comparisons between tuples of different dimensions not supported."
@@ -47,8 +47,8 @@ def tuple_add(formula, x_a, x_b, result):
     gps = []
     for a,b in zip(x_a, x_b):
         g, p = formula.AddVar(), formula.AddVar()
-        yield from gen_and(a, b, g)
-        yield from gen_xor(a, b, p)
+        yield from gen_and((a, b), g)
+        yield from gen_xor((a, b), p)
         gps.append((g,p))
 
     # Naive accumulation of (g_i, p_i) for now, can use tree structure later.
@@ -61,13 +61,13 @@ def tuple_add(formula, x_a, x_b, result):
     for i in range(len(x_a)):
         # Bit i is a_i XOR b_i XOR c_{i-1}
         a_xor_b = formula.AddVar()
-        yield from gen_xor(x_a[i], x_b[i], a_xor_b)
+        yield from gen_xor((x_a[i], x_b[i]), a_xor_b)
         if i == 0:
             # No carry for least significant bit.
             result[0] = a_xor_b
             continue
         # result[i] = a_xor_b XOR c_{i-1}
-        yield from gen_xor(a_xor_b, gps[i-1][0], result[i])
+        yield from gen_xor((a_xor_b, gps[i-1][0]), result[i])
     result[n] = gps[n-1][0]
 
     result.reverse()
@@ -92,7 +92,7 @@ def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn, result):
         bit = x_b[len(x_b)-i-1]
         for ia in range(len(partial)):
             v = formula.AddVar()
-            yield from gen_and(partial[ia], bit, v)
+            yield from gen_and((partial[ia], bit), v)
             partial[ia] = v
         # Pad result on right with i zeros
         partial = rpad_fn(partial, i)
