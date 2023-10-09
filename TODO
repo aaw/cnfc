@@ -1,3 +1,5 @@
+* replace gen_XX with gen_XX_multi for XX in {or,and} in tseytin
+* implement evaluate for TupleExpr
 * implement DFA minimization
 * redo the interface for tuple_add, tuple_mul since we don't always use the
   vars passed in as result. sometimes we replace them.

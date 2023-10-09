@@ -15,6 +15,19 @@ def at_most_one_false(formula, vs):
 def at_most_one_false_exhaustive(vs):
     yield from combinations(vs, 2)
 
+def at_most_one_true(formula, vs):
+    if len(vs) <= 4:
+        yield from at_most_one_true_exhaustive(vs)
+    else:
+        head, tail = vs[:3], vs[3:]
+        v = formula.AddVar()
+        yield from at_most_one_true_exhaustive(head + [v])
+        yield from at_most_one_true(formula, [~v] + tail)
+
+def at_most_one_true_exhaustive(vs):
+    for x,y in combinations(vs, 2):
+        yield (~x, ~y)
+
 def at_least_one_false(vs):
     yield [~v for v in vs]
 

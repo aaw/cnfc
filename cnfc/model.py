@@ -1,6 +1,7 @@
 # Data model
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
 from .tuples import tuple_less_than, tuple_add, tuple_mul
+from .regex import regex_match
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
@@ -360,6 +361,10 @@ class TupleCompositeExpr(TupleExpr):
         # TODO: dummy exprs to make asserts work, fix later when we don't do these asserts any more
         self.exprs = [None]*(len(self.first))
 
+    def evaluate(self, formula):
+        # TODO: implement, RegexMatch needs it so that RegexMatch(t1 + t2, "0*") will wokr
+        raise NotImplementedError
+
     def __repr__(self):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
@@ -449,6 +454,17 @@ class Integer(Tuple):
         # TODO: we require tuples to be dimension 2 or greater in some places, so zero-pad
         #       0 and 1 for now. But ultimately maybe drop this requirement?
         if len(self.exprs) < 2: self.exprs = [BooleanLiteral(False) for i in range(2 - len(self.exprs))] + self.exprs
+
+class RegexMatch(BoolExpr):
+    def __init__(self, tup: 'TupleExpr', regex):
+        self.tuple = tup
+        self.regex = regex
+
+    def generate_var(self, formula):
+        return generate_var_from_cnf(self, formula)
+
+    def generate_cnf(self, formula):
+        yield from regex_match(formula, self.tuple.evaluate(formula), self.regex)
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr

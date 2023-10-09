@@ -1,5 +1,7 @@
 from collections import defaultdict
 from functools import reduce
+from .tseytin import gen_or_multi, gen_or, gen_and
+from .cardinality import at_most_one_true
 import sre_parse
 import uuid
 
@@ -56,9 +58,9 @@ class NFA:
         print('initial: {}'.format(self.initial[:6]))
         print('accept:  {}'.format([x[:6] for x in self.accepting]))
         for k,v in self.delta.items():
-            print('d[{}][0] = {}'.format(k[:6], [vv[:6] for vv in v[ZERO]]))
-            print('d[{}][1] = {}'.format(k[:6], [vv[:6] for vv in v[ONE]]))
-            print('d[{}][ε] = {}'.format(k[:6], [vv[:6] for vv in v[EPSILON]]))
+            if v.get(ZERO) is not None: print('d[{}][0] = {}'.format(k[:6], [vv[:6] for vv in v[ZERO]]))
+            if v.get(ONE) is not None: print('d[{}][1] = {}'.format(k[:6], [vv[:6] for vv in v[ONE]]))
+            if v.get(EPSILON) is not None: print('d[{}][ε] = {}'.format(k[:6], [vv[:6] for vv in v[EPSILON]]))
 
 class DFA:
     def __init__(self, initial, accepting, delta):
@@ -80,8 +82,8 @@ class DFA:
         print('initial: {}'.format(self.initial[:6]))
         print('accept:  {}'.format([x[:6] for x in self.accepting]))
         for k,v in self.delta.items():
-            print('d[{}][0] = {}'.format(k[:6], v[ZERO][:6]))
-            print('d[{}][1] = {}'.format(k[:6], v[ONE][:6]))
+            if v.get(ZERO) is not None: print('d[{}][0] = {}'.format(k[:6], v[ZERO][:6]))
+            if v.get(ONE) is not None: print('d[{}][1] = {}'.format(k[:6], v[ONE][:6]))
 
 def new_state():
     return uuid.uuid4().hex
@@ -211,3 +213,82 @@ def nfa_to_dfa(nfa):
 def minimize_dfa(dfa):
     # TODO
     return dfa
+
+def regex_match(formula, tup, regex):
+    # We need variables v_{s,i} that represent the dfa in state s at time i, for
+    # i in {0,...,len(tup)}. We create transitions between these using the DFA's
+    # transition function and make the formula satisifiable iff v_{s,len(t)}
+    # for some accepting state s.
+    #
+    # if the DFA's transition function delta maps state s1 to state s2 on input
+    # 0, we add:
+    #    (v_{s1,i} AND ~t_i) => v_{s2,i+1}
+    #
+    # Then we add a single unit clause v_{si, 0} for the initial state si.
+    # Then we add (v_{s1,len(t)} OR v_{s2,len(t)} OR ... ) for all accepting
+    # states {s1, s2, ...}.
+    # Then we add clauses ensuring that we're only in a single state at every
+    # point in time.
+
+    states = set()
+    dfa = regex_to_dfa(regex)
+    for k,v in dfa.delta.items():
+        states.add(k)
+        if v.get(ONE) is not None: states.add(v[ONE])
+        if v.get(ZERO) is not None: states.add(v[ZERO])
+
+    # zero_trans[s] = {a,b,c} if there's a transition from a,b,c to s on zero
+    zero_trans = defaultdict(set)
+    one_trans = defaultdict(set)
+    for k,v in dfa.delta.items():
+        if v.get(ONE) is not None: one_trans[v[ONE]].add(k)
+        if v.get(ZERO) is not None: zero_trans[v[ZERO]].add(k)
+
+    # vs[(state,i)] == dfa is in state at time i
+    vs = {}
+    for s in states:
+        for i in range(len(tup)+1):
+            vs[(s,i)] = formula.AddVar()
+
+    # Must start in initial state, can't start in any other state
+    for state in states:
+        if state == dfa.initial:
+            yield (vs[(state,0)],)
+        else:
+            yield (~vs[(state,0)],)
+
+    for i in range(1,len(tup)+1):
+        for state in states:
+            # vs[(state,i)] == (tup[i-1] AND (vs[(so',i-1)] OR vs[(so'',i-1)] OR ...)) OR
+            #                  (~tup[i-1] AND (vs[sz',i-1)] OR vs[(sz'',i-1)] OR ...))
+            # for all states so', so'', ... with transitions to state on 1 and sz', sz''
+            # with transitions to state on 0.
+            zero_conj, one_conj = None, None
+            if zero_trans[state]:
+                big_or = formula.AddVar()
+                yield from gen_or_multi([vs[(s,i-1)] for s in zero_trans[state]], big_or)
+                zero_conj = formula.AddVar()
+                yield from gen_and(big_or, ~tup[i-1], zero_conj)
+            if one_trans[state]:
+                big_or = formula.AddVar()
+                yield from gen_or_multi([vs[(s,i-1)] for s in one_trans[state]], big_or)
+                one_conj = formula.AddVar()
+                yield from gen_and(big_or, tup[i-1], one_conj)
+            # We can optimize the encoding a little bit because we know the transitions
+            # ahead of time and can use it to simplify the big disjunction of conjunctions above.
+            if zero_conj is None and one_conj is None:
+                yield (~vs[(state,i)],)
+            elif zero_conj is None:
+                yield (vs[(state,i)], ~one_conj)
+                yield (~vs[(state,i)], one_conj)
+            elif one_conj is None:
+                yield (vs[(state,i)], ~zero_conj)
+                yield (~vs[(state,i)], zero_conj)
+            else:
+                disj = formula.AddVar()
+                yield from gen_or(one_conj, zero_conj, disj)
+                yield (vs[(state,i)], ~disj)
+                yield (~vs[(state,i)], disj)
+
+    # Must end in accepting state
+    yield [vs[(state,len(tup))] for state in dfa.accepting]

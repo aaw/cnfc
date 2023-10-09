@@ -731,5 +731,54 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint()
 
+    def test_regex_match(self):
+        f = Formula()
+        bits = 8
+        x = [f.AddVar('x{}'.format(i)) for i in range(bits)]
+        # x = 00111010
+        f.Add(~x[0]); f.Add(~x[1]); f.Add(x[2]); f.Add(x[3])
+        f.Add(x[4]);  f.Add(~x[5]); f.Add(x[6]);  f.Add(~x[7])
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "0+1+010"))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "0+1+0+"))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "0*1110*10*"))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "(0|1)+"))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "1(0|1)+"))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "00111010"))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "001110100"))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(RegexMatch(Tuple(*x), "0011101"))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+
 if __name__ == '__main__':
     unittest.main()
