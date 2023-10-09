@@ -6,7 +6,7 @@ def parse_clues(clue_string):
     return [[int(y.strip()) for y in x.strip().split(',')] for x in clue_string.strip().split(';')]
 
 def clues_to_regex(clues):
-    return '0*' + ['1'*n for n in clues].join('0+') + '0*'
+    return '0*' + '0+'.join(['1'*n for n in clues]) + '0*'
 
 assert(clues_to_regex([1]) == '0*10*')
 assert(clues_to_regex([2,1,3]) == '0*110+10+1110*')
@@ -33,15 +33,13 @@ def encode_nonagram_as_sat(hclues, vclues, formula):
 
 def extract_board_from_solution(sol, *extra_args):
     rows, cols = extra_args
-    board = [[False for c in range(cols)] for r in range(rows)]
     for r in range(rows):
         for c in range(cols):
             if sol['{}:{}'.format(r,c)]:
-                print('X', end='')
+                print(' X ', end='')
             else:
-                print(' ', end='')
+                print('   ', end='')
         print('')
-            board[r][c] = sol['{}:{}'.format(r,c)]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate a Sudoku solver")
@@ -56,7 +54,7 @@ if __name__ == '__main__':
 
     formula = Formula()
     encode_nonagram_as_sat(hclues, vclues, formula)
-    with open(args.outfile, 'w') as f:
+    with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, extract_board_from_solution, [print_board], extra_args=[len(vclues), len(hclues)])
+        formula.WriteExtractor(f, extract_board_from_solution, [], extra_args=[len(vclues), len(hclues)])
