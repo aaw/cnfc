@@ -113,3 +113,19 @@ class TestRegex(unittest.TestCase, SatTestCase):
         self.assertTrue(dfa_accepts(regex_to_dfa(regex), '0001'))
         self.assertTrue(dfa_accepts(regex_to_dfa(regex), '000'))
         self.assertTrue(dfa_accepts(regex_to_dfa(regex), '000000000'))
+
+    def test_accept_none(self):
+        self.assertTrue(dfa_accepts(regex_to_dfa(''), ''))
+        self.assertFalse(dfa_accepts(regex_to_dfa(''), '0'))
+        self.assertFalse(dfa_accepts(regex_to_dfa(''), '1'))
+        self.assertFalse(dfa_accepts(regex_to_dfa(''), '011010101'))
+        self.assertFalse(dfa_accepts(regex_to_dfa(''), '101010110'))
+
+    def test_accept_all(self):
+        self.assertTrue(dfa_accepts(regex_to_dfa('(0|1)*'), ''))
+        self.assertTrue(dfa_accepts(regex_to_dfa('(0|1)*'), '0'))
+        self.assertTrue(dfa_accepts(regex_to_dfa('(0|1)*'), '1'))
+        self.assertTrue(dfa_accepts(regex_to_dfa('(0|1)*'), '111111111'))
+        self.assertTrue(dfa_accepts(regex_to_dfa('(0|1)*'), '1100101011010'))
+        self.assertTrue(dfa_accepts(regex_to_dfa('(0|1)*'), '0001110001111'))
+        self.assertFalse(dfa_accepts(regex_to_dfa('(0|1)*'), '2'))

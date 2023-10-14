@@ -731,7 +731,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint()
 
-    def test_regex_match(self):
+    def test_regex_match_simple(self):
         f = Formula()
         bits = 8
         x = [f.AddVar('x{}'.format(i)) for i in range(bits)]

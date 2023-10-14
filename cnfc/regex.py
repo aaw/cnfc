@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import reduce
+from itertools import combinations
 from .tseytin import *
 from .cardinality import at_most_one_true
 import sre_parse
@@ -90,7 +91,12 @@ def new_nfa_delta():
 
 def regex_to_dfa(s):
     parsed = sre_parse.parse(s)
-    return minimize_dfa(nfa_to_dfa(thompson_nfa(parsed)))
+    nfa = thompson_nfa(parsed)
+    dfa = nfa_to_dfa(nfa)
+    dfa, dead_state_used = minimize_dfa(dfa)
+    if not dead_state_used:
+        dfa = remove_dead_state(dfa)
+    return dfa
 
 def thompson_nfa(expr):
     if type(expr) == sre_parse.SubPattern:
@@ -187,6 +193,8 @@ def nfa_to_dfa(nfa):
     delta = defaultdict(dict)
     initial = epsilon_closure(nfa, {nfa.initial})
     accepting = set()
+    # We add an explicit dead state because it makes minimization easier
+    delta['dead'] = {ONE: 'dead', ZERO: 'dead'}
     if initial & nfa.accepting:
         accepting.add(set_id(initial))
     stack = [initial]
@@ -197,27 +205,107 @@ def nfa_to_dfa(nfa):
             trans_state = epsilon_closure(
                 nfa, reduce(lambda x,y: x | y, (nfa.delta[s][transition] for s in state), set()))
             trans_state_id = set_id(trans_state)
-            if trans_state_id != '0':
-                if delta.get(trans_state_id) is None:
-                    stack.append(trans_state)
+            if trans_state_id == '0':
+                trans_state_id = 'dead'
+            else:
                 if trans_state & nfa.accepting:
                     accepting.add(trans_state_id)
-                delta[state_id][transition] = trans_state_id
+                if delta.get(trans_state_id) is None:
+                    stack.append(trans_state)
+            delta[state_id][transition] = trans_state_id
 
     return DFA(set_id(initial), accepting, delta)
 
-def minimize_dfa(dfa):
-    # TODO
-    return dfa
-
-# Generate CNF clauses that are true iff the given regex matches the tuple of literals.
-def regex_match(formula, tup, regex):
+def all_dfa_states(dfa):
     all_states = set()
-    dfa = regex_to_dfa(regex)
     for k,v in dfa.delta.items():
         all_states.add(k)
         if v.get(ONE) is not None: all_states.add(v[ONE])
         if v.get(ZERO) is not None: all_states.add(v[ZERO])
+    return all_states
+
+class UnionFind:
+    def __init__(self, states):
+        self.parent = dict((state,state) for state in states)
+
+    def find(self, k):
+        descendants = []
+        while k != self.parent[k]:
+            descendants.append(k)
+            k = self.parent[k]
+        for d in descendants:
+            self.parent[d] = k
+        return k
+
+    def union(self, x, y):
+        x = self.find(x)
+        y = self.find(y)
+        if x == y: return
+        self.parent[x] = y
+
+def minimize_dfa(dfa):
+    states = all_dfa_states(dfa)
+    def canonical(p,q):
+        if p > q: return (q,p)
+        return (p,q)
+
+    # Initially, two states are inequivalent if one is accepting and the other is not.
+    def initial_ineq(p,q):
+        return (p in dfa.accepting and q not in dfa.accepting) or \
+               (p not in dfa.accepting and q in dfa.accepting)
+    ineq = dict((canonical(p,q), initial_ineq(p,q)) for p,q in combinations(states, 2))
+
+    # Until we don't mark any new states, mark any two states p and q where
+    # delta(p, a) and delta(q, a) have inconsistent previous marks for some a.
+    while True:
+        marked = False
+        new_ineq = dict(ineq)
+        for (p,q), mark in ineq.items():
+            if mark: continue
+            for symbol in (ONE, ZERO):
+                p_on_one = dfa.delta[p][symbol]
+                q_on_one = dfa.delta[q][symbol]
+                if p_on_one == q_on_one:
+                    continue
+                if ineq[canonical(p_on_one, q_on_one)]:
+                    new_ineq[(p,q)], marked = True, True
+        if not marked:
+            break
+        ineq = new_ineq
+
+    # Merge all equivalent states.
+    uf = UnionFind(states)
+    for (p,q), mark in ineq.items():
+        if mark: continue
+        if p is None: continue
+        uf.union(p,q)
+
+    initial = uf.find(dfa.initial)
+    accepting = set(uf.find(s) for s in dfa.accepting)
+    delta = defaultdict(dict)
+    for s,d in dfa.delta.items():
+        if uf.find(s) != s: continue
+        delta[s] = {ZERO: uf.find(d[ZERO]), ONE: uf.find(d[ONE])}
+
+    new_dfa = DFA(initial, accepting, delta)
+    return new_dfa, uf.find('dead') != 'dead'
+
+def remove_dead_state(dfa):
+    if dfa.initial == 'dead' or 'dead' in dfa.accepting:
+        raise Exception('Attempted dead state removal but dead state is used by DFA.')
+    new_delta = defaultdict(dict)
+    for s,d in dfa.delta.items():
+        if s == 'dead': continue
+        new_d = {}
+        if d[ONE] != 'dead': new_d[ONE] = d[ONE]
+        if d[ZERO] != 'dead': new_d[ZERO] = d[ZERO]
+        if new_d: new_delta[s] = new_d
+    return DFA(dfa.initial, dfa.accepting, new_delta)
+
+# Generate CNF clauses that are true iff the given regex matches the tuple of literals.
+def regex_match(formula, tup, regex):
+    dfa = regex_to_dfa(regex)
+    all_states = all_dfa_states(dfa)
 
     # zero_trans[s] = {a,b,c} if there's a transition from a,b,c to s on zero
     zero_trans = defaultdict(set)
