@@ -1,4 +1,4 @@
-from .bool_lit import rpad, lpad
+from .bool_lit import rpad, lpad, BooleanLiteral
 from .tseytin import *
 from .util import Generator
 
@@ -6,9 +6,20 @@ def tuple_less_than(formula, x, y, strict=False):
     x = lpad(x, len(y) - len(x))
     y = lpad(y, len(x) - len(y))
     n = len(x)
-    assert n >= 2, "Only tuples of dimension 2 or greater are supported."
-    a = [formula.AddVar() for i in range(n-1)]
+    if n == 0:
+        if strict:
+            yield (BooleanLiteral(False),)
+        return
+    elif n == 1:
+        if strict:
+            yield (y[0],)
+            yield (~x[0],)
+        else:
+            yield (~x[0], y[0])
+        return
 
+    # Otherwise, n > 1.
+    a = [formula.AddVar() for i in range(n-1)]
     yield (~x[0], y[0])
     yield (~x[0], a[0])
     yield (y[0], a[0])
@@ -39,8 +50,8 @@ def tuple_add(formula, x_a, x_b):
 
     x_a = lpad(x_a, len(x_b) - len(x_a))
     x_b = lpad(x_b, len(x_a) - len(x_b))
-    n = len(x_a)
-    assert n >= 2, "Only tuples of dimension 2 or greater are supported."
+    if len(x_a) == 0:
+        x_a, x_b = [BooleanLiteral(False)], [BooleanLiteral(False)]
 
     # Tuples are listed most significant bit in lowest index, we want the reverse for
     # adding so that x[0] is the least significant bit.
@@ -61,6 +72,7 @@ def tuple_add(formula, x_a, x_b):
         gps[i] = (g,p)
 
     # Need room for all bits plus a carry.
+    n = len(x_a)
     result = [formula.AddVar() for i in range(n+1)]
 
     # No carry for least significant bit.
@@ -89,6 +101,8 @@ def tuple_add(formula, x_a, x_b):
 def tuple_mul(formula, x_a, x_b):
     # Make len(x_a) >= len(x_b) so that we minimize additions.
     if len(x_a) < len(x_b): x_a, x_b = x_b, x_a
+    if len(x_b) == 0:
+        return [BooleanLiteral(False)]
     partials = []
     for i in range(len(x_b)):
         # AND each bit of x_a with x_b[i]

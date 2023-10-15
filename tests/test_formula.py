@@ -519,6 +519,41 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+    def test_degenerate_tuple_inequality(self):
+        f = Formula()
+        true = f.AddVar()
+        f.Add(true)
+
+        f.PushCheckpoint()
+        f.Add(Tuple() <= Tuple())
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple() < Tuple())
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple() < Tuple(true))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(true) < Tuple())
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(true) <= Tuple(true))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(true) <= Tuple())
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
     def test_composite_tuple_inequality(self):
         f = Formula()
         dimension = 3
@@ -621,6 +656,28 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint()
 
+    def test_degenerate_integer_addition(self):
+        f = Formula()
+        true = f.AddVar()
+        false = f.AddVar()
+        f.Add(true)
+        f.Add(~false)
+
+        f.PushCheckpoint()
+        f.Add(Tuple() + Tuple() == Integer(0))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(true) + Tuple() == Integer(1))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(false) + Tuple() == Integer(0))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_integer_arithmetic(self):
         f = Formula()
         bits = 8
@@ -667,6 +724,28 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
         f.PushCheckpoint()
         f.Add(Integer(x2, x1, x0) == Integer(2) * Integer(2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_degenerate_integer_multiplication(self):
+        f = Formula()
+        true = f.AddVar()
+        false = f.AddVar()
+        f.Add(true)
+        f.Add(~false)
+
+        f.PushCheckpoint()
+        f.Add(Tuple() * Tuple() == Integer(0))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(true) * Tuple() == Integer(0))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Tuple(false) * Tuple() == Integer(0))
         self.assertSat(f)
         f.PopCheckpoint()
 
