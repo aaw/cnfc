@@ -2,6 +2,7 @@
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
 from .tuples import tuple_less_than, tuple_add, tuple_mul
 from .regex import regex_match
+from .util import Generator
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
@@ -393,20 +394,19 @@ class TupleAdd(TupleCompositeExpr):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
         t1, t2 = zero_pad(t1, t2)
-        # Need room for all bits plus a carry.
-        result = [formula.AddVar() for i in range(len(t1)+1)]
-        for clause in tuple_add(formula, t1, t2, result):
+        gen = Generator(tuple_add(formula, t1, t2))
+        for clause in gen:
             formula.AddClause(*clause)
-        return result
+        return gen.result
 
 class TupleMul(TupleCompositeExpr):
     def evaluate(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        result = [formula.AddVar() for i in range(len(t1) + len(t2))]
-        for clause in tuple_mul(formula, t1, t2, zero_pad, rpad, result):
+        gen = Generator(tuple_mul(formula, t1, t2, zero_pad, rpad))
+        for clause in gen:
             formula.AddClause(*clause)
-        return result
+        return gen.result
 
 class Tuple(TupleExpr):
     def __init__(self, *exprs):

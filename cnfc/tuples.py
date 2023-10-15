@@ -1,4 +1,5 @@
 from .tseytin import *
+from .util import Generator
 
 def tuple_less_than(formula, x, y, strict=False):
     n = len(x)
@@ -22,7 +23,7 @@ def tuple_less_than(formula, x, y, strict=False):
 
 # Brent-Kung adder from "A Regular Layout for Parallel Adders",
 # IEEE Trans. on Comp. C-31 (3): 260-264.
-def tuple_add(formula, x_a, x_b, result):
+def tuple_add(formula, x_a, x_b):
     def operator_o(formula, a, b, g_r, p_r):
         # (g_a, p_a) o (g_b, p_b) = (g_a OR (p_a AND g_b), p_a AND p_b)
         g_a, p_a = a
@@ -57,20 +58,21 @@ def tuple_add(formula, x_a, x_b, result):
         yield from operator_o(formula, gps[i], gps[i-1], g, p)
         gps[i] = (g,p)
 
-    # TODO: actually wasting a var here because we discard the result[0] passed in.
-    for i in range(len(x_a)):
+    # Need room for all bits plus a carry.
+    result = [formula.AddVar() for i in range(n+1)]
+
+    # No carry for least significant bit.
+    yield from gen_xor((x_a[0], x_b[0]), result[0])
+    for i in range(1, len(x_a)):
         # Bit i is a_i XOR b_i XOR c_{i-1}
         a_xor_b = formula.AddVar()
         yield from gen_xor((x_a[i], x_b[i]), a_xor_b)
-        if i == 0:
-            # No carry for least significant bit.
-            result[0] = a_xor_b
-            continue
         # result[i] = a_xor_b XOR c_{i-1}
         yield from gen_xor((a_xor_b, gps[i-1][0]), result[i])
     result[n] = gps[n-1][0]
 
     result.reverse()
+    return result
 
 # Very naive multiplier implemented with repeated addition
 #
@@ -82,7 +84,7 @@ def tuple_add(formula, x_a, x_b, result):
 #    + y3x1 y3x2 y3x3    0    0
 #    --------------------------
 #
-def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn, result):
+def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn):
     # Make len(x_a) >= len(x_b) so that we minimize additions.
     if len(x_a) < len(x_b): x_a, x_b = x_b, x_a
     partials = []
@@ -103,19 +105,13 @@ def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn, result):
         reduced = []
         for a, b in zip(partials[:-1:2], partials[1::2]):
             a, b = pad_fn(a,b)
-            partial_result = [formula.AddVar() for i in range(len(a) + 1)]
-            yield from tuple_add(formula, a, b, partial_result)
-            reduced.append(partial_result)
+            gen = Generator(tuple_add(formula, a, b))
+            yield from gen
+            reduced.append(gen.result)
 
         # If there was an odd number of elements, we didn't reduce the last one.
         if len(partials) % 2 == 1:
             reduced.append(partials[-1])
         partials = reduced
 
-    # Copy partials into result
-    assert(len(partials) == 1)
-    partial = partials[0]
-    # Don't want an rpad here, but need to redo how result is passed anyway...
-    for i in range(len(partial)-len(result)): result.append(None)
-    for i in range(len(result)):
-        result[i] = partial[i]
+    return partials[0]
