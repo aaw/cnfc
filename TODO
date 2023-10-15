@@ -1,11 +1,4 @@
-* Rework model.py so that we don't need to pass pad_fn into tuple_mul. We
-  currently need this because tuples.py would have a circular dependency
-  if it knew about BooleanLiteral, which is defined in model.py. But it
-  should be possible to split out the basics of the model (var, lit, bool)
-  into a separate module and fix this so that tuple_mul can call zero_pad.
-  (This applies to rpad too, which we pass into tuple_mul)
-* Allow tuple comparison, addition, etc. with different bit widths
-  * I think I just need to remove the assertions from tuple* functions now
+* Can I allow tuples with len(tuple) in {0,1} now?
 * Actually do log-depth addition accumulation in tuple_add
 * Rename generate_var, generate_cnf to evaluate*
 * Implement very simple clause caching/suppressing duplicate clauses

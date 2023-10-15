@@ -1,5 +1,6 @@
 # Data model
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
+from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul
 from .regex import regex_match
 from .util import Generator
@@ -52,18 +53,6 @@ class NumExpr:
     def __ge__(self, other):
         return NumGe(self, other)
 
-class CardinalityConstraint(NumExpr):
-    def __init__(self, *exprs):
-        self.exprs = exprs
-        for expr in self.exprs:
-            assert issubclass(type(expr), BoolExpr), "{} needs boolean expressions, got {}".format(self.__class__.__name__, expr)
-
-    def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
-
-class NumTrue(CardinalityConstraint): pass
-class NumFalse(CardinalityConstraint): pass
-
 class Literal(BoolExpr):
     def __init__(self, var, sign):
         self.var, self.sign = var, sign
@@ -96,6 +85,18 @@ class Var(BoolExpr):
 
     def generate_cnf(self, formula):
         yield (self,)
+
+class CardinalityConstraint(NumExpr):
+    def __init__(self, *exprs):
+        self.exprs = exprs
+        for expr in self.exprs:
+            assert issubclass(type(expr), BoolExpr), "{} needs boolean expressions, got {}".format(self.__class__.__name__, expr)
+
+    def __repr__(self):
+        return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
+
+class NumTrue(CardinalityConstraint): pass
+class NumFalse(CardinalityConstraint): pass
 
 class MultiBoolExpr(BoolExpr):
     def __init__(self, *exprs):
@@ -278,18 +279,6 @@ class NumGe(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
-def zero_pad(x, y):
-    if len(x) == len(y): return x,y
-    if len(x) < len(y):
-        return [BooleanLiteral(False) for i in range(len(y) - len(x))] + x, y
-    else:  # len(x) > len(y)
-        return x, [BooleanLiteral(False) for i in range(len(x) - len(y))] + y
-
-def rpad(x, n):
-    copy = x[:]
-    for i in range(n): copy.append(BooleanLiteral(False))
-    return copy
-
 class TupleEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
@@ -297,7 +286,8 @@ class TupleEq(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        t1, t2 = zero_pad(t1, t2)
+        t1 = lpad(t1, len(t2) - len(t1))
+        t2 = lpad(t2, len(t1) - len(t2))
         yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleNeq(OrderedBinaryBoolExpr):
@@ -307,7 +297,8 @@ class TupleNeq(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        t1, t2 = zero_pad(t1, t2)
+        t1 = lpad(t1, len(t2) - len(t1))
+        t2 = lpad(t2, len(t1) - len(t2))
         yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleLt(OrderedBinaryBoolExpr):
@@ -317,7 +308,6 @@ class TupleLt(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t1, t2, strict=True)
 
 class TupleLe(OrderedBinaryBoolExpr):
@@ -327,7 +317,6 @@ class TupleLe(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t1, t2, strict=False)
 
 class TupleGt(OrderedBinaryBoolExpr):
@@ -337,7 +326,6 @@ class TupleGt(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t2, t1, strict=True)
 
 class TupleGe(OrderedBinaryBoolExpr):
@@ -347,7 +335,6 @@ class TupleGe(OrderedBinaryBoolExpr):
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        t1, t2 = zero_pad(t1, t2)
         yield from tuple_less_than(formula, t2, t1, strict=False)
 
 # Any expression that results in a Tuple.
@@ -393,7 +380,6 @@ class TupleAdd(TupleCompositeExpr):
     def evaluate(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        t1, t2 = zero_pad(t1, t2)
         gen = Generator(tuple_add(formula, t1, t2))
         for clause in gen:
             formula.AddClause(*clause)
@@ -403,7 +389,7 @@ class TupleMul(TupleCompositeExpr):
     def evaluate(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        gen = Generator(tuple_mul(formula, t1, t2, zero_pad, rpad))
+        gen = Generator(tuple_mul(formula, t1, t2))
         for clause in gen:
             formula.AddClause(*clause)
         return gen.result
@@ -419,23 +405,6 @@ class Tuple(TupleExpr):
 
     def evaluate(self, formula):
         return [expr.generate_var(formula) for expr in self.exprs]
-
-class BooleanLiteral:
-    def __init__(self, val):
-        assert type(val) == bool
-        self.val = val
-
-    def __repr__(self):
-        return 'BooleanLiteral({})'.format(self.val)
-
-    def __invert__(self):
-        return BooleanLiteral(not self.val)
-
-    def generate_var(self, formula):
-        return self
-
-    def generate_cnf(self, formula):
-        yield (self,)
 
 class Integer(Tuple):
     def __init__(self, *values):

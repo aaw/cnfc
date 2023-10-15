@@ -1,11 +1,12 @@
+from .bool_lit import rpad, lpad
 from .tseytin import *
 from .util import Generator
 
 def tuple_less_than(formula, x, y, strict=False):
+    x = lpad(x, len(y) - len(x))
+    y = lpad(y, len(x) - len(y))
     n = len(x)
-    assert n == len(y), "Comparisons between tuples of different dimensions not supported."
     assert n >= 2, "Only tuples of dimension 2 or greater are supported."
-
     a = [formula.AddVar() for i in range(n-1)]
 
     yield (~x[0], y[0])
@@ -36,8 +37,9 @@ def tuple_add(formula, x_a, x_b):
         # p_r == (p_a AND p_b)
         yield from gen_and((p_a, p_b), p_r)
 
+    x_a = lpad(x_a, len(x_b) - len(x_a))
+    x_b = lpad(x_b, len(x_a) - len(x_b))
     n = len(x_a)
-    assert n == len(x_b), "Comparisons between tuples of different dimensions not supported."
     assert n >= 2, "Only tuples of dimension 2 or greater are supported."
 
     # Tuples are listed most significant bit in lowest index, we want the reverse for
@@ -84,7 +86,7 @@ def tuple_add(formula, x_a, x_b):
 #    + y3x1 y3x2 y3x3    0    0
 #    --------------------------
 #
-def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn):
+def tuple_mul(formula, x_a, x_b):
     # Make len(x_a) >= len(x_b) so that we minimize additions.
     if len(x_a) < len(x_b): x_a, x_b = x_b, x_a
     partials = []
@@ -97,14 +99,13 @@ def tuple_mul(formula, x_a, x_b, pad_fn, rpad_fn):
             yield from gen_and((partial[ia], bit), v)
             partial[ia] = v
         # Pad result on right with i zeros
-        partial = rpad_fn(partial, i)
+        partial = rpad(partial, i)
         partials.append(partial)
 
     # Now reduce all of the partials pair-by-pair using addition
     while len(partials) > 1:
         reduced = []
         for a, b in zip(partials[:-1:2], partials[1::2]):
-            a, b = pad_fn(a,b)
             gen = Generator(tuple_add(formula, a, b))
             yield from gen
             reduced.append(gen.result)
