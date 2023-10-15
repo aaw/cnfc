@@ -1,6 +1,7 @@
 * Rename generate_var, generate_cnf to evaluate*
 * Add several more examples
-  * ?
+  * generate https://oeis.org/A302980/a302980.txt (example: https://puzzling.stackexchange.com/questions/89158/all-numbers-in-a-5x5-minesweeper-grid)
+  * rubiks cube: given a state, return a solution of length n
 * Actually do log-depth addition accumulation in tuple_add
 * Implement very simple clause caching/suppressing duplicate clauses
 * Support cardinality constraints compared to one another:
