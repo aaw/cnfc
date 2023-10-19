@@ -19,7 +19,7 @@ class TestSimplify(unittest.TestCase):
 
         b = propagate_units(b, units.units)
 
-        self.assertEqual(list(b.AllClauses()), [(xs[3].vid, xs[4].vid)])
+        self.assertEqual(list(b.AllClauses()), [(xs[3].vid, xs[4].vid), (xs[0],), (~xs[5])])
 
     def test_unit_propagation_repeated(self):
         units = UnitClauses()
@@ -35,4 +35,4 @@ class TestSimplify(unittest.TestCase):
 
         b = propagate_units(b, units.units)
 
-        self.assertEqual(list(b.AllClauses()), [(xs[3].vid, xs[4].vid)])
+        self.assertEqual(list(b.AllClauses()), [(xs[3].vid, xs[4].vid), (xs[0],), (xs[1],), (~xs[2],)])
