@@ -1,6 +1,6 @@
 from cnfc.tuples import tuple_less_than
 from cnfc import *
-from .util import SatTestCase, write_cnf_to_string
+from .util import SatTestCase
 
 import itertools
 import unittest

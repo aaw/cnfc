@@ -1,10 +1,11 @@
 from collections import defaultdict
 from cnfc import *
+from cnfc.buffer import Buffer, UnitClauses
 
 import argparse
 
 def encode(n):
-    formula = Formula()
+    formula = SimplifiedFormula()
 
     # The two factors p and q should be non-trivial factors, so their
     # bit length should be strictly less than the bit length of n.

@@ -1,2 +1,2 @@
 from .model import *
-from .formula import Formula
+from .formula import *

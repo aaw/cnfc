@@ -416,9 +416,6 @@ class Integer(Tuple):
             self.exprs = [BooleanLiteral(m[ch]) for ch in bitstring]
         else:
             self.exprs = values
-        # TODO: we require tuples to be dimension 2 or greater in some places, so zero-pad
-        #       0 and 1 for now. But ultimately maybe drop this requirement?
-        if len(self.exprs) < 2: self.exprs = [BooleanLiteral(False) for i in range(2 - len(self.exprs))] + self.exprs
 
 class RegexMatch(BoolExpr):
     def __init__(self, tup: 'TupleExpr', regex):

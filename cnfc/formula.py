@@ -1,11 +1,12 @@
 from .model import Var, Literal, BooleanLiteral
-from .buffer import Buffer
+from .buffer import Buffer, UnitClauses
 from .extractor import generate_extractor
+from .simplify import propagate_units
 
 class Formula:
-    def __init__(self):
+    def __init__(self, buffer=None):
         self.vars = {}
-        self.buffer = Buffer()
+        self.buffer = Buffer() if buffer is None else buffer
         self.nextvar = 1
 
     def AddVar(self, name=None):
@@ -31,8 +32,6 @@ class Formula:
         # Otherwise, any other bools are False and we can suppress them.
         self.buffer.Append(tuple(self.__raw_lit(x) for x in disjuncts if type(x) != bool))
 
-    # TODO: perform light optimizations like removing duplicate literals,
-    # suppressing tautologies, and supressing duplicate clauses
     def Add(self, expr):
         for clause in expr.generate_cnf(self):
             self.AddClause(*clause)
@@ -54,3 +53,14 @@ class Formula:
         elif isinstance(expr, Literal): return expr.sign*expr.var.vid
         elif isinstance(expr, BooleanLiteral): return expr.val
         else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))
+
+class SimplifiedFormula(Formula):
+    def __init__(self):
+        self.units = UnitClauses()
+        self.buffer = Buffer(visitors=[self.units])
+        super(SimplifiedFormula, self).__init__(self.buffer)
+
+    def WriteCNF(self, fd):
+        self.buffer = propagate_units(self.buffer, self.units.units)
+        # TODO: more preprocessing here: duplicate clause removal, subsumption test, etc.
+        super(SimplifiedFormula, self).WriteCNF(fd)
