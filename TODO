@@ -1,9 +1,12 @@
-* Rename generate_var, generate_cnf to evaluate*
 * Add several more examples
   * generate https://oeis.org/A302980/a302980.txt (example: https://puzzling.stackexchange.com/questions/89158/all-numbers-in-a-5x5-minesweeper-grid)
   * rubiks cube: given a state, return a solution of length n
-* Run unit propagation + other configurable preprocessors before outputting CNF files
+* Redo unit propagation so there's not two *Formula classes
 * Actually do log-depth addition accumulation in tuple_add
+* Rename generate_var, generate_cnf to evaluate*
+* Add more preprocessing
+  * subsumption for clauses of length >= 2
+  * ?
 * Implement very simple clause caching/suppressing duplicate clauses
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v)
@@ -11,3 +14,4 @@
   Implies(NumTrue(x,y,z) > 1, NumFalse(w,v) > 0)
 * Implement a parsing pass that puts expressions into a canonical form so we can
   cache/reuse them if they reoccur in other subexpressions
+* Generate a bash script for sat generation/solving/extracting
