@@ -3,6 +3,14 @@ from .buffer import Buffer, UnitClauses
 from .extractor import generate_extractor
 from .simplify import propagate_units
 
+# Given one of the various forms of variables/literals, return an integer
+# representation of the underlying literal.
+def raw_lit(expr):
+    if isinstance(expr, Var): return expr.vid
+    elif isinstance(expr, Literal): return expr.sign*expr.var.vid
+    elif isinstance(expr, BooleanLiteral): return expr.val
+    else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))
+
 class Formula:
     def __init__(self, buffer=None):
         self.vars = {}
@@ -30,7 +38,7 @@ class Formula:
         if any(b for b in disjuncts if b is True):
             return
         # Otherwise, any other bools are False and we can suppress them.
-        self.buffer.Append(tuple(self.__raw_lit(x) for x in disjuncts if type(x) != bool))
+        self.buffer.Append(tuple(raw_lit(x) for x in disjuncts if type(x) != bool))
 
     def Add(self, expr):
         for clause in expr.generate_cnf(self):
@@ -47,12 +55,6 @@ class Formula:
 
     def WriteExtractor(self, fd, extractor_fn, extra_fns=None, extra_args=None):
         generate_extractor(fd, extractor_fn, extra_fns, extra_args)
-
-    def __raw_lit(self, expr):
-        if isinstance(expr, Var): return expr.vid
-        elif isinstance(expr, Literal): return expr.sign*expr.var.vid
-        elif isinstance(expr, BooleanLiteral): return expr.val
-        else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))
 
 class SimplifiedFormula(Formula):
     def __init__(self):

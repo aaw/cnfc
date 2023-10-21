@@ -4,7 +4,7 @@ def propagate_units(b, units, max_iterations=None):
     if max_iterations is None:
         max_iterations = 2**10
     iterations = 0
-    while units:
+    while True:
         new_units = UnitClauses()
         new_b = Buffer(visitors=[new_units])
         for comment in b.AllComments():
@@ -17,8 +17,10 @@ def propagate_units(b, units, max_iterations=None):
         # Keep units so we retain their setting for solution extraction later.
         for unit in units:
             new_b.Append((unit,))
-        units = new_units.units
         b = new_b
+        if len(new_units.units) == len(units):
+            break
+        units = new_units.units
         iterations += 1
         if iterations >= max_iterations:
             break

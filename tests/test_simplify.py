@@ -1,38 +1,43 @@
 from cnfc import *
 from cnfc.buffer import Buffer, UnitClauses
 from cnfc.simplify import propagate_units
+from cnfc.formula import raw_lit
 from .util import write_cnf_to_string
 
 import unittest
+
+# TODO: make this take a list of clauses, map them all
+def ints(*clauses):
+    return sorted([tuple(raw_lit(v) for v in vs) for vs in clauses])
 
 class TestSimplify(unittest.TestCase):
     def test_unit_propagation_basic(self):
         units = UnitClauses()
         b = Buffer(visitors=[units])
         f = Formula(buffer=b)
-        xs = [f.AddVar() for i in range(6)]
+        x1, x2, x3, x4, x5, x6s = f.AddVars('x1 x2 x3 x4 x5 x6')
 
-        f.AddClause(xs[0], xs[1], xs[2])
-        f.AddClause(xs[0])
-        f.AddClause(xs[3], xs[4], xs[5])
-        f.AddClause(~xs[5])
+        f.AddClause(x1, x2, x3)
+        f.AddClause(x1)
+        f.AddClause(x2, x3, x4)
+        f.AddClause(~x4)
 
         b = propagate_units(b, units.units)
 
-        self.assertEqual(list(b.AllClauses()), [(xs[3].vid, xs[4].vid), (xs[0],), (~xs[5])])
+        self.assertEqual(sorted(list(b.AllClauses())), ints((x1,), (x2, x3), (~x4,)))
 
     def test_unit_propagation_repeated(self):
         units = UnitClauses()
         b = Buffer(visitors=[units])
         f = Formula(buffer=b)
-        xs = [f.AddVar() for i in range(6)]
+        x1, x2, x3, x4, x5, x6s = f.AddVars('x1 x2 x3 x4 x5 x6')
 
-        # Deriving ~xs[2] takes a few rounds of unit propagation.
-        f.AddClause(~xs[1], ~xs[2])
-        f.AddClause(~xs[0], xs[1])
-        f.AddClause(xs[0])
-        f.AddClause(xs[2], xs[3], xs[4])
+        # Deriving ~x3 takes a few rounds of unit propagation.
+        f.AddClause(~x2, ~x3)
+        f.AddClause(~x1, x2)
+        f.AddClause(x1)
+        f.AddClause(x3, x4, x5)
 
         b = propagate_units(b, units.units)
 
-        self.assertEqual(list(b.AllClauses()), [(xs[3].vid, xs[4].vid), (xs[0],), (xs[1],), (~xs[2],)])
+        self.assertEqual(sorted(list(b.AllClauses())), ints((x1,), (x2,), (~x3,), (x4, x5)))
