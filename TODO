@@ -1,9 +1,6 @@
 * Add several more examples
-  * rubiks cube: given a state, return a solution of length n
+  * rubiks cube: given a state, return a solution of length n?
 * Write READMEs for examples
-* Redo unit propagation so there's not two *Formula classes
-  * Formula should take a config that enables simplifications
-  * just do unit accumulation by default and stop accumulating if there are too many units
 * Actually do log-depth addition accumulation in tuple_add
 * Rename generate_var, generate_cnf to evaluate*
 * Add more preprocessing

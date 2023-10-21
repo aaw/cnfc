@@ -1,9 +1,44 @@
-# A clause buffer
+# Buffers to store clauses during formula creation and simplification.
 import os
 import tempfile
 
-class Buffer:
-    def __init__(self, visitors=None):
+class MemoryBuffer:
+    def __init__(self):
+        self.comments = []
+        self.clauses = []
+        self.maxvar = 0
+        self.checkpoints = []
+
+    def PushCheckpoint(self):
+        self.checkpoints.append((len(self.clauses), len(self.comments), self.maxvar))
+
+    def PopCheckpoint(self):
+        num_clauses, num_comments, self.maxvar = self.checkpoints.pop()
+        self.clauses = self.clauses[:num_clauses]
+        self.comments = self.comments[:num_comments]
+
+    def Append(self, clause):
+        if len(clause) > 0: self.maxvar = max(self.maxvar, *[abs(lit) for lit in clause])
+        self.clauses.append(clause)
+
+    def AllClauses(self):
+        yield from self.clauses
+
+    def AddComment(self, comment):
+        self.comments.append(comment)
+
+    def AllComments(self):
+        yield from self.comments
+
+    def Flush(self, fd):
+        for comment in self.AllComments():
+            fd.write("c {}\n".format(comment))
+        fd.write('p cnf {} {}\n'.format(self.maxvar, len(self.clauses)))
+        for clause in self.AllClauses():
+            fd.write("{} 0\n".format(' '.join(str(lit) for lit in clause)))
+
+class FileBuffer:
+    def __init__(self):
         # We keep two file descriptors:
         #    * fd, which is where we write the raw clauses in DIMACS CNF format,
         #      one by one
@@ -16,7 +51,6 @@ class Buffer:
         self.maxvar = 0
         self.num_clauses = 0
         self.checkpoints = []
-        self.visitors = [] if visitors is None else visitors
 
     def __del__(self):
         if self.fd is not None:
@@ -27,16 +61,16 @@ class Buffer:
             os.remove(self.cpath)
 
     def PushCheckpoint(self):
-        self.checkpoints.append((self.num_clauses, self.maxvar, self.fd.tell()))
+        self.checkpoints.append((self.num_clauses, self.maxvar, self.fd.tell(), self.cfd.tell()))
 
     def PopCheckpoint(self):
-        self.num_clauses, self.maxvar, pos = self.checkpoints.pop()
-        self.fd.seek(pos)
+        self.num_clauses, self.maxvar, fpos, cfpos = self.checkpoints.pop()
+        self.fd.seek(fpos)
         self.fd.truncate()
+        self.cfd.seek(cfpos)
+        self.cfd.truncate()
 
     def Append(self, clause):
-        for visitor in self.visitors:
-            visitor.Visit(clause)
         if len(clause) > 0: self.maxvar = max(self.maxvar, *[abs(lit) for lit in clause])
         self.num_clauses += 1
         self.fd.write("{} 0\n".format(' '.join(str(lit) for lit in clause)))
@@ -60,12 +94,3 @@ class Buffer:
         fd.write('p cnf {} {}\n'.format(self.maxvar, self.num_clauses))
         self.fd.seek(0)
         fd.write(self.fd.read())
-
-# A Buffer visitor that keeps track of unit clauses
-class UnitClauses:
-    def __init__(self):
-        self.units = set()
-
-    def Visit(self, clause):
-        if len(clause) != 1: return
-        self.units.add(clause[0])

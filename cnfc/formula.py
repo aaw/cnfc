@@ -1,5 +1,5 @@
 from .model import Var, Literal, BooleanLiteral
-from .buffer import Buffer, UnitClauses
+from .buffer import *
 from .extractor import generate_extractor
 from .simplify import propagate_units
 
@@ -12,9 +12,11 @@ def raw_lit(expr):
     else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))
 
 class Formula:
-    def __init__(self, buffer=None):
+    def __init__(self, buffer_class=None):
+        if buffer_class is None:
+            buffer_class = MemoryBuffer
         self.vars = {}
-        self.buffer = Buffer() if buffer is None else buffer
+        self.buffer = buffer_class()
         self.nextvar = 1
 
     def AddVar(self, name=None):
@@ -55,14 +57,3 @@ class Formula:
 
     def WriteExtractor(self, fd, extractor_fn, extra_fns=None, extra_args=None):
         generate_extractor(fd, extractor_fn, extra_fns, extra_args)
-
-class SimplifiedFormula(Formula):
-    def __init__(self):
-        self.units = UnitClauses()
-        self.buffer = Buffer(visitors=[self.units])
-        super(SimplifiedFormula, self).__init__(self.buffer)
-
-    def WriteCNF(self, fd):
-        self.buffer = propagate_units(self.buffer, self.units.units)
-        # TODO: more preprocessing here: duplicate clause removal, subsumption test, etc.
-        super(SimplifiedFormula, self).WriteCNF(fd)

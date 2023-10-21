@@ -5,7 +5,7 @@ from cnfc.buffer import Buffer, UnitClauses
 import argparse
 
 def encode(n):
-    formula = SimplifiedFormula()
+    formula = Formula()
 
     # The two factors p and q should be non-trivial factors, so their
     # bit length should be strictly less than the bit length of n.

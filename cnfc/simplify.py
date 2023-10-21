@@ -1,26 +1,25 @@
-from .buffer import Buffer, UnitClauses
+from .buffer import *
 
-def propagate_units(b, units, max_iterations=None):
+def propagate_units(b, max_iterations=None):
     if max_iterations is None:
         max_iterations = 2**10
     iterations = 0
-    while True:
-        new_units = UnitClauses()
-        new_b = Buffer(visitors=[new_units])
+    prev_unit_count = -1
+    units = set()
+
+    while len(units) > prev_unit_count:
+        prev_unit_count = len(units)
+        new_b = b.__class__()
         for comment in b.AllComments():
             new_b.AddComment(comment)
         for clause in b.AllClauses():
-            if any(lit for lit in clause if lit in units):
+            if len(clause) > 1 and any(lit for lit in clause if lit in units):
                 continue
             new_clause = tuple(lit for lit in clause if -lit not in units)
+            if len(new_clause) == 1:
+                units.add(new_clause[0])
             new_b.Append(new_clause)
-        # Keep units so we retain their setting for solution extraction later.
-        for unit in units:
-            new_b.Append((unit,))
         b = new_b
-        if len(new_units.units) == len(units):
-            break
-        units = new_units.units
         iterations += 1
         if iterations >= max_iterations:
             break
