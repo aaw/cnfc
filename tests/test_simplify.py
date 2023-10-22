@@ -1,5 +1,5 @@
 from cnfc import *
-from cnfc.simplify import propagate_units
+from cnfc.simplify import *
 from cnfc.formula import raw_lit
 from .util import write_cnf_to_string
 
@@ -35,3 +35,26 @@ class TestSimplify(unittest.TestCase):
         f.buffer = propagate_units(f.buffer)
 
         self.assertEqual(sorted(list(f.buffer.AllClauses())), ints((x1,), (x2,), (~x3,), (x4, x5)))
+
+    def test_self_subsumption(self):
+        f = Formula()
+        x1, x2, x3, x4, x5, x6s = f.AddVars('x1 x2 x3 x4 x5 x6')
+
+        f.AddClause(x1, x2, ~x3)
+        f.AddClause(x1, x3)
+
+        f.buffer = strengthen_self_subsumed(f.buffer)
+
+        self.assertEqual(sorted(list(f.buffer.AllClauses())), ints((x1, x2), (x1, x3)))
+
+    def test_self_subsumption_repeated(self):
+        f = Formula()
+        x1, x2, x3, x4, x5, x6s = f.AddVars('x1 x2 x3 x4 x5 x6')
+
+        f.AddClause(x1, x2, ~x3)
+        f.AddClause(x1, x3)
+        f.AddClause(~x1, x2, x4)
+
+        f.buffer = strengthen_self_subsumed(f.buffer)
+
+        self.assertEqual(sorted(list(f.buffer.AllClauses())), ints((x1, x2), (x1, x3), (x2, x4)))

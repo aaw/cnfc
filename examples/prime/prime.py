@@ -1,6 +1,5 @@
 from collections import defaultdict
 from cnfc import *
-from cnfc.buffer import Buffer, UnitClauses
 
 import argparse
 
@@ -17,6 +16,7 @@ def encode(n):
     formula.Add(p > Integer(1))
     formula.Add(q > Integer(1))
     formula.Add(Integer(n) == p * q)
+
     return formula
 
 def bin_to_int(blist):

@@ -1,7 +1,7 @@
 from .model import Var, Literal, BooleanLiteral
 from .buffer import *
 from .extractor import generate_extractor
-from .simplify import propagate_units
+from .simplify import strengthen_self_subsumed, propagate_units
 
 # Given one of the various forms of variables/literals, return an integer
 # representation of the underlying literal.
@@ -57,3 +57,7 @@ class Formula:
 
     def WriteExtractor(self, fd, extractor_fn, extra_fns=None, extra_args=None):
         generate_extractor(fd, extractor_fn, extra_fns, extra_args)
+
+    def Simplify(self):
+        self.buffer = strengthen_self_subsumed(self.buffer)
+        self.buffer = propagate_units(self.buffer)
