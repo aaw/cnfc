@@ -1,5 +1,68 @@
+# This module collects some common simplifications that can decrease the size of
+# a CNF formula. So that generated extractors will still work on simplified
+# formulas, we only use simplifications that can preserve logical equivalence
+# and we never remove variables. In practice, the "never remove variables"
+# condition just means that we don't reset the max variable in the DIMACS CNF
+# file header, even though the variable may no longer appear in any clauses.
+
 from .buffer import *
 from collections import defaultdict
+from functools import reduce
+
+# Do any easy simplifications in two passes. This includes:
+# (1) eliminating tautologies
+# (2) removing duplicate literals from clauses
+# (3) removing duplicate clauses
+# (4) removing pure literals
+def simplify(b):
+    def hashlit(lit):
+        return (lit * 1022201) % 64
+
+    def sig(clause):
+        bits = [1 << hashlit(lit) for lit in clause]
+        return reduce(lambda x,y: x | y, bits, 0)
+
+    new_b = b.__class__(maxvar=b.maxvar)
+    signs = defaultdict(set)  # Maps var to lits seen
+    sigs = set()
+    possible_dups = set()
+    for clause in b.AllClauses():
+        # Check for tautology, suppress clause if so.
+        abslits = sorted(clause, key=lambda x: abs(x))
+        if any(plit == -nlit for (plit, nlit) in zip(abslits, abslits[1:])):
+            continue
+        # Remove duplicate literals from clause.
+        lits = set(lit for lit in clause)
+        # Register sign of variable seen (to check for pure lits at the end).
+        for lit in lits:
+            signs[abs(lit)].add(lit)
+        sclause = tuple(lit for lit in lits)
+        # Check for duplicate clause
+        s = sig(sclause)
+        if s in sigs:
+            possible_dups.add(sclause)
+        sigs.add(s)
+        new_b.Append(sclause)
+    pure_lits = set(next(iter(lits)) for (v, lits) in signs.items() if len(lits) == 1)
+
+    # One final pass to remove pure literals and duplicate clauses
+    final_b = b.__class__(maxvar=b.maxvar)
+    for comment in b.AllComments():
+        final_b.AddComment(comment)
+    seen = {}
+    for lit in pure_lits:
+        final_b.Append((lit,))
+    for clause in new_b.AllClauses():
+        if clause in possible_dups:
+            if seen.get(clause) is None:
+                seen[clause] = True
+            else:
+                continue  # Suppress duplicate clauses
+        if any(lit in pure_lits for lit in clause):
+            continue
+        final_b.Append(clause)
+
+    return final_b
 
 def propagate_units(b, max_iterations=None):
     if max_iterations is None:
@@ -10,7 +73,7 @@ def propagate_units(b, max_iterations=None):
 
     while len(units) > prev_unit_count:
         prev_unit_count = len(units)
-        new_b = b.__class__()
+        new_b = b.__class__(maxvar=b.maxvar)
         for comment in b.AllComments():
             new_b.AddComment(comment)
         for clause in b.AllClauses():
@@ -73,7 +136,7 @@ def strengthen_self_subsumed(b):
         if not any(self_subsume(i) for i in range(len(clauses))):
             break
 
-    new_b = b.__class__()
+    new_b = b.__class__(maxvar=b.maxvar)
     for comment in b.AllComments():
         new_b.AddComment(comment)
     for clause in clauses:

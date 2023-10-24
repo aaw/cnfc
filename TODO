@@ -1,11 +1,9 @@
+* Add tests for simple preprocessing
 * Add several more examples
   * rubiks cube: given a state, return a solution of length n?
 * Write READMEs for examples
 * Actually do log-depth addition accumulation in tuple_add
 * Rename generate_var, generate_cnf to evaluate*
-* Add more preprocessing
-  * subsumption for clauses of length >= 2
-  * ?
 * Implement very simple clause caching/suppressing duplicate clauses
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v)

@@ -3,10 +3,10 @@ import os
 import tempfile
 
 class MemoryBuffer:
-    def __init__(self):
+    def __init__(self, maxvar=None):
         self.comments = []
         self.clauses = []
-        self.maxvar = 0
+        self.maxvar = 0 if maxvar is None else maxvar
         self.checkpoints = []
 
     def PushCheckpoint(self):
@@ -38,7 +38,7 @@ class MemoryBuffer:
             fd.write("{} 0\n".format(' '.join(str(lit) for lit in clause)))
 
 class FileBuffer:
-    def __init__(self):
+    def __init__(self, maxvar=None):
         # We keep two file descriptors:
         #    * fd, which is where we write the raw clauses in DIMACS CNF format,
         #      one by one
@@ -48,7 +48,7 @@ class FileBuffer:
         self.fd = open(self.fpath, 'r+')
         cfd, self.cpath = tempfile.mkstemp()
         self.cfd = open(self.cpath, 'r+')
-        self.maxvar = 0
+        self.maxvar = 0 if maxvar is None else maxvar
         self.num_clauses = 0
         self.checkpoints = []
 
