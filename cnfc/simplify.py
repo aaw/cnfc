@@ -121,7 +121,7 @@ def strengthen_self_subsumed(b):
         return tuple(l for l in clause if l != lit)
 
     def self_subsume(ci):
-        any_strengthened = False
+        strengthened = 0
         for i, lit in enumerate(clauses[ci]):
             cc = list(clauses[ci])
             cc[i] = -cc[i]
@@ -129,11 +129,12 @@ def strengthen_self_subsumed(b):
                 st = strengthen(clauses[si], cc[i])
                 occur[cc[i]].remove(si)
                 clauses[si] = st
-                any_strengthened = True
-        return any_strengthened
+                strengthened += 1
+        return strengthened
 
     while True:
-        if not any(self_subsume(i) for i in range(len(clauses))):
+        strengthened = sum(self_subsume(i) for i in range(len(clauses)))
+        if strengthened == 0:
             break
 
     new_b = b.__class__(maxvar=b.maxvar)

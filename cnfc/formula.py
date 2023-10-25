@@ -59,7 +59,12 @@ class Formula:
         generate_extractor(fd, extractor_fn, extra_fns, extra_args)
 
     def Simplify(self):
+        print('simplifying...')
         self.buffer = simplify(self.buffer)
+        print('strengthening self-subsumed...')
         self.buffer = strengthen_self_subsumed(self.buffer)
+        print('propagating units...')
         self.buffer = propagate_units(self.buffer)
+        print('simplifying...')
         self.buffer = simplify(self.buffer)
+        print('done')
