@@ -33,6 +33,24 @@ def tuple_less_than(formula, x, y, strict=False):
     else:
         yield (~x[n-1], y[n-1], ~a[n-2])
 
+def ladner_fischer_network(n):
+    zs, reduced = [0]*n, [list(range(n))]
+    while len(reduced[-1]) > 1:
+        prev, current = reduced[-1], []
+        for x,y in zip(prev[::2], prev[1::2]):
+            yield (x,y)
+            current.append(y)
+        if len(prev) % 2 == 1:
+            current.append(prev[-1])
+        reduced.append(current)
+
+    finished = set(r[0] for r in reduced)
+    for result in reversed(reduced):
+        for i, item in enumerate(result):
+            if item not in finished:
+                yield (result[i-1], item)
+                finished.add(item)
+
 # Brent-Kung adder from "A Regular Layout for Parallel Adders",
 # IEEE Trans. on Comp. C-31 (3): 260-264.
 def tuple_add(formula, x_a, x_b):
@@ -70,6 +88,14 @@ def tuple_add(formula, x_a, x_b):
         g, p = formula.AddVar(), formula.AddVar()
         yield from operator_o(formula, gps[i], gps[i-1], g, p)
         gps[i] = (g,p)
+
+    # Work-efficient prefix sums. This does not currently beat the naive
+    # linear accumulation above, but leaving it here for testing.
+    # https://blog.aaw.io/2023/11/05/work-efficient-prefix-sums.html
+    # for x,y in ladner_fischer_network(len(gps)):
+    #     g, p = formula.AddVar(), formula.AddVar()
+    #     yield from operator_o(formula, gps[y], gps[x], g, p)
+    #     gps[y] = (g,p)
 
     # Need room for all bits plus a carry.
     n = len(x_a)
