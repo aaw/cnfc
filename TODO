@@ -1,8 +1,8 @@
-* Actually do log-depth addition accumulation in tuple_add
-* replace print statements in simplify with logging
+* Write README for main
+* Write READMEs for examples
 * Add several more examples
   * rubiks cube: given a state, return a solution of length n?
-* Write READMEs for examples
+* Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
 * Implement very simple clause caching/suppressing duplicate clauses
 * Support cardinality constraints compared to one another:

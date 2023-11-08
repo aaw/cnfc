@@ -2,6 +2,7 @@ from .model import Var, Literal, BooleanLiteral
 from .buffer import *
 from .extractor import generate_extractor
 from .simplify import *
+import log
 
 # Given one of the various forms of variables/literals, return an integer
 # representation of the underlying literal.
@@ -59,12 +60,13 @@ class Formula:
         generate_extractor(fd, extractor_fn, extra_fns, extra_args)
 
     def Simplify(self):
-        print('simplifying...')
+        logger = log.logger()
+        logger.info('Running basic simplifications...')
         self.buffer = simplify(self.buffer)
-        print('strengthening self-subsumed...')
+        logger.info('Strengthening self-subsumed...')
         self.buffer = strengthen_self_subsumed(self.buffer)
-        print('propagating units...')
+        logger.info('Propagating units...')
         self.buffer = propagate_units(self.buffer)
-        print('simplifying...')
+        logger.info('Running basic simplifications again...')
         self.buffer = simplify(self.buffer)
-        print('done')
+        logger.info('Done simplifying.')
