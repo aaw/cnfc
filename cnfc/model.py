@@ -116,7 +116,7 @@ class Not(BoolExpr):
         return ~self.expr.generate_var(formula)
 
     def generate_cnf(self, formula):
-        yield ~self.expr.generate_var(formula)
+        yield (~self.expr.generate_var(formula),)
 
 class OrderedBinaryBoolExpr(BoolExpr):
     def __init__(self, first, second):
