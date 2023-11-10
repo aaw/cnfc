@@ -12,7 +12,7 @@ in the Online Encyclopedia of Integer Sequences.
 
 The script in this subdirectory generates Kamenetsky's _a(n)_ sequence.
 
-To generate _a(n)_, first choose an n (say, 1) and run the script for a guess for _a(n)_ (here we'll guess 5, which happens to be correct):
+To generate _a(n)_, first choose an _n_ (say, 1) and run the script with a guess for _a(n)_ (here we'll guess 5, which happens to be correct):
 
 ```
 $ poetry run python3 examples/minesweeper/minesweeper.py 1 5 /tmp/cnf /tmp/extractor.py
@@ -37,4 +37,11 @@ xx3xx
 
 If you get a solution, like we did above, you've proven that _a(n)_ &le; _d_ for some _d_ (here, we showed _a(1)_ &le; _5_).
 To prove equality, you need to find a _d_ such that running the script above with _d_ is satisfiable (shows a solution board)
-and running the script above with _d-1_ prints UNSATISFIABLE.
+and running the script above with _d-1_ prints UNSATISFIABLE. So to finish proving _a(n)_ = 5, we just need to run:
+
+```
+$ poetry run python3 examples/minesweeper/minesweeper.py 1 4 /tmp/cnf /tmp/extractor.py
+$ kissat /tmp/cnf > /tmp/solver-output
+$ python3 /tmp/extractor.py /tmp/cnf /tmp/solver-output
+UNSATISFIABLE
+```
