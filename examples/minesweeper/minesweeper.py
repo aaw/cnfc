@@ -1,5 +1,4 @@
 from cnfc import *
-from cnfc.buffer import Buffer, UnitClauses
 
 import argparse
 
