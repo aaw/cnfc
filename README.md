@@ -4,6 +4,17 @@ A [CNF](https://en.wikipedia.org/wiki/Conjunctive_normal_form) compiler that gen
 compact DIMACS CNF encodings from higher-level primitives in Python. DIMACS CNF is
 the input format accepted by most SAT solvers.
 
+In contrast to optimization libraries like Z3, PySAT or ortools that provide both
+a language for modeling optimization problems and integrated solvers,
+cnfc only generates DIMACS CNF files and expects you to bring your own SAT solver to
+solve the output formula. This works better for harder combinatorial problems that
+may take hours or days to solve, since it gives you the flexibility to run your own
+preprocessing or cubing as an intermediate step or pass the input to one or more
+solvers that might work best on your problem.
+
+Read on for an extended example or look at the [examples](examples) in this repository
+to get started.
+
 ## Example
 
 Suppose you need to schedule 8 employees to cover two shifts a day (7 a.m. - 3 p.m. and
