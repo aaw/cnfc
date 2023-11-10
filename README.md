@@ -7,7 +7,7 @@ the input format accepted by most SAT solvers.
 ## Example
 
 Suppose you need to schedule 8 employees to cover two shifts a day (7 a.m. - 3 p.m. and
-3 p.m. to 11 p.m.) for all seven days of the week. Every shift needs to be staffed
+3 p.m. - 11 p.m.) for the whole week. Every shift needs to be staffed
 by two employees, one of which has to be a manager. Each employee has a few shifts where
 they can't work. You need to give everyone at least 3 shifts of
 work for the week but they can't go over 4. Employees can't work both the morning and
@@ -19,8 +19,7 @@ encoding them into a propositional formula can be tedious. Here's how to do it w
 ```python
 from cnfc import *
 
-employees = ['Homer', 'Hamza', 'Veronica', 'Lottie', 'Zakaria', 'Keeley',
-             'Farhan', 'Seamus']
+employees = ['Homer', 'Hamza', 'Veronica', 'Lottie', 'Zakaria', 'Keeley', 'Farhan', 'Seamus']
 managers = ['Homer', 'Hamza', 'Keeley', 'Farhan']
 days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 hours = ['7-3','3-11']
@@ -75,8 +74,7 @@ with open('/tmp/cnf', 'w') as f:
     formula.WriteCNF(f)
 # Write an extractor script to /tmp/extractor.py.
 with open('/tmp/extractor.py', 'w') as f:
-    shift_assignments = \
-        [f'{employee} {shift}' for shift in shifts for employee in employees]
+    shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
     formula.WriteExtractor(f, print_solution, extra_args=[shift_assignments])
 ```
 
