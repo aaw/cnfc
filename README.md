@@ -1,83 +1,158 @@
 # cnfc
-A Python package that generates DIMACS CNF files.
 
 A [CNF](https://en.wikipedia.org/wiki/Conjunctive_normal_form) compiler that generates
-compact encodings from higher-level primitives that are commonly used for solving
-combinatorial problems.
+compact DIMACS CNF encodings from higher-level primitives in Python. DIMACS CNF is
+the input format accepted by most SAT solvers.
 
-Instead of providing an integrated encoder-solver environment, this package generates
-DIMACS CNF files only. This is a useful intermediate step for difficult problems that
-might take hours or days to solve, since having a DIMACS CNF input allows one to
-move to a more powerful machine or cluster and experiment with different preprocessors
-and solvers.
+## Example
 
-Example:
+Suppose you need to schedule 8 employees to cover two shifts a day (7 a.m. - 3 p.m. and
+3 p.m. to 11 p.m.) for all seven days of the week. Every shift needs to be staffed
+by two employees, one of which has to be a manager. Each employee has a few shifts where
+they can't work. You need to give everyone at least 3 shifts of
+work for the week but they can't go over 4. Employees can't work both the morning and
+night shift on the same day.
+
+This is a collection of constraints that should be easy to solve with a SAT solver, but
+encoding them into a propositional formula can be tedious. Here's how to do it with cnfc:
 
 ```python
 from cnfc import *
 
-f = Formula()
-x, y, z, w = f.AddVars('x y z w')
+employees = ['Homer', 'Hamza', 'Veronica', 'Lottie', 'Zakaria', 'Keeley',
+             'Farhan', 'Seamus']
+managers = ['Homer', 'Hamza', 'Keeley', 'Farhan']
+days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+hours = ['7-3','3-11']
+shifts = [f'{day} {hour}' for day in days for hour in hours]
 
-f.AddClause(~x,y)  # Equivalent to f.Add(Or(~x,y)).
-f.AddClause(~y,z)
-f.AddClause(~z,x)
+# Associate a boolean variable with each pairing of employee and shift.
+formula = Formula()
+varz = dict(((employee, shift), formula.AddVar(f'{employee} {shift}'))
+            for employee in employees for shift in shifts)
 
-# Equivalent to f.Add(Or(Implies(x,y),Not(And(z,w)))).
-f.Add(Implies(x,y) | ~(z & w))
+# Every shift needs exactly two people scheduled.
+for shift in shifts:
+    scheduled = [varz[(employee, shift)] for employee in employees]
+    formula.Add(NumTrue(*scheduled) == 2)
 
-# Assert that at least one of x,y, or z is true.
-f.Add(NumTrue(x,y,z) >= 1)
+# Every shift needs a manager.
+for shift in shifts:
+    manager_on_shift = [varz[(manager, shift)] for manager in managers]
+    formula.Add(Or(*manager_on_shift))
 
-# Assert that the tuple (x,y) is lexicographically less than (z,w).
-f.Add(Tuple(x,y) < Tuple(z,w))
+# People have shifts they can't work.
+formula.Add(Not(varz[('Homer', 'Sun 7-3')]))
+formula.Add(Not(varz[('Lottie', 'Tue 7-3')]))
+formula.Add(Not(varz[('Lottie', 'Tue 3-11')]))
+formula.Add(Not(varz[('Farhan', 'Fri 3-11')]))
+formula.Add(Not(varz[('Homer', 'Sat 3-11')]))
+formula.Add(Not(varz[('Hamza', 'Sat 3-11')]))
+formula.Add(Not(varz[('Keeley', 'Sat 3-11')]))
 
-# Write the resulting CNF file to /tmp/output.cnf.
-with open('/tmp/output.cnf', 'w') as fd:
-    f.WriteCNF(fd)
+# Each employee needs to work at least 3 shifts but no more than 4.
+for employee in employees:
+    employee_shifts = [varz[(employee,shift)] for shift in shifts]
+    formula.Add(NumTrue(*employee_shifts) >= 3)
+    formula.Add(NumTrue(*employee_shifts) <= 4)
+
+# People can't work both the morning and night shift in a single day.
+for employee in employees:
+    for day in days:
+        formula.Add(Not(And(varz[(employee, f'{day} 7-3')],
+                            varz[(employee, f'{day} 3-11')])))
+
+# This function will be called to print the final schedule once we've solved for
+# it. The extra_args will be full descriptions of the shift staffings -- the
+# same strings we used to name the variables in our calls to AddVar above.
+def print_solution(sol, *extra_args):
+    for shift_assignment in extra_args[0]:
+        if sol[shift_assignment]:
+            print(shift_assignment)
+
+# Write the resulting CNF file to /tmp/cnf.
+with open('/tmp/cnf', 'w') as f:
+    formula.WriteCNF(f)
+# Write an extractor script to /tmp/extractor.py.
+with open('/tmp/extractor.py', 'w') as f:
+    shift_assignments = \
+        [f'{employee} {shift}' for shift in shifts for employee in employees]
+    formula.WriteExtractor(f, print_solution, extra_args=[shift_assignments])
 ```
 
-The above script will generate:
+This script will generate a DIMACS CNF file (/tmp/cnf) and a script (/tmp/extractor.py) that will
+let you extract and print out the solution from the solver output. You'll need a SAT solver like
+[kissat](https://github.com/arminbiere/kissat) or [cadical](https://github.com/arminbiere/cadical)
+to solve the CNF file.
+
+To see the solution, run the script above, then run a solver on the CNF file, saving the output:
 
 ```
-p cnf 11 28
--1 2 0
--2 3 0
--3 1 0
--1 2 -5 0
-5 1 0
-5 -2 0
--3 -4 6 0
--6 3 0
--6 4 0
-5 -6 0
--8 1 2 0
--1 8 0
--2 8 0
-7 -1 -2 0
-1 -7 0
-2 -7 0
--10 7 3 0
--7 10 0
--3 10 0
-9 -7 -3 0
-7 -9 0
-3 -9 0
-8 10 0
--1 3 0
--1 11 0
-3 11 0
--2 -11 0
-4 -11 0
+$ kissat /tmp/cnf > /tmp/solver-output
 ```
 
-Status
-======
+and finally, run the extractor script on the CNF file and the output of the solver:
 
-Basic functionality (boolean operations, cardinality tests, lexicographic tuple comparisons) and arbitrary nesting of expressions is implemented.
+```
+$ python3 /tmp/extractor.py /tmp/cnf /tmp/solver-output
+```
+
+You should see a complete schedule like:
+
+```
+Zakaria Sun 7-3
+Farhan Sun 7-3
+Homer Sun 3-11
+Seamus Sun 3-11
+Hamza Mon 7-3
+Seamus Mon 7-3
+Zakaria Mon 3-11
+Keeley Mon 3-11
+Homer Tue 7-3
+Zakaria Tue 7-3
+Keeley Tue 3-11
+Seamus Tue 3-11
+Homer Wed 7-3
+Seamus Wed 7-3
+Lottie Wed 3-11
+Keeley Wed 3-11
+Veronica Thu 7-3
+Farhan Thu 7-3
+Lottie Thu 3-11
+Keeley Thu 3-11
+Hamza Fri 7-3
+Farhan Fri 7-3
+Homer Fri 3-11
+Veronica Fri 3-11
+Hamza Sat 7-3
+Veronica Sat 7-3
+Lottie Sat 3-11
+Farhan Sat 3-11
+```
+
+You can verify that all of our constraints are satisfied. Right now, three of the four managers (Homer, Hamza, and Keeley)
+want the Saturday 3-11 shift off, so if we change the script to add another constraint with the last remaining manager
+(Farhan) asking for that shift off:
+
+```
+formula.Add(Not(varz[('Farhan', 'Sat 3-11')]))
+```
+
+and then re-run the solver and extractor, we should see:
+
+```
+UNSATISFIABLE
+```
+
+instead of a schedule, which tells us that there's no assignment of people to shifts that satisfies all of the criteria we've laid out.
+
+A [runnable version of this script](examples/scheduling) is in the [examples subdirectory](examples) of this repository.
 
 Installation
 ============
+
+cnfc is tested on [these versions](https://github.com/aaw/cnfc/blob/master/.github/workflows/python-package.yml#L19) of Python 3. To install
+the latest stable release of cnfc, run:
 
 ```
 pip install cnfc
