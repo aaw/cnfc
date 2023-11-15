@@ -157,8 +157,17 @@ instead of a schedule, which tells us that there's no assignment of people to sh
 
 A [runnable version of this script](examples/scheduling) is in the [examples subdirectory](examples) of this repository.
 
-Installation
-============
+## Features
+
+Arbitrary clauses can be built, composed, and added to formulas with:
+
+   * Familiar boolean operators `And`, `Or`, `Not`, `Implies`, `Eq`, `Neq`.
+   * `Tuple`s that can be compared for equality, inequality, or lexicographic order.
+   * `Integer`s that can be added, multiplied, or compared as `Tuple`s (see [examples/prime](examples/prime)).
+   * `NumTrue` and `NumFalse` for cardinality constraints (see [examples/nqueens](examples/nqueens)).
+   * `RegexMatch` to apply binary regular expressions to `Tuple`s (see [examples/nonagram](examples/nonagram)).
+
+## Installation
 
 cnfc is tested on [these versions](https://github.com/aaw/cnfc/blob/master/.github/workflows/python-package.yml#L19) of Python 3. To install
 the latest stable release of cnfc, run:
@@ -167,8 +176,7 @@ the latest stable release of cnfc, run:
 pip install cnfc
 ```
 
-Development
-===========
+## Development
 
 Install [poetry](https://python-poetry.org/docs/#installation) and run `poetry install`. Then you can bring up a shell, etc. Run tests with:
 
