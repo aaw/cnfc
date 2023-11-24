@@ -1,7 +1,7 @@
 from cnfc import *
 
 import argparse
-from itertools import combinations, product
+from itertools import combinations
 
 # Generates all ternary strings of lenth n in lexicographic order.
 def ternary_strings(n):
@@ -18,16 +18,6 @@ def trifferent(x,y,z):
         if len(set((x[i],y[i],z[i]))) == 3:
             return True
     return False
-
-# Generate all words lexicographically less than the given word, except the
-# all-zero word.
-def non_zero_lex_less_than(word):
-    n = len(word)
-    all_zero = '0'*n
-    for w in ternary_strings(n):
-        if w == all_zero: continue
-        if w > word: return
-        yield w
 
 def encode_trifference_as_sat(n, k):
     formula = Formula()
