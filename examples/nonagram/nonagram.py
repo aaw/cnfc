@@ -42,7 +42,7 @@ def extract_board_from_solution(sol, *extra_args):
         print('')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Generate a Sudoku solver")
+    parser = argparse.ArgumentParser(description="Generate a Nonagram solver")
     parser.add_argument('--out', type=str, help='Path to output CNF file.', required=True)
     parser.add_argument('--extractor', type=str, help='Path to output extractor script.', required=True)
     parser.add_argument('--hclues', type=str, help='Clues on the horizontal axis, starting from top left. Clues are separated by commas, columns separated by semicolons', required=True)
