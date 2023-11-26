@@ -605,42 +605,42 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(x[4]);  f.Add(~x[5]); f.Add(x[6]);  f.Add(~x[7])
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) == Integer(10))
+        f.Add(Tuple(*x) == 10)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) != Integer(11))
+        f.Add(Tuple(*x) != 11)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) > Integer(9))
+        f.Add(Tuple(*x) > 9)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) < Integer(12))
+        f.Add(Tuple(*x) < 12)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Integer(15) == Tuple(*x))
+        f.Add(15 == Tuple(*x))
         self.assertUnsat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) != Integer(10))
+        f.Add(Tuple(*x) != 10)
         self.assertUnsat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) > Integer(99))
+        f.Add(Tuple(*x) > 99)
         self.assertUnsat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(*x) < Integer(1))
+        f.Add(Tuple(*x) < 1)
         self.assertUnsat(f)
         f.PopCheckpoint()
 
@@ -664,17 +664,17 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(~false)
 
         f.PushCheckpoint()
-        f.Add(Tuple() + Tuple() == Integer(0))
+        f.Add(Tuple() + Tuple() == 0)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(true) + Tuple() == Integer(1))
+        f.Add(Tuple(true) + Tuple() == 1)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(false) + Tuple() == Integer(0))
+        f.Add(Tuple(false) + Tuple() == 0)
         self.assertSat(f)
         f.PopCheckpoint()
 
@@ -735,17 +735,17 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(~false)
 
         f.PushCheckpoint()
-        f.Add(Tuple() * Tuple() == Integer(0))
+        f.Add(Tuple() * Tuple() == 0)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(true) * Tuple() == Integer(0))
+        f.Add(Tuple(true) * Tuple() == 0)
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(Tuple(false) * Tuple() == Integer(0))
+        f.Add(Tuple(false) * Tuple() == 0)
         self.assertSat(f)
         f.PopCheckpoint()
 

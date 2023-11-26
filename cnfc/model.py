@@ -279,7 +279,18 @@ class NumGe(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
-class TupleEq(OrderedBinaryBoolExpr):
+class OrderedBinaryTupleBoolExpr(BoolExpr):
+    def __init__(self, first, second):
+        self.first, self.second = first, second
+        if isinstance(self.first, int):
+            self.first = Integer(self.first)
+        if isinstance(self.second, int):
+            self.second = Integer(self.second)
+
+    def __repr__(self):
+        return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
+
+class TupleEq(OrderedBinaryTupleBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -290,7 +301,7 @@ class TupleEq(OrderedBinaryBoolExpr):
         t2 = lpad(t2, len(t1) - len(t2))
         yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
-class TupleNeq(OrderedBinaryBoolExpr):
+class TupleNeq(OrderedBinaryTupleBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -301,7 +312,7 @@ class TupleNeq(OrderedBinaryBoolExpr):
         t2 = lpad(t2, len(t1) - len(t2))
         yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
-class TupleLt(OrderedBinaryBoolExpr):
+class TupleLt(OrderedBinaryTupleBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -310,7 +321,7 @@ class TupleLt(OrderedBinaryBoolExpr):
         t2 = self.second.evaluate(formula)
         yield from tuple_less_than(formula, t1, t2, strict=True)
 
-class TupleLe(OrderedBinaryBoolExpr):
+class TupleLe(OrderedBinaryTupleBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -319,7 +330,7 @@ class TupleLe(OrderedBinaryBoolExpr):
         t2 = self.second.evaluate(formula)
         yield from tuple_less_than(formula, t1, t2, strict=False)
 
-class TupleGt(OrderedBinaryBoolExpr):
+class TupleGt(OrderedBinaryTupleBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -328,7 +339,7 @@ class TupleGt(OrderedBinaryBoolExpr):
         t2 = self.second.evaluate(formula)
         yield from tuple_less_than(formula, t2, t1, strict=True)
 
-class TupleGe(OrderedBinaryBoolExpr):
+class TupleGe(OrderedBinaryTupleBoolExpr):
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -360,16 +371,26 @@ class TupleExpr:
     def __ge__(self, other: 'TupleExpr'):
         return TupleGe(self, other)
 
-    def __add__(self, other: 'TupleExpr'):
+    def __add__(self, other):
         return TupleAdd(self, other)
 
-    def __mul__(self, other: 'TupleExpr'):
+    def __radd__(self, other):
+        return TupleAdd(self, other)
+
+    def __mul__(self, other):
+        return TupleMul(self, other)
+
+    def __rmul__(self, other):
         return TupleMul(self, other)
 
 # An expression combining two Tuples (addition, multiplication) that results in a Tuple
 class TupleCompositeExpr(TupleExpr):
     def __init__(self, first, second):
         self.first, self.second = first, second
+        if isinstance(self.first, int):
+            self.first = Integer(self.first)
+        if isinstance(self.second, int):
+            self.second = Integer(self.second)
         # TODO: dummy exprs to make asserts work, fix later when we don't do these asserts any more
         self.exprs = [None]*(len(self.first))
 

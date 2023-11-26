@@ -13,8 +13,8 @@ def encode(n):
     qs = [formula.AddVar('q{}'.format(i)) for i in range(n_bitlength-1)]
 
     p, q = Integer(*ps), Integer(*qs)
-    formula.Add(p > Integer(1))
-    formula.Add(q > Integer(1))
+    formula.Add(p > 1)
+    formula.Add(q > 1)
     formula.Add(Integer(n) == p * q)
 
     return formula
