@@ -1,6 +1,7 @@
 Examples
 ========
 
+   * [cuboid](cuboid): Finds a [Perfect Cuboid](https://mathworld.wolfram.com/PerfectCuboid.html).
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
