@@ -93,6 +93,16 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.AddClause(False)
         self.assertUnsat(f)
 
+    def test_empty_and(self):
+        f = Formula()
+        f.Add(And(*[]))
+        self.assertSat(f)
+
+    def test_empty_or(self):
+        f = Formula()
+        f.Add(Or(*[]))
+        self.assertUnsat(f)
+
     def test_add_literals_sat(self):
         f = Formula()
         f.AddClause(True, False, False)
@@ -249,6 +259,35 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
         f.Add(NumFalse(x,y,z,w) == 2)
         self.assertUnsat(f)
+
+    def test_cardinality_eq_zero(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x y z w')
+        f.Add(~x)
+        f.Add(~y)
+        f.Add(z)
+        f.Add(w)
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,y) == 0)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,y,z) == 0)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(z,w) == 0)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(x,y,z,w) == 0)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
 
     def test_cardinality_inequality(self):
         f = Formula()
