@@ -7,6 +7,7 @@ Examples
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
    * [prime](prime): Test integers for primality.
+   * [product-sum sudoku](product-sum-sudoku): A variant of sudoku with sum and product constraints from the Royal Statistical Society Christmas Quiz 2023.
    * [scheduling](scheduling): A simple work scheduling example from the [main README](../README.md#example).
    * [sudoku](sudoku): A Sudoku solver.
    * [trifference](trifference): Finding the largest set of ternary strings with a differing position in each triple.
