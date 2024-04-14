@@ -1,10 +1,7 @@
-* Write README for main
-* Write READMEs for examples
-* Add several more examples
-  * rubiks cube: given a state, return a solution of length n?
 * Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
 * Implement very simple clause caching/suppressing duplicate clauses
+* Support integer division/subtraction by re-arranging parse tree into addition/multiplication
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v)
 * Support cardinality constraints as variable additions:

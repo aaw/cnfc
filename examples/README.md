@@ -6,6 +6,7 @@ Examples
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
+   * [pandigital-alphametic](pandigital-alphametic): Solves the pandigital alphametic A x BC x DEF = GHIJ.
    * [prime](prime): Test integers for primality.
    * [product-sum sudoku](product-sum-sudoku): A variant of sudoku with sum and product constraints from the Royal Statistical Society Christmas Quiz 2023.
    * [scheduling](scheduling): A simple work scheduling example from the [main README](../README.md#example).
