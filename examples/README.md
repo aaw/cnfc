@@ -1,6 +1,7 @@
 Examples
 ========
 
+   * [apple-banana-pineapple](apple-banana-pineapple): Solve a problem 95% of people can't solve.
    * [attacking chessboard](attacking-chessboard): Finds a configuration of a chess board with a prescribed number of empty squares with different numbers of pieces attacking.
    * [cuboid](cuboid): Finds a [Perfect Cuboid](https://mathworld.wolfram.com/PerfectCuboid.html).
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
