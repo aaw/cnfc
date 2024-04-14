@@ -7,7 +7,7 @@ presented in [this Puzzling StackExchange question](https://puzzling.stackexchan
 The script has a list of all 72 solutions and returns `UNSATISFIABLE` when run:
 
 ```
-$ poetry run python3 examples/pandigital-alphametic.py /tmp/out.cnf /tmp/extractor.py
+$ poetry run python3 examples/pandigital-alphametic/pandigital-alphametic.py /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat-out.txt
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat-out.txt
 UNSATISFIABLE
