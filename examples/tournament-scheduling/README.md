@@ -3,6 +3,10 @@ Tournament Scheduling
 
 [This Puzzling StackExchange question](https://puzzling.stackexchange.com/questions/126302/tournament-scheduling-puzzle) asks for a schedule for a tournament with a few constraints:
 
+  1. 24 players competing in teams of 3, pairing up in 3-on-3 matches over 7 rounds.
+  2. No two players can appear on the same team more than once.
+  3. No two players can appear on competing teams more than once.
+
 To solve it with the script in this directory, run:
 
 ```
