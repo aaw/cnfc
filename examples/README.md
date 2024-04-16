@@ -12,5 +12,6 @@ Examples
    * [product-sum sudoku](product-sum-sudoku): A variant of sudoku with sum and product constraints from the Royal Statistical Society Christmas Quiz 2023.
    * [scheduling](scheduling): A simple work scheduling example from the [main README](../README.md#example).
    * [sudoku](sudoku): A Sudoku solver.
+   * [tournament-scheduling](tournament-scheduling): Schedule a particular tournament over several rounds.
    * [trifference](trifference): Finding the largest set of ternary strings with a differing position in each triple.
    * [xkcd.com/287](xkcd287): Solve a simple Diophantine equation.
