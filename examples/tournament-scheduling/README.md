@@ -7,10 +7,10 @@ Tournament Scheduling
   2. No two players can appear on the same team more than once.
   3. No two players can appear on competing teams more than once.
 
-To solve it with the script in this directory, run:
+It doesn't look like 7 rounds is possible, but you can solve 5 rounds with the script in this directory:
 
 ```
-$ poetry run python3 examples/tournament-scheduling/tournament-scheduling.py /tmp/out.cnf /tmp/extractor.py
+$ poetry run python3 examples/tournament-scheduling/tournament-scheduling.py --rounds 5 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat-out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat-out
 ```
@@ -18,11 +18,9 @@ $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat-out
 Which prints the following schedule for me:
 
 ```
-Round 1: (8, 16, 17) vs (7, 10, 19), (3, 6, 11) vs (13, 21, 22), (2, 9, 15) vs (18, 20, 24), (1, 4, 5) vs (12, 14, 23)
-Round 2: (3, 4, 24) vs (1, 6, 12), (15, 21, 23) vs (14, 16, 20), (8, 18, 22) vs (11, 17, 19), (9, 10, 13) vs (2, 5, 7)
-Round 3: (5, 9, 20) vs (3, 16, 19), (1, 8, 13) vs (4, 14, 22), (7, 17, 23) vs (2, 11, 24), (10, 12, 15) vs (6, 18, 21)
-Round 4: (3, 22, 23) vs (2, 13, 18), (5, 10, 16) vs (9, 11, 12), (4, 19, 21) vs (6, 7, 24), (8, 15, 20) vs (1, 14, 17)
-Round 5: (15, 16, 24) vs (2, 3, 14), (6, 10, 22) vs (18, 19, 23), (4, 13, 17) vs (1, 9, 21), (5, 8, 12) vs (7, 11, 20)
-Round 6: (6, 9, 17) vs (11, 14, 15), (12, 13, 16) vs (8, 19, 24), (4, 7, 18) vs (10, 20, 23), (3, 5, 21) vs (1, 2, 22)
-Round 7: (5, 13, 19) vs (2, 4, 6), (1, 3, 7) vs (15, 17, 18), (14, 21, 24) vs (8, 10, 11), (9, 16, 23) vs (12, 20, 22)
+Round 1: (1, 2, 3) vs (4, 5, 6), (7, 8, 9) vs (10, 11, 12), (13, 14, 15) vs (16, 17, 18), (19, 20, 21) vs (22, 23, 24)
+Round 2: (6, 13, 18) vs (8, 20, 22), (2, 11, 23) vs (1, 17, 24), (10, 14, 19) vs (4, 12, 15), (7, 16, 21) vs (3, 5, 9)
+Round 3: (9, 11, 14) vs (2, 5, 20), (1, 8, 12) vs (15, 21, 22), (3, 10, 16) vs (18, 19, 23), (4, 13, 17) vs (6, 7, 24)
+Round 4: (15, 16, 19) vs (6, 11, 20), (10, 13, 24) vs (1, 5, 14), (8, 18, 21) vs (2, 7, 17), (9, 12, 22) vs (3, 4, 23)
+Round 5: (8, 14, 17) vs (1, 9, 19), (5, 11, 18) vs (6, 12, 23), (2, 15, 24) vs (3, 7, 22), (4, 10, 21) vs (13, 16, 20)
 ```
