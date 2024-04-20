@@ -7,6 +7,7 @@ def generate_formula(num_teams, num_rounds, num_players):
     # Sanity check these params.
     assert num_teams % 2 == 0, "Impossible to match up teams each round."
     assert num_players % num_teams == 0, "Impossible to divide players evenly into teams."
+    players_per_team = num_players // num_teams
 
     # Identify each player, team, and round with an integer from here on out.
     players = list(range(1,num_players+1))
@@ -23,11 +24,11 @@ def generate_formula(num_teams, num_rounds, num_players):
     varz = dict(((player, team, rnd), formula.AddVar(f'{player}:{team}:{rnd}'))
                 for player in players for team in teams for rnd in rounds)
 
-    # Constraint: Exactly 3 players on each team in each round.
+    # Constraint: Exactly players_per_team players on each team in each round.
     for rnd in rounds:
         for team in teams:
             on_team = [varz[(player,team,rnd)] for player in players]
-            formula.Add(NumTrue(*on_team) == 3)
+            formula.Add(NumTrue(*on_team) == players_per_team)
 
     # Constraint: Each player is on exactly one team per round.
     for rnd in rounds:
