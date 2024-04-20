@@ -55,7 +55,17 @@ def generate_formula(num_teams, num_rounds, num_players):
             player += 1
         team += 1
 
+    # Symmetry breaking: Assume 1 always on team 1 in each round (already assume this for first round).
+    for rnd in rounds[1:]:
+        formula.Add(varz[(1,1,rnd)])
+
+    # Symmetry breaking: Assume 4 always on team 3 in each round after the first (since it can never be paired with 1 again).
+    for rnd in rounds[1:]:
+        formula.Add(varz[(4,3,rnd)])
+
+    formula.Simplify()
     return formula
+
 
 # This function will be called to print the final tournament schedule.
 def print_solution(sol, *extra_args):
