@@ -3,7 +3,7 @@ from itertools import combinations
 
 import argparse
 
-def generate_formula(num_teams, num_rounds, num_players):
+def generate_formula(num_teams, num_rounds, num_players, symmetry):
     # Sanity check these params.
     assert num_teams % 2 == 0, "Impossible to match up teams each round."
     assert num_players % num_teams == 0, "Impossible to divide players evenly into teams."
@@ -47,22 +47,68 @@ def generate_formula(num_teams, num_rounds, num_players):
                         And(varz[(player1,team2,rnd)],varz[(player2,team1,rnd)])) for rnd in rounds for team1,team2 in matchups]
         formula.Add(NumTrue(*face_offs) <= 1)
 
-    # Symmetry breaking: Assume (1,2,3) vs (4,5,6), (7,8,9) vs. (10,11,12), etc. for first round.
-    players_per_team = num_players // num_teams
-    player, team = 1,1
-    while player <= num_players:
-        for i in range(players_per_team):
-            formula.Add(varz[(player,team,1)])
-            player += 1
-        team += 1
+    if symmetry == 'basic':
+        print('Adding basic symmetry-breaking clauses.')
 
-    # Symmetry breaking: Assume 1 always on team 1 in each round (already assume this for first round).
-    for rnd in rounds[1:]:
-        formula.Add(varz[(1,1,rnd)])
+        # Symmetry breaking: Assume (1,2,3) vs (4,5,6), (7,8,9) vs. (10,11,12), etc. for first round.
+        players_per_team = num_players // num_teams
+        player, team = 1,1
+        while player <= num_players:
+            for i in range(players_per_team):
+                formula.Add(varz[(player,team,1)])
+                player += 1
+            team += 1
 
-    # Symmetry breaking: Assume 4 always on team 3 in each round after the first (since it can never be paired with 1 again).
-    for rnd in rounds[1:]:
-        formula.Add(varz[(4,3,rnd)])
+        # Symmetry breaking: Assume 1 always on team 1 in each round (already assume this for first round).
+        for rnd in rounds[1:]:
+            formula.Add(varz[(1,1,rnd)])
+
+        # Symmetry breaking: Assume 4 always on team 3 in each round after the second (since it can never be paired with 1 again).
+        for rnd in rounds[2:]:
+            formula.Add(varz[(4,3,rnd)])
+
+        # Symmetry breaking: Rounds are ordered so that team 1 lexicographically increases throughout the tournament.
+        prev_round = Tuple(*(varz[(player,1,1)] for player in reversed(players)))
+        for rnd in rounds[1:]:
+            next_round = Tuple(*(varz[(player,1,rnd)] for player in reversed(players)))
+            formula.Add(prev_round < next_round)
+            prev_round = next_round
+
+    elif symmetry == 'golden-triples' and num_rounds >= 7:
+        print('Adding symmetry-breaking clauses assuming at least one golden triple.')
+
+        # Symmetry breaking: Assume (1,2,3) vs (4,5,6), (7,8,9) vs. (10,11,12), etc. for first round.
+        players_per_team = num_players // num_teams
+        player, team = 1,1
+        while player <= num_players:
+            for i in range(players_per_team):
+                formula.Add(varz[(player,team,1)])
+                player += 1
+            team += 1
+
+        # Add restrictions for subsequent rounds based on existence of at least once "golden triple".
+        # See https://puzzling.stackexchange.com/a/126394/84078.
+
+        # Round 2: 1 on team 1, 2 on team 2, 3 on team 3.
+        formula.Add(varz[(1,1,2)])
+        formula.Add(varz[(2,2,2)])
+        formula.Add(varz[(3,3,2)])
+
+        # Round 3: 2 on team 1, 3 on team 2, 1 on team 3.
+        formula.Add(varz[(2,1,3)])
+        formula.Add(varz[(3,2,3)])
+        formula.Add(varz[(1,3,3)])
+
+        # Round 4: 3 on team 1, 1 on team 2, 2 on team 3.
+        formula.Add(varz[(3,1,4)])
+        formula.Add(varz[(1,2,4)])
+        formula.Add(varz[(2,3,4)])
+
+        # Rounds 5-7: 1 on team 1, 2 on team 3, 3 on team 5.
+        for rnd in (5,6,7):
+            formula.Add(varz[(1,1,rnd)])
+            formula.Add(varz[(2,3,rnd)])
+            formula.Add(varz[(3,5,rnd)])
 
     formula.Simplify()
     return formula
@@ -90,9 +136,12 @@ if __name__ == '__main__':
     parser.add_argument('--teams', type=int, help='Number of teams.', default=8)
     parser.add_argument('--rounds', type=int, help='Number of rounds.', default=7)
     parser.add_argument('--players', type=int, help='Number of players.', default=24)
+    parser.add_argument('--symmetry', choices=['none','basic','golden-triples'], default='none')
     args = parser.parse_args()
 
-    formula = generate_formula(args.teams, args.rounds, args.players)
+    assert args.symmetry != 'golden-triples' or args.rounds >= 7, '--symmetry=golden-triples only works when --rounds >= 7'
+
+    formula = generate_formula(args.teams, args.rounds, args.players, args.symmetry)
 
     # Write the resulting CNF file to /tmp/cnf.
     with open(args.outfile, 'w') as f:
