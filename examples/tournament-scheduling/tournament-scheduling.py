@@ -63,16 +63,28 @@ def generate_formula(num_teams, num_rounds, num_players, symmetry):
         for rnd in rounds[1:]:
             formula.Add(varz[(1,1,rnd)])
 
-        # Symmetry breaking: Assume 4 always on team 3 in each round after the second (since it can never be paired with 1 again).
-        for rnd in rounds[2:]:
-            formula.Add(varz[(4,3,rnd)])
-
         # Symmetry breaking: Rounds are ordered so that team 1 lexicographically increases throughout the tournament.
-        prev_round = Tuple(*(varz[(player,1,1)] for player in reversed(players)))
+        prev_round = Tuple(*(varz[(player,1,1)] for player in players))
         for rnd in rounds[1:]:
-            next_round = Tuple(*(varz[(player,1,rnd)] for player in reversed(players)))
-            formula.Add(prev_round < next_round)
-            prev_round = next_round
+            curr_round = Tuple(*(varz[(player,1,rnd)] for player in players))
+            formula.Add(prev_round > curr_round)
+            prev_round = curr_round
+
+        # Symmetry breaking: Teams are ordered within rounds so that (team1, team2) < (team3, team4) < ... each round.
+        for rnd in rounds[1:]:
+            team1, team2 = matchups[0]
+            prev_match = Tuple(*(Or(varz[(player,team1,rnd)], varz[(player,team2,rnd)]) for player in players))
+            for team1, team2 in matchups[1:]:
+                curr_match = Tuple(*(Or(varz[(player,team1,rnd)], varz[(player,team2,rnd)]) for player in players))
+                formula.Add(prev_match > curr_match)
+                prev_match = curr_match
+
+        # Symmetry breaking: for each round, team1 < team2, team3 < team4, etc.
+        for rnd in rounds[1:]:
+            for team1, team2 in matchups:
+                tuple1 = Tuple(*(varz[(player,team1,rnd)] for player in players))
+                tuple2 = Tuple(*(varz[(player,team2,rnd)] for player in players))
+                formula.Add(tuple1 > tuple2)
 
     elif symmetry == 'golden-triples' and num_rounds >= 7:
         print('Adding symmetry-breaking clauses assuming at least one golden triple.')
@@ -110,7 +122,6 @@ def generate_formula(num_teams, num_rounds, num_players, symmetry):
             formula.Add(varz[(2,3,rnd)])
             formula.Add(varz[(3,5,rnd)])
 
-    formula.Simplify()
     return formula
 
 
@@ -136,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--teams', type=int, help='Number of teams.', default=8)
     parser.add_argument('--rounds', type=int, help='Number of rounds.', default=7)
     parser.add_argument('--players', type=int, help='Number of players.', default=24)
-    parser.add_argument('--symmetry', choices=['none','basic','golden-triples'], default='none')
+    parser.add_argument('--symmetry', choices=['none','basic','golden-triples'], default='basic')
     args = parser.parse_args()
 
     assert args.symmetry != 'golden-triples' or args.rounds >= 7, '--symmetry=golden-triples only works when --rounds >= 7'
