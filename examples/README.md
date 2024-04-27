@@ -8,6 +8,7 @@ Examples
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
    * [pandigital-alphametic](pandigital-alphametic): Solves the pandigital alphametic A x BC x DEF = GHIJ.
+   * [pandigital-square-date](pandigital-square-date): Finds a DD/MM/YYYY such that all digits are unique and the product DD * MM * YYYY is a square.
    * [prime](prime): Test integers for primality.
    * [product-sum sudoku](product-sum-sudoku): A variant of sudoku with sum and product constraints from the Royal Statistical Society Christmas Quiz 2023.
    * [scheduling](scheduling): A simple work scheduling example from the [main README](../README.md#example).
