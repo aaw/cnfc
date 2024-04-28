@@ -161,7 +161,7 @@ A [runnable version of this script](examples/scheduling) is in the [examples sub
 
 Arbitrary clauses can be built, composed, and added to formulas with:
 
-   * Familiar boolean operators `And`, `Or`, `Not`, `Implies`, `Eq`, `Neq`.
+   * Familiar boolean operators `And`, `Or`, `Not`, `If`, `Eq`, `Neq`.
    * `Tuple`s that can be compared for equality, inequality, or lexicographic order.
    * `Integer`s that can be added, multiplied, or compared as `Tuple`s (see [examples/prime](examples/prime)).
    * `NumTrue` and `NumFalse` for cardinality constraints (see [examples/nqueens](examples/nqueens)).

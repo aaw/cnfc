@@ -34,7 +34,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertEqual(repr(NumFalse(x,y,z) == 2), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
         self.assertEqual(repr(2 == NumFalse(x,y,z)), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
         self.assertEqual(repr(3 > NumTrue(x,y,z,w)), 'NumLt(NumTrue(Var(x,1),Var(y,2),Var(z,3),Var(w,4)),3)')
-        self.assertEqual(repr(Implies(NumTrue(x,y) == 0, z & w)), 'Implies(NumEq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
+        self.assertEqual(repr(If(NumTrue(x,y) == 0, z & w)), 'If(NumEq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
 
     def test_tuple_parsing(self):
         f = Formula()
@@ -163,19 +163,19 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(~z)
         self.assertSat(f)
 
-    def test_implies_cnf(self):
+    def test_if_cnf(self):
         f = Formula()
         x,y = f.AddVars('x y')
-        f.Add(Implies(x,y))
+        f.Add(If(x,y))
         f.Add(x)
         self.assertSat(f)
         f.Add(~y)
         self.assertUnsat(f)
 
-    def test_implies_subformula(self):
+    def test_if_subformula(self):
         f = Formula()
         x,y,z,w = f.AddVars('x y z w')
-        f.Add(Implies(x,y) | ~(z & w))
+        f.Add(If(x,y) | ~(z & w))
         self.assertSat(f)
 
     def test_not_cnf(self):

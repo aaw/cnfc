@@ -45,7 +45,7 @@ def encode(n, d):
                     # An i in this cell is impossible
                     formula.Add(~vs[(r,c,i)])
                 else:
-                    formula.Add(Implies(vs[(r,c,i)], NumTrue(*surrounding) == i))
+                    formula.Add(If(vs[(r,c,i)], NumTrue(*surrounding) == i))
 
     return formula
 

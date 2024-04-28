@@ -40,13 +40,13 @@ def encode_equation_as_sat(min_year, max_year):
     # Constraint: day is valid, given the month
     formula.Add(day > 0)
     formula.Add(day <= 31)
-    formula.Add(Implies(day == 31, Or(month == 1, month == 3, month == 5, month == 7, month == 8, month == 10, month == 12)))
-    formula.Add(Implies(day == 30, Or(month != 2)))
+    formula.Add(If(day == 31, Or(month == 1, month == 3, month == 5, month == 7, month == 8, month == 10, month == 12)))
+    formula.Add(If(day == 30, Or(month != 2)))
     # The correct leap year constraint (divisible by 4, unless divisible by 100, unless divisible by 400) is hard
     # to encode, so we'll just use a simpler check and deal with invalid leap years by blocking them if they
     # arise as solutions to the other constraints.
     x = Integer(*(formula.AddVar('x_{}'.format(i)) for i in range(12)))
-    formula.Add(Implies(day == 29, Or(month != 2, And(month == 2, year == x * Integer(4)))))
+    formula.Add(If(day == 29, Or(month != 2, And(month == 2, year == x * Integer(4)))))
 
     # Constraint: year is in the range we're searching.
     # 2024 <= year <= max_year

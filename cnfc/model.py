@@ -125,7 +125,7 @@ class OrderedBinaryBoolExpr(BoolExpr):
     def __repr__(self):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
-class Implies(OrderedBinaryBoolExpr):
+class If(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         return Or(Not(self.first), self.second).generate_var(formula)
 
