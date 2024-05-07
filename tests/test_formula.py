@@ -34,7 +34,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertEqual(repr(NumFalse(x,y,z) == 2), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
         self.assertEqual(repr(2 == NumFalse(x,y,z)), 'NumEq(NumFalse(Var(x,1),Var(y,2),Var(z,3)),2)')
         self.assertEqual(repr(3 > NumTrue(x,y,z,w)), 'NumLt(NumTrue(Var(x,1),Var(y,2),Var(z,3),Var(w,4)),3)')
-        self.assertEqual(repr(If(NumTrue(x,y) == 0, z & w)), 'If(NumEq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
+        self.assertEqual(repr(If(NumTrue(x,y) == 0, z & w)), 'Implies(NumEq(NumTrue(Var(x,1),Var(y,2)),0),And(Var(z,3),Var(w,4)))')
 
     def test_tuple_parsing(self):
         f = Formula()
@@ -809,6 +809,49 @@ class TestFormula(unittest.TestCase, SatTestCase):
                     f.Add(Integer(x*y-1) == Integer(x) * Integer(y))
                     self.assertUnsat(f)
                     f.PopCheckpoint()
+
+    def test_tuple_ternary(self):
+        f = Formula()
+        w = f.AddVar()
+
+        f.PushCheckpoint()
+        f.Add(w)
+        f.Add(Integer(3) == If(w, Integer(3), Integer(4)))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(w)
+        f.Add(Integer(4) == If(~w, Integer(3), Integer(4)))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~w)
+        f.Add(Integer(100) == If(~w, Integer(1), Integer(100)))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~w)
+        f.Add(Integer(100) == If(w, Integer(1), Integer(100)))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_boolean_ternary(self):
+        f = Formula()
+        a,b,c,d,e = f.AddVars('a b c d e')
+        f.Add(a); f.Add(b); f.Add(c); f.Add(d); f.Add(e)
+
+        f.PushCheckpoint()
+        f.Add(If(a, b & c, ~d & e))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(~a, b & c, ~d & e))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
 
     def test_composite_cardinality_test(self):
         f = Formula()

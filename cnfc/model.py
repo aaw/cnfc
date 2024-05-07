@@ -118,6 +118,19 @@ class Not(BoolExpr):
     def generate_cnf(self, formula):
         yield (~self.expr.generate_var(formula),)
 
+class BooleanTernaryExpr(BoolExpr):
+    def __init__(self, cond, if_true, if_false):
+        self.cond, self.if_true, self.if_false = cond, if_true, if_false
+
+    def __repr__(self):
+        return 'BooleanTernaryExpr({})'.format(self.expr)
+
+    def generate_var(self, formula):
+        return generate_var_from_cnf(self, formula)
+
+    def generate_cnf(self, formula):
+        yield from Or(And(self.cond, self.if_true), And(self.cond, self.if_true)).generate_cnf(formula)
+
 class OrderedBinaryBoolExpr(BoolExpr):
     def __init__(self, first, second):
         self.first, self.second = first, second
@@ -125,7 +138,7 @@ class OrderedBinaryBoolExpr(BoolExpr):
     def __repr__(self):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
-class If(OrderedBinaryBoolExpr):
+class Implies(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
         return Or(Not(self.first), self.second).generate_var(formula)
 
@@ -448,6 +461,32 @@ class RegexMatch(BoolExpr):
 
     def generate_cnf(self, formula):
         yield from regex_match(formula, self.tuple.evaluate(formula), self.regex)
+
+class TupleTernaryExpr(Tuple):
+    def __init__(self, cond, if_true, if_false):
+        self.cond = cond
+        self.if_true = lpad(if_true.exprs, len(if_false.exprs) - len(if_true.exprs))
+        self.if_false = lpad(if_false.exprs, len(if_true.exprs) - len(if_false.exprs))
+
+    def __repr__(self):
+        return '{}({},{},{})'.format(self.__class__.__name__, self.cond, self.if_true, self.if_false)
+
+    def evaluate(self, formula):
+        return [Or(And(self.cond, self.if_true[i]), And(~self.cond, self.if_false[i])).generate_var(formula) for i in range(len(self.if_true))]
+
+# Polymorphic If:
+#   - With two params, this is boolean implication.
+#   - With three params, this is a ternary operator that evaluates the condition and returns one of the last two args.
+def If(arg1, arg2, arg3=None):
+    if arg3 is None:
+        return Implies(arg1, arg2)
+    else:
+        if isinstance(arg2, TupleExpr) and isinstance(arg3, TupleExpr):
+            return TupleTernaryExpr(arg1, arg2, arg3)
+        elif isinstance(arg2, BoolExpr) and isinstance(arg3, BoolExpr):
+            return BooleanTernaryExpr(arg1, arg2, arg3)
+        # TODO: support NumExpr?
+    raise ValueError("Unsupported form of If.")
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
 #       for now, we just cache based on repr
