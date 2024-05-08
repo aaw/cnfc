@@ -396,6 +396,18 @@ class TupleExpr:
     def __rmul__(self, other):
         return TupleMul(self, other)
 
+    def __floordiv__(self, other):
+        return TupleDiv(self, other)
+
+    def __rfloordiv__(self, other):
+        return TupleDiv(self, other)
+
+    def __mod__(self, other):
+        return TupleMod(self, other)
+
+    def __rmod__(self, other):
+        return TupleMod(self, other)
+
 # An expression combining two Tuples (addition, multiplication) that results in a Tuple
 class TupleCompositeExpr(TupleExpr):
     def __init__(self, first, second):
@@ -428,6 +440,30 @@ class TupleMul(TupleCompositeExpr):
             formula.AddClause(*clause)
         return gen.result
 
+class TupleDiv(TupleCompositeExpr):
+    def evaluate(self, formula):
+        t1, t2 = self.first, self.second
+        # if t1 // t2 == x, then t2 * x + y == t1, where 0 <= y < t2
+        xs = [formula.AddVar() for i in range(len(t1))]
+        x = Tuple(*xs)
+        y = Tuple(*[formula.AddVar() for i in range(len(t2))])
+        formula.Add(t2 * x + y == t1)
+        formula.Add(y < t2)
+        formula.Add(t2 > 0)  # Disallow division by zero
+        return xs
+
+class TupleMod(TupleCompositeExpr):
+    def evaluate(self, formula):
+        t1, t2 = self.first, self.second
+        # if t1 % t2 == y, then t2 * x + y == t1, where 0 <= y < t2
+        x = Tuple(*[formula.AddVar() for i in range(len(t1))])
+        ys = [formula.AddVar() for i in range(len(t2))]
+        y = Tuple(*ys)
+        formula.Add(t2 * x + y == t1)
+        formula.Add(y < t2)
+        formula.Add(t2 > 0)  # Disallow mod by zero
+        return ys
+
 class Tuple(TupleExpr):
     def __init__(self, *exprs):
         self.exprs = exprs
@@ -444,7 +480,7 @@ class Integer(Tuple):
     def __init__(self, *values):
         if len(values) == 1 and type(values[0]) == int:
             value = values[0]
-            assert value >= 0
+            assert value >= 0, 'Only positive integers are supported. Got {}'.format(value)
             bitstring = bin(value)[2:]
             m = {'0': False, '1': True}
             self.exprs = [BooleanLiteral(m[ch]) for ch in bitstring]

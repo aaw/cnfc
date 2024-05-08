@@ -810,6 +810,115 @@ class TestFormula(unittest.TestCase, SatTestCase):
                     self.assertUnsat(f)
                     f.PopCheckpoint()
 
+    def test_integer_division_basic(self):
+        f = Formula()
+        x1, x0 = f.AddVars('x1 x0')
+        f.Add(x1); f.Add(x0)
+        three = Integer(x1, x0)  # (x1, x0) == 11b == 3
+
+        f.PushCheckpoint()
+        f.Add(three == Integer(21) // Integer(7))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(three == Integer(22) // Integer(7))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(three == Integer(28) // Integer(7))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_integer_mod_basic(self):
+        f = Formula()
+        a,b,c,d,e,g = f.AddVars('a b c d e g')
+        f.Add(~a); f.Add(~b)
+        zero = Integer(a, b)  # (a, b) == 00b == 0
+
+        f.Add(~c); f.Add(d)
+        one = Integer(c, d)  # (c, d) == 01b == 1
+
+        f.Add(e); f.Add(~g)
+        two = Integer(e, g)  # (e, g) == 10b == 2
+
+        f.PushCheckpoint()
+        f.Add(zero == Integer(21) % Integer(3))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(one == Integer(22) % Integer(3))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(two == Integer(23) % Integer(3))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(one == Integer(23) % Integer(3))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_integer_division_by_zero(self):
+        f = Formula()
+        f.Add(Integer(1) // Integer(0) == Integer(0))
+        self.assertUnsat(f)
+
+    def test_integer_mod_by_zero(self):
+        f = Formula()
+        f.Add(Integer(1) % Integer(0) == Integer(0))
+        self.assertUnsat(f)
+
+    def test_integer_division_exhaustive(self):
+        f = Formula()
+
+        dividend_limit = 12
+        divisor_limit = 5
+        for x in range(dividend_limit):
+            for y in range(1, divisor_limit):
+                f.PushCheckpoint()
+                f.Add(Integer(x // y) == Integer(x) // Integer(y))
+                self.assertSat(f)
+                f.PopCheckpoint()
+
+                f.PushCheckpoint()
+                f.Add(Integer(x // y + 1) == Integer(x) // Integer(y))
+                self.assertUnsat(f)
+                f.PopCheckpoint()
+
+                if x // y > 0:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x // y - 1) == Integer(x) // Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+    def test_integer_division_exhaustive(self):
+        f = Formula()
+
+        dividend_limit = 12
+        mod_limit = 5
+        for x in range(dividend_limit):
+            for y in range(1, mod_limit):
+                f.PushCheckpoint()
+                f.Add(Integer(x % y) == Integer(x) % Integer(y))
+                self.assertSat(f)
+                f.PopCheckpoint()
+
+                f.PushCheckpoint()
+                f.Add(Integer(x % y + 1) == Integer(x) % Integer(y))
+                self.assertUnsat(f)
+                f.PopCheckpoint()
+
+                if x % y > 0:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x % y - 1) == Integer(x) % Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
     def test_tuple_ternary(self):
         f = Formula()
         w = f.AddVar()
