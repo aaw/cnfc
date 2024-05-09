@@ -505,6 +505,9 @@ class TupleTernaryExpr(Tuple):
     def __repr__(self):
         return '{}({},{},{})'.format(self.__class__.__name__, self.cond, self.if_true, self.if_false)
 
+    def __len__(self):
+        return max(len(self.if_true), len(self.if_false))
+
     def evaluate(self, formula):
         t1 = self.if_true.evaluate(formula)
         t2 = self.if_false.evaluate(formula)
