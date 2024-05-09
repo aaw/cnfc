@@ -500,15 +500,17 @@ class RegexMatch(BoolExpr):
 
 class TupleTernaryExpr(Tuple):
     def __init__(self, cond, if_true, if_false):
-        self.cond = cond
-        self.if_true = lpad(if_true.exprs, len(if_false.exprs) - len(if_true.exprs))
-        self.if_false = lpad(if_false.exprs, len(if_true.exprs) - len(if_false.exprs))
+        self.cond, self.if_true, self.if_false = cond, if_true, if_false
 
     def __repr__(self):
         return '{}({},{},{})'.format(self.__class__.__name__, self.cond, self.if_true, self.if_false)
 
     def evaluate(self, formula):
-        return [Or(And(self.cond, self.if_true[i]), And(~self.cond, self.if_false[i])).generate_var(formula) for i in range(len(self.if_true))]
+        t1 = self.if_true.evaluate(formula)
+        t2 = self.if_false.evaluate(formula)
+        t1 = lpad(t1, len(t2) - len(t1))
+        t2 = lpad(t2, len(t1) - len(t2))
+        return [Or(And(self.cond, t1[i]), And(~self.cond, t2[i])).generate_var(formula) for i in range(len(t1))]
 
 # Polymorphic If:
 #   - With two params, this is boolean implication.
