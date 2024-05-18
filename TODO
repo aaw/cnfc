@@ -1,3 +1,4 @@
+* Better way to deal with Integers: easier construction and printing (bin2int)
 * Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
 * Implement very simple clause caching/suppressing duplicate clauses
@@ -9,3 +10,5 @@
 * Implement a parsing pass that puts expressions into a canonical form so we can
   cache/reuse them if they reoccur in other subexpressions
 * Generate a bash script for sat generation/solving/extracting
+* Replace cnfc/tests/dpll.py with a cdcl python solver. Some more complicated encodings like
+  IsPalindrome are too tough for just dpll.
