@@ -4,9 +4,7 @@
 * Implement very simple clause caching/suppressing duplicate clauses
 * Support integer division/subtraction by re-arranging parse tree into addition/multiplication
 * Support cardinality constraints compared to one another:
-  NumTrue(x,y,z) >= NumFalse(w,v)
-* Support cardinality constraints as variable additions:
-  Implies(NumTrue(x,y,z) > 1, NumFalse(w,v) > 0)
+  NumTrue(x,y,z) >= NumFalse(w,v). And to Integer: NumTrue(x,y,z) > Integer(1)
 * Implement a parsing pass that puts expressions into a canonical form so we can
   cache/reuse them if they reoccur in other subexpressions
 * Generate a bash script for sat generation/solving/extracting

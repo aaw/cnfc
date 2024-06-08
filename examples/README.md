@@ -4,6 +4,8 @@ Examples
    * [apple-banana-pineapple](apple-banana-pineapple): Solve a problem 95% of people can't solve.
    * [attacking chessboard](attacking-chessboard): Finds a configuration of a chess board with a prescribed number of empty squares with different numbers of pieces attacking.
    * [cuboid](cuboid): Finds a [Perfect Cuboid](https://mathworld.wolfram.com/PerfectCuboid.html).
+   * [jane-st-altered-states](jane-st-altered-states): Solves the Jane Stree [Altered States](https://www.janestreet.com/puzzles/altered-states-index/) puzzle.
+   * [jane-st-altered-states-2](jane-st-altered-states-2): Solves the Jane Stree [Altered States 2](https://www.janestreet.com/puzzles/altered-states-2-index/) puzzle.
    * [jane-st-number-cross-4](jane-st-number-cross-4): Solves the Jane Street [Number Cross 4](https://www.janestreet.com/puzzles/number-cross-4-index/) puzzle.
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
