@@ -5,8 +5,7 @@
 * Support integer division/subtraction by re-arranging parse tree into addition/multiplication
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v). And to Integer: NumTrue(x,y,z) > Integer(1)
-* Implement a parsing pass that puts expressions into a canonical form so we can
-  cache/reuse them if they reoccur in other subexpressions
 * Generate a bash script for sat generation/solving/extracting
 * Replace cnfc/tests/dpll.py with a cdcl python solver. Some more complicated encodings like
   IsPalindrome are too tough for just dpll.
+* Implement IsPrime predicate using Pratt certificates, drop into jane st. number cross 4
