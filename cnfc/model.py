@@ -408,24 +408,26 @@ class TupleExpr:
     def __rmod__(self, other):
         return TupleMod(self, other)
 
+    def __pow__(self, other, modulo=None):
+        return TuplePow(self, other, modulo)
+
+    def __rpow__(self, other, modulo=None):
+        return TuplePow(self, other, modulo)
+
 # An expression combining two Tuples (addition, multiplication) that results in a Tuple
 class TupleCompositeExpr(TupleExpr):
-    def __init__(self, first, second):
-        self.first, self.second = first, second
-        if isinstance(self.first, int):
-            self.first = Integer(self.first)
-        if isinstance(self.second, int):
-            self.second = Integer(self.second)
+    def __init__(self, *args):
+        self.args = [Integer(arg) if isinstance(arg, int) else arg for arg in args]
         # TODO: dummy exprs to make asserts work, fix later when we don't do these asserts any more
-        self.exprs = [None]*(len(self.first))
+        self.exprs = [None]*(len(self.args[0]))
 
     def __repr__(self):
-        return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
+        return '{}({})'.format(self.__class__.__name__, ','.join(self.args))
 
 class TupleAdd(TupleCompositeExpr):
     def evaluate(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
+        t1 = self.args[0].evaluate(formula)
+        t2 = self.args[1].evaluate(formula)
         gen = Generator(tuple_add(formula, t1, t2))
         for clause in gen:
             formula.AddClause(*clause)
@@ -433,8 +435,8 @@ class TupleAdd(TupleCompositeExpr):
 
 class TupleMul(TupleCompositeExpr):
     def evaluate(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
+        t1 = self.args[0].evaluate(formula)
+        t2 = self.args[1].evaluate(formula)
         gen = Generator(tuple_mul(formula, t1, t2))
         for clause in gen:
             formula.AddClause(*clause)
@@ -442,7 +444,7 @@ class TupleMul(TupleCompositeExpr):
 
 class TupleDiv(TupleCompositeExpr):
     def evaluate(self, formula):
-        t1, t2 = self.first, self.second
+        t1, t2 = self.args
         # if t1 // t2 == x, then t2 * x + y == t1, where 0 <= y < t2
         xs = [formula.AddVar() for i in range(len(t1))]
         x = Tuple(*xs)
@@ -454,7 +456,10 @@ class TupleDiv(TupleCompositeExpr):
 
 class TupleMod(TupleCompositeExpr):
     def evaluate(self, formula):
-        t1, t2 = self.first, self.second
+        t1, t2 = self.args
+        # Optimization: Turn '(x ** y) % n' into pow(x,y,n)
+        if isinstance(t1, TuplePow) and t1.args[2] is None:
+            return TuplePow(t1.args[0], t1.args[1], t2).evaluate(formula)
         # if t1 % t2 == y, then t2 * x + y == t1, where 0 <= y < t2
         x = Tuple(*[formula.AddVar() for i in range(len(t1))])
         ys = [formula.AddVar() for i in range(len(t2))]
@@ -464,11 +469,29 @@ class TupleMod(TupleCompositeExpr):
         formula.Add(t2 > 0)  # Disallow mod by zero
         return ys
 
+class TuplePow(TupleCompositeExpr):
+    def evaluate(self, formula):
+        base, power, mod = self.args
+        base = base.evaluate(formula)
+        power = power.evaluate(formula)
+        if mod is not None:
+            mod = Integer(*mod.evaluate(formula))
+
+        result = Integer(1)
+        accum = Integer(*base)
+        for bit in reversed(power):
+            result = result * If(bit, accum, Integer(1))
+            accum = accum * accum
+            if mod is not None:
+                result = result % mod
+                accum = accum % mod
+        return result.evaluate(formula)
+
 class Tuple(TupleExpr):
     def __init__(self, *exprs):
         self.exprs = exprs
         for expr in self.exprs:
-            assert issubclass(type(expr), BoolExpr), "{} needs boolean expressions, got {}".format(self.__class__.__name__, expr)
+            assert issubclass(type(expr), (BoolExpr, BooleanLiteral)), "{} needs boolean expressions, got {}".format(self.__class__.__name__, expr)
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))

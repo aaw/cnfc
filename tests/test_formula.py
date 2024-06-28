@@ -919,6 +919,31 @@ class TestFormula(unittest.TestCase, SatTestCase):
                     self.assertUnsat(f)
                     f.PopCheckpoint()
 
+    def test_pow_basic(self):
+        f = Formula()
+        f.PushCheckpoint()
+        f.Add(Integer(2) ** 5 == 32)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(2) ** 5 == 33)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    @unittest.skip("Takes too long. Re-enable when we use a CDCL solver in testing")
+    def test_pow_mod(self):
+        f = Formula()
+        f.PushCheckpoint()
+        f.Add(Integer(2) ** 10 % 3 == 1)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(2) ** 10 % 3 == 2)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
     def test_tuple_ternary(self):
         f = Formula()
         w = f.AddVar()
