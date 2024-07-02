@@ -61,7 +61,7 @@ STATES = {
 }
 
 # Encodes the Altered States 2 puzzle into a Formula.
-def encode(min_score, extras, min_extras):
+def encode(min_score, extras, min_extras, num_states=None):
     formula = Formula()
 
     # varz[(r,c,v)] is true iff cell (r,v) has value v in VALS
@@ -189,6 +189,14 @@ def encode(min_score, extras, min_extras):
         print('   Forcing NOCAL.')
         formula.Add(extra_NOCAL)
 
+    # Encode CRT, force it if requested.
+    # CRT was not part of the original problem statement, it was mentioned after all submissions had been received.
+    extra_CRT = formula.AddVar('extra_CRT')
+    formula.Add(And(state_vars['Connecticut'], state_vars['RhodeIsland'], ~state_vars['Texas']) == extra_CRT)
+    if 'CRT' in extras:
+        print('   Forcing CRT.')
+        formula.Add(extra_CRT)
+
     # Encode C2C, force it if requested.
     extra_C2C = formula.AddVar('extra_C2C')
     # State-to-state adjacencies. Note that the "Four Corners" states are not
@@ -278,8 +286,12 @@ def encode(min_score, extras, min_extras):
         print('Forcing C2C.')
         formula.Add(extra_C2C)
 
-    # Constraint: force a desired number of extras
+    # Constraint: force a desired number of extras.
     formula.Add(NumTrue(*[extra_200M, extra_20S, extra_PA, extra_M8, extra_4C, extra_NOCAL, extra_C2C]) >= min_extras)
+
+    # (Optional) Constraint: force a fixed number of states.
+    if num_states is not None:
+        formula.Add(NumTrue(*(v for v in state_vars.values())) == num_states)
 
     return formula
 
@@ -320,16 +332,17 @@ def print_solution(sol, *extra_args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve Jane Street's Altered States 2 puzzle")
-    parser.add_argument('min_score', type=int, help='Minimum score.')
+    parser.add_argument('min_score', type=int, help='Minimum score. Puzzle uses 165,379,868')
     parser.add_argument('outfile', type=str, help='Path to output CNF file.')
     parser.add_argument('extractor', type=str, help='Path to output extractor script.')
-    parser.add_argument('--extras', type=str, help='Extras: comma-separated list of 20S, 200M, PA, M8, 4C, NOCAL, or C2C', default='')
+    parser.add_argument('--extras', type=str, help='Extras: comma-separated list of 20S, 200M, PA, M8, 4C, NOCAL, C2C, or CRT', default='')
     parser.add_argument('--min_extras', type=int, help='Minimum number of extras achieved', default=0)
+    parser.add_argument('--num_states', type=int, help='Total number of state matches on board. WARNING: This may conflict with extras', default=None)
     args = parser.parse_args()
 
     extras = [extra.strip() for extra in args.extras.split(',')]
 
-    formula = encode(args.min_score, extras, args.min_extras)
+    formula = encode(args.min_score, extras, args.min_extras, args.num_states)
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
