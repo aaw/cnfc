@@ -931,7 +931,6 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
-    @unittest.skip("Takes too long. Re-enable when we use a CDCL solver in testing")
     def test_pow_mod(self):
         f = Formula()
         f.PushCheckpoint()

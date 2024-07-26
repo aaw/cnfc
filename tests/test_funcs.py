@@ -5,7 +5,6 @@ from .util import SatTestCase, write_cnf_to_string
 import unittest
 
 class TestFuncs(unittest.TestCase, SatTestCase):
-    @unittest.skip("Takes too long. Re-enable when we use a CDCL solver in testing")
     def test_is_palindrome(self):
         f = Formula()
 

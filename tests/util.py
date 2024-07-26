@@ -1,4 +1,4 @@
-from .dpll import Satisfiable
+from .millisat import parse_dimacs, Solver
 
 import io
 
@@ -13,9 +13,13 @@ def write_cnf_to_string(f):
     final.seek(0)
     return final.read()
 
+def satisfiable(s):
+    num_vars, clauses = parse_dimacs(s)
+    return Solver().solve(num_vars, clauses) is not False
+
 class SatTestCase:
     def assertSat(self, formula):
-        self.assertTrue(Satisfiable(write_cnf_to_string(formula)))
+        self.assertTrue(satisfiable(write_cnf_to_string(formula)))
 
     def assertUnsat(self, formula):
-        self.assertFalse(Satisfiable(write_cnf_to_string(formula)))
+        self.assertFalse(satisfiable(write_cnf_to_string(formula)))
