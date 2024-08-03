@@ -6,6 +6,5 @@
 * Support cardinality constraints compared to one another:
   NumTrue(x,y,z) >= NumFalse(w,v). And to Integer: NumTrue(x,y,z) > Integer(1)
 * Generate a bash script for sat generation/solving/extracting
-* Replace cnfc/tests/dpll.py with a cdcl python solver. Some more complicated encodings like
-  IsPalindrome are too tough for just dpll.
 * Implement IsPrime predicate using Pratt certificates, drop into jane st. number cross 4
+* Implement Formula.WriteCubedCnf(fd, vars)
