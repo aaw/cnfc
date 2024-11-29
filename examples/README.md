@@ -15,6 +15,7 @@ Examples
    * [prime](prime): Tests integers for primality.
    * [product-sum sudoku](product-sum-sudoku): A variant of sudoku with sum and product constraints from the Royal Statistical Society Christmas Quiz 2023.
    * [scheduling](scheduling): A simple work scheduling example from the [main README](../README.md#example).
+   * [strongly-regular-graph](strongly-regular-graph): A [strongly regular graph](https://en.wikipedia.org/wiki/Strongly_regular_graph) generator.
    * [sudoku](sudoku): A Sudoku solver.
    * [tournament-scheduling](tournament-scheduling): Schedules a particular tournament over several rounds.
    * [trifference](trifference): Finding the largest set of ternary strings with a differing position in each triple.
