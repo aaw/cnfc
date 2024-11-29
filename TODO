@@ -8,3 +8,7 @@
 * Generate a bash script for sat generation/solving/extracting
 * Implement IsPrime predicate using Pratt certificates, drop into jane st. number cross 4
 * Implement Formula.WriteCubedCnf(fd, vars)
+
+* Make cardinality.py generators iterative instead of recursive to avoid RecursionLimit with large formulas
+* Make NumTrue auto-convert to NumFalse and vise-versa when appropriate
+* Add a Formula.WriteBlocker method to write a blocking solution extractor
