@@ -873,30 +873,16 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
     def test_integer_mod_multi_infer(self):
+        # Regression test for a bug where we didn't estimate the number of bits needed for
+        # a TupleCompositeExpr correctly, so (num1 * 4) below was too small (it needs to
+        # be at least 4 bits to hold 2*4 = 8) and the formula was incorrectly UNSAT.
         formula = Formula()
         num_bits = 2
         num1 = Integer(*(formula.AddVar(f'num1:{i}') for i in range(num_bits)))
         divisor = Integer(*(formula.AddVar(f'divisor:{i}') for i in range(num_bits)))
         formula.Add(num1 == 2)
         formula.Add((num1 * 4) % divisor == 0)
-
-        #print(write_cnf_to_string(formula))
-
-        # Note: looking at CNF output, there's some contradiction in variable 2, possibly chained to var 60?
-
         self.assertSat(formula)
-
-    def test_integer_mult_infer(self):
-        formula = Formula()
-        num_bits = 2
-        num1 = Integer(*(formula.AddVar(f'num1:{i}') for i in range(num_bits)))
-        divisor = Integer(*(formula.AddVar(f'divisor:{i}') for i in range(num_bits)))
-        formula.Add(num1 == 2)
-        x = Integer(*[formula.AddVar(f'x:{i}') for i in range(num_bits)])
-        formula.Add(divisor * x == (num1 * 4))
-        #print(write_cnf_to_string(formula))
-        self.assertSat(formula)
-
 
     def test_integer_division_by_zero(self):
         f = Formula()

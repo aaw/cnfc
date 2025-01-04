@@ -1,4 +1,7 @@
 # Data model
+from abc import ABC, abstractmethod
+import math
+
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul
@@ -415,7 +418,7 @@ class TupleExpr:
         return TuplePow(other, self, modulo)
 
 # An expression combining two Tuples (addition, multiplication) that results in a Tuple
-class TupleCompositeExpr(TupleExpr):
+class TupleCompositeExpr(TupleExpr, ABC):
     def __init__(self, *args):
         self.args = [Integer(arg) if isinstance(arg, int) else arg for arg in args]
         # TODO: dummy exprs to make asserts work, fix later when we don't do these asserts any more
@@ -423,6 +426,13 @@ class TupleCompositeExpr(TupleExpr):
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, ','.join(map(str, self.args)))
+
+    @abstractmethod
+    def __len__(self):
+        # len should always return an upper bound on the size of the resulting tuple. This needs to be defined per subclass.
+        # See the implementation of TupleMod: we sometimes need an estimate of the bitwidth of a result before it's
+        # actually computed, which is why defining len like this is useful.
+        pass
 
 class TupleAdd(TupleCompositeExpr):
     def evaluate(self, formula):
@@ -433,6 +443,9 @@ class TupleAdd(TupleCompositeExpr):
             formula.AddClause(*clause)
         return gen.result
 
+    def __len__(self):
+        return max(len(self.args[0]), len(self.args[1])) + 1
+
 class TupleMul(TupleCompositeExpr):
     def evaluate(self, formula):
         t1 = self.args[0].evaluate(formula)
@@ -441,6 +454,9 @@ class TupleMul(TupleCompositeExpr):
         for clause in gen:
             formula.AddClause(*clause)
         return gen.result
+
+    def __len__(self):
+        return len(self.args[0]) + len(self.args[1])
 
 class TupleDiv(TupleCompositeExpr):
     def evaluate(self, formula):
@@ -453,6 +469,9 @@ class TupleDiv(TupleCompositeExpr):
         formula.Add(y < t2)
         formula.Add(t2 > 0)  # Disallow division by zero
         return xs
+
+    def __len__(self):
+        return len(self.args[0])
 
 class TupleMod(TupleCompositeExpr):
     def evaluate(self, formula):
@@ -468,6 +487,9 @@ class TupleMod(TupleCompositeExpr):
         formula.Add(y < t2)
         formula.Add(t2 > 0)  # Disallow mod by zero
         return ys
+
+    def __len__(self):
+        return len(self.args[1])
 
 class TuplePow(TupleCompositeExpr):
     def evaluate(self, formula):
@@ -486,6 +508,12 @@ class TuplePow(TupleCompositeExpr):
                 result = result % mod
                 accum = accum % mod
         return result.evaluate(formula)
+
+    def __len__(self):
+        base, power, mod = self.args
+        if mod is None:
+            return int(math.floor(len(power) * math.log2(len(base))) + 1)
+        return len(mod)
 
 class Tuple(TupleExpr):
     def __init__(self, *exprs):

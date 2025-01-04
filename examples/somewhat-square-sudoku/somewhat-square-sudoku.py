@@ -8,13 +8,13 @@ COORDS = [1,2,3,4,5,6,7,8,9]
 VALS = [0,1,2,3,4,5,6,7,8,9]
 BOXES = [[1,2,3],[4,5,6],[7,8,9]]
 NUM_BITS = 4
-GCD_BITS = 30
+GCD_BITS = 31
 
 def encode(min_gcd):
     #formula = Formula(FileBuffer)
     formula = Formula()
 
-    exclude = Integer(*(formula.AddVar('exclude{}'.format(i)) for i in range(NUM_BITS)))
+    exclude = Integer(*(formula.AddVar(f'exclude:{i}') for i in range(NUM_BITS)))
     formula.Add(exclude < 10)
 
     varz = {}
@@ -69,28 +69,19 @@ def encode(min_gcd):
     row8 = sum(varz[(8,c)] * 10**(9-c) for c in COORDS)
     row9 = sum(varz[(9,c)] * 10**(9-c) for c in COORDS)
 
-    gcd = Integer(*(formula.AddVar('gcd{}'.format(i)) for i in range(GCD_BITS)))
+    divisor = Integer(*(formula.AddVar(f'divisor:{i}') for i in range(GCD_BITS)))
 
-    x1 = Integer(*(formula.AddVar('x1:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row1 == x1 * gcd)
-    x2 = Integer(*(formula.AddVar('x2:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row2 == x2 * gcd)
-    x3 = Integer(*(formula.AddVar('x3:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row3 == x3 * gcd)
-    x4 = Integer(*(formula.AddVar('x4:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row4 == x4 * gcd)
-    x5 = Integer(*(formula.AddVar('x5:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row5 == x5 * gcd)
-    x6 = Integer(*(formula.AddVar('x6:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row6 == x6 * gcd)
-    x7 = Integer(*(formula.AddVar('x7:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row7 == x7 * gcd)
-    x8 = Integer(*(formula.AddVar('x8:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row8 == x8 * gcd)
-    x9 = Integer(*(formula.AddVar('x9:{}'.format(i)) for i in range(GCD_BITS)))
-    formula.Add(row9 == x9 * gcd)
+    formula.Add(row1 % divisor == 0)
+    formula.Add(row2 % divisor == 0)
+    formula.Add(row3 % divisor == 0)
+    formula.Add(row4 % divisor == 0)
+    formula.Add(row5 % divisor == 0)
+    formula.Add(row6 % divisor == 0)
+    formula.Add(row7 % divisor == 0)
+    formula.Add(row8 % divisor == 0)
+    formula.Add(row9 % divisor == 0)
 
-    formula.Add(gcd >= min_gcd)
+    formula.Add(divisor >= min_gcd)
 
     return formula
 
@@ -113,7 +104,7 @@ def print_solution(sol, *extra_args):
             print(' {} '.format(bin_to_int([sol[f'cell:{r}:{c}:{i}'] for i in range(num_bits)])), end='')
         print('')
     print('')
-    divisor = bin_to_int([sol[f'gcd{i}'] for i in range(gcd_bits)])
+    divisor = bin_to_int([sol[f'divisor:{i}'] for i in range(gcd_bits)])
     print(f'Verified common divisor: {divisor}')
 
     row1 = sum(bin_to_int([sol[f'cell:1:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
