@@ -388,31 +388,31 @@ class TupleExpr:
         return TupleAdd(self, other)
 
     def __radd__(self, other):
-        return TupleAdd(self, other)
+        return TupleAdd(other, self)
 
     def __mul__(self, other):
         return TupleMul(self, other)
 
     def __rmul__(self, other):
-        return TupleMul(self, other)
+        return TupleMul(other, self)
 
     def __floordiv__(self, other):
         return TupleDiv(self, other)
 
     def __rfloordiv__(self, other):
-        return TupleDiv(self, other)
+        return TupleDiv(other, self)
 
     def __mod__(self, other):
         return TupleMod(self, other)
 
     def __rmod__(self, other):
-        return TupleMod(self, other)
+        return TupleMod(other, self)
 
     def __pow__(self, other, modulo=None):
         return TuplePow(self, other, modulo)
 
     def __rpow__(self, other, modulo=None):
-        return TuplePow(self, other, modulo)
+        return TuplePow(other, self, modulo)
 
 # An expression combining two Tuples (addition, multiplication) that results in a Tuple
 class TupleCompositeExpr(TupleExpr):
@@ -422,7 +422,7 @@ class TupleCompositeExpr(TupleExpr):
         self.exprs = [None]*(len(self.args[0]))
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, ','.join(self.args))
+        return '{}({})'.format(self.__class__.__name__, ','.join(map(str, self.args)))
 
 class TupleAdd(TupleCompositeExpr):
     def evaluate(self, formula):

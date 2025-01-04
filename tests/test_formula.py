@@ -863,6 +863,27 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+    def test_integer_rmod(self):
+        f = Formula()
+        num_bits = 1
+        divisor = Integer(*(f.AddVar(f'divisor:{i}') for i in range(num_bits)))
+        num2 = Integer(*(f.AddVar(f'cell:{i}') for i in range(num_bits)))
+        f.Add(2 % divisor == 0)
+        f.Add(num2 % divisor == 0)
+        self.assertSat(f)
+
+    def test_integer_mod_multi_infer(self):
+        formula = Formula()
+        num_bits = 2
+        num1 = Integer(*(formula.AddVar(f'num1:{i}') for i in range(num_bits)))
+        divisor = Integer(*(formula.AddVar(f'divisor:{i}') for i in range(num_bits)))
+        formula.Add(num1 == 2)
+        formula.Add((num1 * 4) % divisor == 0)
+
+        #print(write_cnf_to_string(formula))
+
+        self.assertSat(formula)
+
     def test_integer_division_by_zero(self):
         f = Formula()
         f.Add(Integer(1) // Integer(0) == Integer(0))
