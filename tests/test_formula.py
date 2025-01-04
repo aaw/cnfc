@@ -882,7 +882,21 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
         #print(write_cnf_to_string(formula))
 
+        # Note: looking at CNF output, there's some contradiction in variable 2, possibly chained to var 60?
+
         self.assertSat(formula)
+
+    def test_integer_mult_infer(self):
+        formula = Formula()
+        num_bits = 2
+        num1 = Integer(*(formula.AddVar(f'num1:{i}') for i in range(num_bits)))
+        divisor = Integer(*(formula.AddVar(f'divisor:{i}') for i in range(num_bits)))
+        formula.Add(num1 == 2)
+        x = Integer(*[formula.AddVar(f'x:{i}') for i in range(num_bits)])
+        formula.Add(divisor * x == (num1 * 4))
+        #print(write_cnf_to_string(formula))
+        self.assertSat(formula)
+
 
     def test_integer_division_by_zero(self):
         f = Formula()
