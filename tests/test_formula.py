@@ -994,16 +994,46 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_boolean_ternary(self):
         f = Formula()
-        a,b,c,d,e = f.AddVars('a b c d e')
-        f.Add(a); f.Add(b); f.Add(c); f.Add(d); f.Add(e)
+        a,b,c = f.AddVars('a b c')
+        f.Add(a); f.Add(b); f.Add(c)
 
         f.PushCheckpoint()
-        f.Add(If(a, b & c, ~d & e))
+        f.Add(If(a, b, c))
         self.assertSat(f)
         f.PopCheckpoint()
 
         f.PushCheckpoint()
-        f.Add(If(~a, b & c, ~d & e))
+        f.Add(If(a, b, ~c))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(a, ~b, c))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(a, ~b, ~c))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(~a, b, c))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(~a, b, ~c))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(~a, ~b, c))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(~a, ~b, ~c))
         self.assertUnsat(f)
         f.PopCheckpoint()
 

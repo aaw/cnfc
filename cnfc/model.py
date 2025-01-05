@@ -132,7 +132,7 @@ class BooleanTernaryExpr(BoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        yield from Or(And(self.cond, self.if_true), And(self.cond, self.if_true)).generate_cnf(formula)
+        yield from Or(And(self.cond, self.if_true), And(~self.cond, self.if_false)).generate_cnf(formula)
 
 class OrderedBinaryBoolExpr(BoolExpr):
     def __init__(self, first, second):
