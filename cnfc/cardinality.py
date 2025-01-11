@@ -4,25 +4,23 @@ from .tseytin import *
 # Generates clauses satisfiable iff at most one of the variables in vs is false.
 # Uses Heule's encoding, see TAOCP 7.2.2.2 exercise 12.
 def at_most_one_false(formula, vs):
-    if len(vs) <= 4:
-        yield from at_most_one_false_exhaustive(vs)
-    else:
+    while len(vs) > 4:
         head, tail = vs[:3], vs[3:]
         v = formula.AddVar()
         yield from at_most_one_false_exhaustive(head + [v])
-        yield from at_most_one_false(formula, [~v] + tail)
+        vs = [~v] + tail
+    yield from at_most_one_false_exhaustive(vs)
 
 def at_most_one_false_exhaustive(vs):
     yield from combinations(vs, 2)
 
 def at_most_one_true(formula, vs):
-    if len(vs) <= 4:
-        yield from at_most_one_true_exhaustive(vs)
-    else:
+    while len(vs) > 4:
         head, tail = vs[:3], vs[3:]
         v = formula.AddVar()
         yield from at_most_one_true_exhaustive(head + [v])
-        yield from at_most_one_true(formula, [~v] + tail)
+        vs = [~v] + tail
+    yield from at_most_one_true_exhaustive(vs)
 
 def at_most_one_true_exhaustive(vs):
     for x,y in combinations(vs, 2):

@@ -316,3 +316,13 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         self.assertSat(f)
 
         # At most n true is a tautology, no way to create an unsat formula.
+
+    # at_most_one_{true,false} used to be implemented recursively, which meant that
+    # you'd need to adjust the recursion limit with sys.setrecursionlimit() to make
+    # larger cardinality constraints work. This test used to generate a RecursionError.
+    def test_many_vars(self):
+        f = Formula()
+        import sys
+        limit = sys.getrecursionlimit() * 2
+        varz = [f.AddVar() for i in range(2 * limit)]
+        f.Add(NumTrue(*varz) >= limit)
