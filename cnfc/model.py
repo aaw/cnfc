@@ -612,7 +612,6 @@ def If(arg1, arg2, arg3=None):
             return TupleTernaryExpr(arg1, arg2, arg3)
         elif isinstance(arg2, BoolExpr) and isinstance(arg3, BoolExpr):
             return BooleanTernaryExpr(arg1, arg2, arg3)
-        # TODO: support NumExpr?
     raise ValueError("Unsupported form of If.")
 
 # TODO: implement canonical_form method for all Exprs so we can cache them correctly.
