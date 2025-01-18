@@ -260,6 +260,45 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(NumFalse(x,y,z,w) == 2)
         self.assertUnsat(f)
 
+    def test_cardinality_tuple_equality(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x y z w')
+        b2, b1, b0 = f.AddVars('b2 b1 b0')
+        f.Add(x)
+        f.Add(~y)
+        f.Add(z)
+        f.Add(w)
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,y,z,w) == Integer(1) + Integer(2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(*[b2, b1, b0]) == NumTrue(x,y,z,w))
+        # Set (b2, b1, b0) to (0, 1, 1) == 011b == 3
+        f.Add(~b2); f.Add(b1); f.Add(b0)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(*[b2, b1, b0]) == NumTrue(x,y,z,w))
+        # Set (b2, b1, b0) to (1, 0, 1) == 101b == 5
+        f.Add(b2); f.Add(~b1); f.Add(b0)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,z) == NumTrue(x) + Integer(1))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,y,z,w) == NumTrue(x,z) + 1)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_cardinality_eq_zero(self):
         f = Formula()
         x,y,z,w = f.AddVars('x y z w')
@@ -338,6 +377,35 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(2 != NumFalse(x,y,z,w))
         self.assertSat(f)
 
+    def test_cardinality_tuple_inequality(self):
+        f = Formula()
+        x,y,z,w = f.AddVars('x y z w')
+        b2, b1, b0 = f.AddVars('b2 b1 b0')
+        f.Add(x)
+        f.Add(~y)
+        f.Add(z)
+        f.Add(w)
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,y,z,w) != Integer(2) + Integer(2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(*[b2, b1, b0]) != NumTrue(x,y,z,w))
+        # Set (b2, b1, b0) to (0, 1, 1) == 011b == 3
+        f.Add(~b2); f.Add(b1); f.Add(b0)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(*[b2, b1, b0]) != NumTrue(x,y,z,w))
+        # Set (b2, b1, b0) to (1, 0, 1) == 101b == 5
+        f.Add(b2); f.Add(~b1); f.Add(b0)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_cardinality_gt_gte(self):
         f = Formula()
         x,y,z,w,v = f.AddVars('x y z w v')
@@ -392,6 +460,36 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+    def test_cardinality_tuple_gt_gte(self):
+        f = Formula()
+        x,y,z,w,v = f.AddVars('x y z w v')
+        f.Add(x)
+        f.Add(~y)
+        f.Add(z)
+        f.Add(~w)
+        f.Add(~v)
+        b2, b1, b0 = f.AddVars('b2 b1 b0')
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(x,y,z,w,v) >= Integer(3))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(x,y,z,w,v) >= Integer(*[b2, b1, b0]))
+        # Set (b2, b1, b0) to (0, 1, 1) == 011b == 3
+        f.Add(~b2); f.Add(b1); f.Add(b0)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,y,z,w,v) + 1 > Integer(*[b2, b1, b0]))
+        # Set (b2, b1, b0) to (0, 1, 1) == 011b == 3
+        f.Add(~b2); f.Add(b1); f.Add(b0)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
     def test_cardinality_lt_lte(self):
         f = Formula()
         x,y,z,w,v = f.AddVars('x y z w v')
@@ -443,6 +541,36 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
         f.PushCheckpoint()
         f.Add(NumFalse(x,y,z,w,v) <= 0)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_cardinality_tuple_lt_lte(self):
+        f = Formula()
+        x,y,z,w,v = f.AddVars('x y z w v')
+        f.Add(x)
+        f.Add(~y)
+        f.Add(z)
+        f.Add(~w)
+        f.Add(~v)
+        b2, b1, b0 = f.AddVars('b2 b1 b0')
+        self.assertSat(f)
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(x,y,z,w,v) <= Integer(4))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(x,y,z,w,v) <= Integer(*[b2, b1, b0]))
+        # Set (b2, b1, b0) to (0, 1, 1) == 011b == 3
+        f.Add(~b2); f.Add(b1); f.Add(b0)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(x,y,z,w,v) + 1 < Integer(*[b2, b1, b0]))
+        # Set (b2, b1, b0) to (0, 1, 1) == 011b == 3
+        f.Add(~b2); f.Add(b1); f.Add(b0)
         self.assertUnsat(f)
         f.PopCheckpoint()
 
