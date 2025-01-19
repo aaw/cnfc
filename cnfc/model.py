@@ -271,22 +271,22 @@ class TupleExpr:
     def __len__(self):
         return len(self.exprs)
 
-    def __eq__(self, other: 'TupleExpr'):
+    def __eq__(self, other):
         return TupleEq(self, other)
 
-    def __ne__(self, other: 'TupleExpr'):
+    def __ne__(self, other):
         return TupleNeq(self, other)
 
-    def __lt__(self, other: 'TupleExpr'):
+    def __lt__(self, other):
         return TupleLt(self, other)
 
-    def __le__(self, other: 'TupleExpr'):
+    def __le__(self, other):
         return TupleLe(self, other)
 
-    def __gt__(self, other: 'TupleExpr'):
+    def __gt__(self, other):
         return TupleGt(self, other)
 
-    def __ge__(self, other: 'TupleExpr'):
+    def __ge__(self, other):
         return TupleGe(self, other)
 
     def __add__(self, other):
@@ -294,6 +294,12 @@ class TupleExpr:
 
     def __radd__(self, other):
         return TupleAdd(other, self)
+
+    def __sub__(self, other):
+        return TupleSub(self, other)
+
+    def __rsub__(self, other):
+        return TupleSub(other, self)
 
     def __mul__(self, other):
         return TupleMul(self, other)
@@ -347,6 +353,18 @@ class TupleAdd(TupleCompositeExpr):
 
     def __len__(self):
         return max(len(self.args[0]), len(self.args[1])) + 1
+
+class TupleSub(TupleCompositeExpr):
+    def evaluate(self, formula):
+        t1, t2 = self.args
+        # if t1 - t2 == y, then t2 + y == t1
+        ys = [formula.AddVar() for i in range(len(self))]
+        y = Tuple(*ys)
+        formula.Add(t2 + y == t1)
+        return ys
+
+    def __len__(self):
+        return max(len(self.args[0]), len(self.args[1]))
 
 class TupleMul(TupleCompositeExpr):
     def evaluate(self, formula):

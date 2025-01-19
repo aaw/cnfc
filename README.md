@@ -163,7 +163,8 @@ Arbitrary clauses can be built, composed, and added to formulas with:
 
    * Familiar boolean operators `And`, `Or`, `Not`, `If`, `Eq`, `Neq`.
    * `Tuple`s that can be compared for equality, inequality, or lexicographic order.
-   * `Integer`s that can be added, multiplied, or compared as `Tuple`s (see [examples/prime](examples/prime)).
+   * Non-negative `Integer`s that can be added, multiplied, or compared (see [examples/prime](examples/prime)). `%`, `//`, and `**` are also supported. Subtraction is
+     supported as long as the result is non-negative (e.g., `Integer(1) - Integer(2) == x` is unsolvable.
    * `NumTrue` and `NumFalse` for cardinality constraints (see [examples/nqueens](examples/nqueens)).
    * `RegexMatch` to apply binary regular expressions to `Tuple`s (see [examples/nonagram](examples/nonagram)).
 

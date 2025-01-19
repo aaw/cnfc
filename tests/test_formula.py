@@ -860,6 +860,21 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint()
 
+    def test_integer_subtraction(self):
+        f = Formula()
+        bits = 8
+        x = [f.AddVar('x{}'.format(i)) for i in range(bits)]
+
+        # x = 00001010 (== 10). Does this equal 5 + 5?
+
+        f.Add(~x[0]); f.Add(~x[1]); f.Add(~x[2]); f.Add(~x[3])
+        f.Add(x[4]);  f.Add(~x[5]); f.Add(x[6]);  f.Add(~x[7])
+
+        f.PushCheckpoint()
+        f.Add(Integer(*x) - Integer(5) == Integer(5))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_addition_exhaustive(self):
         f = Formula()
         # Test addition of all numbers x + y where x,y < 8
@@ -879,6 +894,31 @@ class TestFormula(unittest.TestCase, SatTestCase):
                 if x > 0 and y > 0:
                     f.PushCheckpoint()
                     f.Add(Integer(x+y-1) == Integer(x) + Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+    def test_subtraction_exhaustive(self):
+        f = Formula()
+        # Test addition of all numbers x + y where x,y < 8
+        # Currently, we only support subtraction that yields a non-negative
+        # integer, so a result that would be negative will be UNSAT. This test
+        # should change when we support twos complement integers.
+        limit = 8
+        for x in range(limit):
+            for y in range(limit):
+                f.PushCheckpoint()
+                f.Add(Integer(x) == Integer(x+y) - Integer(y))
+                self.assertSat(f)
+                f.PopCheckpoint()
+
+                f.PushCheckpoint()
+                f.Add(Integer(x) == Integer(x+y+1) - Integer(y))
+                self.assertUnsat(f)
+                f.PopCheckpoint()
+
+                if x > 0 and y > 0:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) == Integer(x+y-1) - Integer(y))
                     self.assertUnsat(f)
                     f.PopCheckpoint()
 

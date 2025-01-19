@@ -3,6 +3,7 @@
 * Rename generate_var, generate_cnf to evaluate*
 * Implement very simple clause caching/suppressing duplicate clauses
 * Support integer division/subtraction by re-arranging parse tree into addition/multiplication
+  instead of solving for the result.
 * Generate a bash script for sat generation/solving/extracting
 * Implement IsPrime predicate using Pratt certificates, drop into jane st. number cross 4
 * Implement Formula.WriteCubedCnf(fd, vars)
@@ -14,3 +15,4 @@
   generate a selection network, but it's not clear if that's more efficient that just computing the
   sum of the varz. Test and remove all the selection network code if it isn't dramatically more
   efficient.
+* Support negative integers with twos-complement representation.
