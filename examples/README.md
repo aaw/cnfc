@@ -7,6 +7,7 @@ Examples
    * [jane-st-altered-states](jane-st-altered-states): Solves the Jane Stree [Altered States](https://www.janestreet.com/puzzles/altered-states-index/) puzzle.
    * [jane-st-altered-states-2](jane-st-altered-states-2): Solves the Jane Stree [Altered States 2](https://www.janestreet.com/puzzles/altered-states-2-index/) puzzle.
    * [jane-st-number-cross-4](jane-st-number-cross-4): Solves the Jane Street [Number Cross 4](https://www.janestreet.com/puzzles/number-cross-4-index/) puzzle.
+   * [matrix-multiplications](matrix-multiplications): Minimize the number of multiplications needed for the product of two n-by-n matrices.
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
