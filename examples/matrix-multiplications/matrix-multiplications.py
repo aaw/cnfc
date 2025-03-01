@@ -49,16 +49,22 @@ def encode(n, m, max_additions_per_term, max_total_additions):
         total_additions.append(NumTrue(*all_b_in_term) - 1)
 
     # Generate constraints that specify which of the m_k's are used by which of the
-    # sums that define the final matrix product elements.
-    cs = {}
+    # sums that define the final matrix product elements. m_k's can be positive or
+    # negative, but it doesn't make sense to use both.
+    cs, ncs = {}, {}
     for i in dims:
         for j in dims:
             mks = []
             for k in range(m):
                 # C:i:j:k is true iff entry i,j of the final matrix uses subproduct m_k
-                uses_mk = formula.AddVar(f'C:{i}:{j}:{k}')
-                cs[(i,j,k)] = uses_mk
-                mks.append(uses_mk)
+                pos_uses_mk = formula.AddVar(f'C:{i}:{j}:{k}')
+                cs[(i,j,k)] = pos_uses_mk
+                # -C:i:j:k is true iff entry i,j of the final matrix uses subproduct -m_k
+                neg_uses_mk = formula.AddVar(f'-C:{i}:{j}:{k}')
+                ncs[(i,j,k)] = neg_uses_mk
+                formula.Add(Or(~pos_uses_mk,~neg_uses_mk))  # Pos and neg will just cancel each other, so disallow.
+                mks.append(pos_uses_mk)
+                mks.append(neg_uses_mk)
             # NumTrue(mks) > 0 so this term is non-negative.
             total_additions.append(NumTrue(*mks) - 1)
 
@@ -76,8 +82,12 @@ def encode(n, m, max_additions_per_term, max_total_additions):
                         for l in dims:
                             # C_{i,j} = sum(a_{i,k} * b_{k,j} for k in dims)
                             # So we only want a contribution of a_{i_prime,k} * b_{l,j_prime} when k == l, i == i_prime, j == j_prime
-                            pos_abs = [cs[(i,j,kk)] & ((avarz[(1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(-1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)]
-                            neg_abs = [cs[(i,j,kk)] & ((avarz[(-1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)]
+                            pos_abs = \
+                                [cs[(i,j,kk)] & ((avarz[(1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(-1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)] + \
+                                [ncs[(i,j,kk)] & ((avarz[(-1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)]
+                            neg_abs = \
+                                [cs[(i,j,kk)] & ((avarz[(-1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)] + \
+                                [ncs[(i,j,kk)] & ((avarz[(1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(-1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)]
                             if k == l and i == i_prime and j == j_prime:
                                 formula.Add(NumTrue(*pos_abs) == NumTrue(*neg_abs) + 1)
                             else:
@@ -111,8 +121,8 @@ def print_solution(sol, *extra_args):
         for j in dims:
             ms = []
             for k in range(m):
-                if sol[f'C:{i}:{j}:{k}']:
-                    ms.append(f'm_{k}')
+                if sol[f'C:{i}:{j}:{k}']: ms.append(f'm_{k}')
+                if sol[f'-C:{i}:{j}:{k}']: ms.append(f'-m_{k}')
             m_sum = ' + '.join(ms)
             print(f'C_{{{i},{j}}} = {m_sum}')
 
