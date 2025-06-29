@@ -1,4 +1,5 @@
 * Better way to deal with Integers: easier construction and printing (bin2int)
+* Arrange large sums into a balanced tree to avoid recursion limits (see score sum in boggle example)
 * Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
 * Implement very simple clause caching/suppressing duplicate clauses

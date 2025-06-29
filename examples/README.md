@@ -3,6 +3,7 @@ Examples
 
    * [apple-banana-pineapple](apple-banana-pineapple): Solve a problem 95% of people can't solve.
    * [attacking chessboard](attacking-chessboard): Finds a configuration of a chess board with a prescribed number of empty squares with different numbers of pieces attacking.
+   * [boggle](boggle): Finds Boggle boards that achieve high scores.
    * [cuboid](cuboid): Finds a [Perfect Cuboid](https://mathworld.wolfram.com/PerfectCuboid.html).
    * [jane-st-altered-states](jane-st-altered-states): Solves the Jane Stree [Altered States](https://www.janestreet.com/puzzles/altered-states-index/) puzzle.
    * [jane-st-altered-states-2](jane-st-altered-states-2): Solves the Jane Stree [Altered States 2](https://www.janestreet.com/puzzles/altered-states-2-index/) puzzle.
