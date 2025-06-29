@@ -13,9 +13,10 @@ def raw_lit(expr):
     else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))
 
 class Formula:
-    def __init__(self, buffer_class=None):
+    def __init__(self, buffer_class=None, check_variables=True):
         if buffer_class is None:
             buffer_class = MemoryBuffer
+        self.check_variables = check_variables
         self.vars = {}
         self.buffer = buffer_class()
         self.nextvar = 1
@@ -28,7 +29,7 @@ class Formula:
             name = '_' + str(self.nextvar)
         else:
             self.buffer.AddComment("var {} : {}".format(vid, name))
-        self.vars[name] = vid
+        if self.check_variables: self.vars[name] = vid
         self.nextvar += 1
         return Var(name, vid)
 
@@ -46,6 +47,23 @@ class Formula:
     def Add(self, expr):
         for clause in expr.generate_cnf(self):
             self.AddClause(*clause)
+
+    def Analyze(self, expr):
+        old_buffer = self.buffer
+        self.buffer = MemoryBuffer()
+        self.Add(expr)
+        before_count = len(self.buffer.clauses)
+        buffer = simplify(self.buffer)
+        buffer = strengthen_self_subsumed(buffer)
+        buffer = propagate_units(buffer)
+        buffer = simplify(buffer)
+        after_count = len(buffer.clauses)
+        self.buffer = old_buffer
+        return {
+            'clauses': before_count,
+            'simplified_clauses': after_count,
+            'vars': len(set(v for c in buffer.AllClauses() for v in c)),
+        }
 
     def PushCheckpoint(self):
         self.buffer.PushCheckpoint()
