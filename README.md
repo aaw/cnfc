@@ -185,8 +185,4 @@ Install [poetry](https://python-poetry.org/docs/#installation) and run `poetry i
 poetry run python3 -m unittest discover
 ```
 
-To release a new version to PyPI, bump the version in `pyproject.toml` and run:
-
-```
-poetry publish --build --username=__token__ --password=$PYPI_TOKEN
-```
+To publish a new version to PyPI, bump the version in `pyproject.toml` and create a release in Github.
