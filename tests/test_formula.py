@@ -1,5 +1,6 @@
 from cnfc import *
 from .util import SatTestCase, write_cnf_to_string
+import math
 import unittest
 
 class TestFormula(unittest.TestCase, SatTestCase):
@@ -823,6 +824,13 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint()
 
+    def test_integer_addition_chain(self):
+        f = Formula()
+        f.PushCheckpoint()
+        f.Add(Integer(1000) == sum(Integer(1) for i in range(1000)) + Integer(0))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_degenerate_integer_addition(self):
         f = Formula()
         true = f.AddVar()
@@ -931,6 +939,13 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
         f.PushCheckpoint()
         f.Add(Integer(x2, x1, x0) == Integer(2) * Integer(2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_integer_multiplication_chain(self):
+        f = Formula()
+        f.PushCheckpoint()
+        f.Add(Integer(2**21) == math.prod(Integer(2) for i in range(21)))
         self.assertSat(f)
         f.PopCheckpoint()
 

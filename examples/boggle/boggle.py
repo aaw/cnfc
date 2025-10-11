@@ -151,19 +151,7 @@ def encode(score, dice, rows, cols, words):
 
     # Constraint: total score is at least the desired score
     scores = [If(word_found[i], word_score(words[i]), Integer(0)) for i in range(len(words))]
-
-    # Sum these variables by reducing in pairs, which will be more efficient than a linear sum.
-    while len(scores) > 1:
-        print(f'Reducing {len(scores)} scores...', flush=True)
-        reduced = []
-        for i in range(0, len(scores) - 1, 2):
-            reduced.append(Tuple(*(scores[i] + scores[i+1]).evaluate(formula)))
-        if len(scores) % 2 == 1:
-            reduced.append(scores[-1])
-        scores = reduced
-
-    total = scores[0]
-    formula.Add(total >= score)
+    formula.Add(sum(scores) >= score)
 
     if len(rows) <= 4 and len(cols) <= 4:
         # Symmetry breaking: Under reflections and rotations of a board with at most 4 rows and
@@ -223,7 +211,7 @@ if __name__ == '__main__':
 
     if not Path(args.words).is_file():
         print(f"{args.words} does not exist. Download a file from https://github.com/danvk/hybrid-boggle/tree/main/wordlists if you're missing one.")
-        sys.exit(1)
+        import sys; sys.exit(1)
     words = open(args.words).read().strip().split('\n')
 
     # The Boggle dice have a "Qu" and no "Q". So we'll clean the words by

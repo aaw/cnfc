@@ -6,7 +6,7 @@ from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul
 from .regex import regex_match
-from .util import Generator
+from .util import Generator, gather_common_operands, reduce_evaluated
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
@@ -343,16 +343,26 @@ class TupleCompositeExpr(TupleExpr, ABC):
         pass
 
 class TupleAdd(TupleCompositeExpr):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.args = gather_common_operands(self.__class__, self.args)
+
     def evaluate(self, formula):
-        t1 = self.args[0].evaluate(formula)
-        t2 = self.args[1].evaluate(formula)
-        gen = Generator(tuple_add(formula, t1, t2))
-        for clause in gen:
-            formula.AddClause(*clause)
-        return gen.result
+        return reduce_evaluated(tuple_add, [arg.evaluate(formula) for arg in self.args], formula)
 
     def __len__(self):
-        return max(len(self.args[0]), len(self.args[1])) + 1
+        return max(len(arg) for arg in self.args) + int(math.ceil(math.log2(len(self.args)))) + 1
+
+class TupleMul(TupleCompositeExpr):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.args = gather_common_operands(self.__class__, self.args)
+
+    def evaluate(self, formula):
+        return reduce_evaluated(tuple_mul, [arg.evaluate(formula) for arg in self.args], formula)
+
+    def __len__(self):
+        return sum(len(arg) for arg in self.args)
 
 class TupleSub(TupleCompositeExpr):
     def evaluate(self, formula):
@@ -365,18 +375,6 @@ class TupleSub(TupleCompositeExpr):
 
     def __len__(self):
         return max(len(self.args[0]), len(self.args[1]))
-
-class TupleMul(TupleCompositeExpr):
-    def evaluate(self, formula):
-        t1 = self.args[0].evaluate(formula)
-        t2 = self.args[1].evaluate(formula)
-        gen = Generator(tuple_mul(formula, t1, t2))
-        for clause in gen:
-            formula.AddClause(*clause)
-        return gen.result
-
-    def __len__(self):
-        return len(self.args[0]) + len(self.args[1])
 
 class TupleDiv(TupleCompositeExpr):
     def evaluate(self, formula):
@@ -497,29 +495,15 @@ class NumTrue(CardinalityConstraint, TupleExpr):
     def evaluate(self, formula):
         if len(self.exprs) == 0:
             return Integer(0)
-        indicators = [If(v, Integer(1), Integer(0)) for v in self.exprs]
-        while len(indicators) > 1:
-            reduced = []
-            for a,b in zip(indicators[::2], indicators[1::2]):
-                reduced.append(a + b)
-            if len(indicators) % 2 == 1:
-                reduced.append(indicators[-1])
-            indicators = reduced
-        return indicators[0].evaluate(formula)
+        indicators = [If(v, Integer(1), Integer(0)).evaluate(formula) for v in self.exprs]
+        return reduce_evaluated(tuple_add, indicators, formula)
 
 class NumFalse(CardinalityConstraint, TupleExpr):
     def evaluate(self, formula):
         if len(self.exprs) == 0:
             return Integer(0)
-        indicators = [If(v, Integer(0), Integer(1)) for v in self.exprs]
-        while len(indicators) > 1:
-            reduced = []
-            for a,b in zip(indicators[::2], indicators[1::2]):
-                reduced.append(a + b)
-            if len(indicators) % 2 == 1:
-                reduced.append(indicators[-1])
-            indicators = reduced
-        return indicators[0].evaluate(formula)
+        indicators = [If(v, Integer(0), Integer(1)).evaluate(formula) for v in self.exprs]
+        return reduce_evaluated(tuple_add, indicators, formula)
 
 class NumEq(OrderedBinaryBoolExpr):
     def generate_var(self, formula):
