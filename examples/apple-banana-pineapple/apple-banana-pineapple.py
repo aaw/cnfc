@@ -15,9 +15,9 @@ BITLENGTH = 270
 
 def encode_equation_as_sat():
     formula = Formula(FileBuffer)
-    a = Integer(*(formula.AddVar('a_{}'.format(i)) for i in range(BITLENGTH)))
-    b = Integer(*(formula.AddVar('b_{}'.format(i)) for i in range(BITLENGTH)))
-    c = Integer(*(formula.AddVar('c_{}'.format(i)) for i in range(BITLENGTH)))
+    a = Integer(*(formula.AddVars('a', BITLENGTH)))
+    b = Integer(*(formula.AddVars('b', BITLENGTH)))
+    c = Integer(*(formula.AddVars('c', BITLENGTH)))
     a2 = a*a
     b2 = b*b
     c2 = c*c
@@ -27,18 +27,11 @@ def encode_equation_as_sat():
     formula.Add(c > 0)
     return formula
 
-def bin_to_int(blist):
-    result = 0
-    for b in blist:
-        result *= 2
-        result += 1 if b else 0
-    return result
-
 def print_solution(sol, *extra_args):
     bitlength = extra_args[0]
-    a = bin_to_int([sol['a_{}'.format(i)] for i in range(bitlength)])
-    b = bin_to_int([sol['b_{}'.format(i)] for i in range(bitlength)])
-    c = bin_to_int([sol['c_{}'.format(i)] for i in range(bitlength)])
+    a = sol.integer('a', bitlength)
+    b = sol.integer('b', bitlength)
+    c = sol.integer('c', bitlength)
     print('a = {}'.format(a))
     print('b = {}'.format(b))
     print('c = {}'.format(c))
@@ -53,4 +46,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[bin_to_int], extra_args=[BITLENGTH])
+        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[BITLENGTH])

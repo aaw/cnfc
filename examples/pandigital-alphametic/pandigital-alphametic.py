@@ -13,16 +13,16 @@ def block(solution, varz):
 
 def encode_equation_as_sat():
     formula = Formula(FileBuffer)
-    a = Integer(*(formula.AddVar('a_{}'.format(i)) for i in range(BITLENGTH)))
-    b = Integer(*(formula.AddVar('b_{}'.format(i)) for i in range(BITLENGTH)))
-    c = Integer(*(formula.AddVar('c_{}'.format(i)) for i in range(BITLENGTH)))
-    d = Integer(*(formula.AddVar('d_{}'.format(i)) for i in range(BITLENGTH)))
-    e = Integer(*(formula.AddVar('e_{}'.format(i)) for i in range(BITLENGTH)))
-    f = Integer(*(formula.AddVar('f_{}'.format(i)) for i in range(BITLENGTH)))
-    g = Integer(*(formula.AddVar('g_{}'.format(i)) for i in range(BITLENGTH)))
-    h = Integer(*(formula.AddVar('h_{}'.format(i)) for i in range(BITLENGTH)))
-    i = Integer(*(formula.AddVar('i_{}'.format(i)) for i in range(BITLENGTH)))
-    j = Integer(*(formula.AddVar('j_{}'.format(i)) for i in range(BITLENGTH)))
+    a = Integer(*(formula.AddVars('a', BITLENGTH)))
+    b = Integer(*(formula.AddVars('b', BITLENGTH)))
+    c = Integer(*(formula.AddVars('c', BITLENGTH)))
+    d = Integer(*(formula.AddVars('d', BITLENGTH)))
+    e = Integer(*(formula.AddVars('e', BITLENGTH)))
+    f = Integer(*(formula.AddVars('f', BITLENGTH)))
+    g = Integer(*(formula.AddVars('g', BITLENGTH)))
+    h = Integer(*(formula.AddVars('h', BITLENGTH)))
+    i = Integer(*(formula.AddVars('i', BITLENGTH)))
+    j = Integer(*(formula.AddVars('j', BITLENGTH)))
     varz = [a,b,c,d,e,f,g,h,i,j]
 
     # Block known solutions
@@ -116,25 +116,18 @@ def encode_equation_as_sat():
 
     return formula
 
-def bin_to_int(blist):
-    result = 0
-    for b in blist:
-        result *= 2
-        result += 1 if b else 0
-    return result
-
 def print_solution(sol, *extra_args):
     bitlength = extra_args[0]
-    a = bin_to_int([sol['a_{}'.format(i)] for i in range(bitlength)])
-    b = bin_to_int([sol['b_{}'.format(i)] for i in range(bitlength)])
-    c = bin_to_int([sol['c_{}'.format(i)] for i in range(bitlength)])
-    d = bin_to_int([sol['d_{}'.format(i)] for i in range(bitlength)])
-    e = bin_to_int([sol['e_{}'.format(i)] for i in range(bitlength)])
-    f = bin_to_int([sol['f_{}'.format(i)] for i in range(bitlength)])
-    g = bin_to_int([sol['g_{}'.format(i)] for i in range(bitlength)])
-    h = bin_to_int([sol['h_{}'.format(i)] for i in range(bitlength)])
-    i = bin_to_int([sol['i_{}'.format(i)] for i in range(bitlength)])
-    j = bin_to_int([sol['j_{}'.format(i)] for i in range(bitlength)])
+    a = sol.integer('a', bitlength)
+    b = sol.integer('b', bitlength)
+    c = sol.integer('c', bitlength)
+    d = sol.integer('d', bitlength)
+    e = sol.integer('e', bitlength)
+    f = sol.integer('f', bitlength)
+    g = sol.integer('g', bitlength)
+    h = sol.integer('h', bitlength)
+    i = sol.integer('i', bitlength)
+    j = sol.integer('j', bitlength)
     print('{} x {}{} x {}{}{} = {}{}{}{}'.format(a,b,c,d,e,f,g,h,i,j))
 
 if __name__ == '__main__':
@@ -147,4 +140,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[bin_to_int], extra_args=[BITLENGTH])
+        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[BITLENGTH])

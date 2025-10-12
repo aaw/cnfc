@@ -10,14 +10,14 @@ BITLENGTH = 4
 def encode_equation_as_sat(min_year, max_year):
     formula = Formula(FileBuffer)
     # Date is d1d2/m1m2/y1y2y3y4
-    d1 = Integer(*(formula.AddVar('d1_{}'.format(i)) for i in range(BITLENGTH)))
-    d2 = Integer(*(formula.AddVar('d2_{}'.format(i)) for i in range(BITLENGTH)))
-    m1 = Integer(*(formula.AddVar('m1_{}'.format(i)) for i in range(BITLENGTH)))
-    m2 = Integer(*(formula.AddVar('m2_{}'.format(i)) for i in range(BITLENGTH)))
-    y1 = Integer(*(formula.AddVar('y1_{}'.format(i)) for i in range(BITLENGTH)))
-    y2 = Integer(*(formula.AddVar('y2_{}'.format(i)) for i in range(BITLENGTH)))
-    y3 = Integer(*(formula.AddVar('y3_{}'.format(i)) for i in range(BITLENGTH)))
-    y4 = Integer(*(formula.AddVar('y4_{}'.format(i)) for i in range(BITLENGTH)))
+    d1 = Integer(*(formula.AddVars('d1', BITLENGTH)))
+    d2 = Integer(*(formula.AddVars('d2', BITLENGTH)))
+    m1 = Integer(*(formula.AddVars('m1', BITLENGTH)))
+    m2 = Integer(*(formula.AddVars('m2', BITLENGTH)))
+    y1 = Integer(*(formula.AddVars('y1', BITLENGTH)))
+    y2 = Integer(*(formula.AddVars('y2', BITLENGTH)))
+    y3 = Integer(*(formula.AddVars('y3', BITLENGTH)))
+    y4 = Integer(*(formula.AddVars('y4', BITLENGTH)))
     varz = [d1, d2, m1, m2, y1, y2, y3, y4]
 
     day = d1 * Integer(10) + d2
@@ -62,23 +62,16 @@ def encode_equation_as_sat(min_year, max_year):
 
     return formula
 
-def bin_to_int(blist):
-    result = 0
-    for b in blist:
-        result *= 2
-        result += 1 if b else 0
-    return result
-
 def print_solution(sol, *extra_args):
     bitlength = extra_args[0]
-    d1 = bin_to_int([sol['d1_{}'.format(i)] for i in range(bitlength)])
-    d2 = bin_to_int([sol['d2_{}'.format(i)] for i in range(bitlength)])
-    m1 = bin_to_int([sol['m1_{}'.format(i)] for i in range(bitlength)])
-    m2 = bin_to_int([sol['m2_{}'.format(i)] for i in range(bitlength)])
-    y1 = bin_to_int([sol['y1_{}'.format(i)] for i in range(bitlength)])
-    y2 = bin_to_int([sol['y2_{}'.format(i)] for i in range(bitlength)])
-    y3 = bin_to_int([sol['y3_{}'.format(i)] for i in range(bitlength)])
-    y4 = bin_to_int([sol['y4_{}'.format(i)] for i in range(bitlength)])
+    d1 = sol.integer('d1', bitlength)
+    d2 = sol.integer('d2', bitlength)
+    m1 = sol.integer('m1', bitlength)
+    m2 = sol.integer('m2', bitlength)
+    y1 = sol.integer('y1', bitlength)
+    y2 = sol.integer('y2', bitlength)
+    y3 = sol.integer('y3', bitlength)
+    y4 = sol.integer('y4', bitlength)
     print('{}{}/{}{}/{}{}{}{}'.format(d1,d2,m1,m2,y1,y2,y3,y4))
 
 if __name__ == '__main__':
@@ -93,4 +86,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[bin_to_int], extra_args=[BITLENGTH])
+        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[BITLENGTH])

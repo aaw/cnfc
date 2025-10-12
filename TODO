@@ -1,4 +1,3 @@
-* Better way to deal with Integers: easier construction and printing (bin2int)
 * Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
 * Implement very simple clause caching/suppressing duplicate clauses

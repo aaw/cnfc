@@ -33,8 +33,17 @@ class Formula:
         self.nextvar += 1
         return Var(name, vid)
 
-    def AddVars(self, names):
-        return (self.AddVar(name.strip()) for name in names.split(' '))
+    def AddVars(self, *args):
+        if len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], int):
+            var, repeat = args
+            names = ['{}:{}'.format(var,i) for i in range(repeat)]
+        elif len(args) == 1 and isinstance(args[0], str):
+            names = args[0].strip().split(' ')
+        elif all(isinstance(arg, str) for arg in args):
+            names = args
+        else:
+            raise TypeError('No matching call to AddVars')
+        return (self.AddVar(name.strip()) for name in names)
 
     def AddClause(self, *disjuncts):
         # Convert any BooleanLiterals to actual bools

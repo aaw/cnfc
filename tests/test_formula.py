@@ -7,7 +7,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
     def test_add_variables(self):
         f = Formula()
         x = f.AddVar('x')
-        y,z,w = f.AddVars('y z w')
+        y,z,w = f.AddVars('y z w ')
         self.assertEqual([x.vid, y.vid, z.vid, w.vid], [1,2,3,4])
         self.assertEqual([x.name, y.name, z.name, w.name], ['x','y','z','w'])
         self.assertEqual(len(f.vars), 4)
@@ -15,6 +15,30 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertEqual(f.vars['y'], 2)
         self.assertEqual(f.vars['z'], 3)
         self.assertEqual(f.vars['w'], 4)
+
+    def test_add_variables_args(self):
+        f = Formula()
+        x = f.AddVar('x')
+        y,z,w = f.AddVars('y', 'z', 'w')
+        self.assertEqual([x.vid, y.vid, z.vid, w.vid], [1,2,3,4])
+        self.assertEqual([x.name, y.name, z.name, w.name], ['x','y','z','w'])
+        self.assertEqual(len(f.vars), 4)
+        self.assertEqual(f.vars['x'], 1)
+        self.assertEqual(f.vars['y'], 2)
+        self.assertEqual(f.vars['z'], 3)
+        self.assertEqual(f.vars['w'], 4)
+
+    def test_add_variables_template(self):
+        f = Formula()
+        x = f.AddVar('x')
+        y0, y1, y2 = f.AddVars('y', 3)
+        self.assertEqual([x.vid, y0.vid, y1.vid, y2.vid], [1,2,3,4])
+        self.assertEqual([x.name, y0.name, y1.name, y2.name], ['x','y:0','y:1','y:2'])
+        self.assertEqual(len(f.vars), 4)
+        self.assertEqual(f.vars['x'], 1)
+        self.assertEqual(f.vars['y:0'], 2)
+        self.assertEqual(f.vars['y:1'], 3)
+        self.assertEqual(f.vars['y:2'], 4)
 
     def test_add_unnamed_var(self):
         f = Formula()

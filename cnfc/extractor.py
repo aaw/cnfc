@@ -1,6 +1,28 @@
 import inspect
 import re
 
+class Solution:
+    def __init__(self, sol):
+        self.sol = sol
+
+    def __getitem__(self, key):
+        return self.sol[key]
+
+    def integer(self, *args):
+        if len(args) == 2 and isinstance(args[0], str) and isinstance(args[1], int):
+            var, num_bits = args
+            bits = [self.sol['{}:{}'.format(var,i)] for i in range(num_bits)]
+        elif all(isinstance(arg, str) for arg in args):
+            bits = [self.sol[arg] for arg in args]
+        else:
+            raise TypeError("integer should receive either a string template and num_bits or a sequence of strings")
+        # Convert bits to an integer
+        result = 0
+        for b in bits:
+            result *= 2
+            result += 1 if b else 0
+        return result
+
 def get_variable_mapping_from_cnf_file(f):
     mapping = {}
     p = re.compile(r'c var (\d+) : (.*)')
@@ -26,6 +48,9 @@ def generate_extractor(fd, extractor_fn, extra_fns=None, extra_args=None):
         extra_args = []
     imports = ['argparse', 're', 'sys']
     for line in imports: fd.write(f'import {line}\n')
+    fd.write('\n')
+
+    fd.write(inspect.getsource(Solution))
     fd.write('\n')
 
     fd.write(inspect.getsource(get_variable_mapping_from_cnf_file))
@@ -55,7 +80,7 @@ def generate_extractor(fd, extractor_fn, extra_fns=None, extra_args=None):
         "    sys.exit(1)",
         "  with open(args.cnf_file) as f: ",
         "    mapping = get_variable_mapping_from_cnf_file(f)",
-        "  sol = dict((name, id in solution) for name,id in mapping.items())",
+        "  sol = Solution(dict((name, id in solution) for name,id in mapping.items()))",
         "  {}(sol, *{})".format(extractor_fn.__name__, extra_args),
     ]
     for line in main: fd.write(f'{line}\n')

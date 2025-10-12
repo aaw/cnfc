@@ -13,13 +13,13 @@ def encode(n):
     # B^2 + D^2 + F^2
     # B^2 + E^2 = G^2
 
-    a = Integer(*(formula.AddVar('a{}'.format(i)) for i in range(n)))
-    b = Integer(*(formula.AddVar('b{}'.format(i)) for i in range(n)))
-    c = Integer(*(formula.AddVar('c{}'.format(i)) for i in range(n)))
-    d = Integer(*(formula.AddVar('d{}'.format(i)) for i in range(n)))
-    e = Integer(*(formula.AddVar('e{}'.format(i)) for i in range(n)))
-    f = Integer(*(formula.AddVar('f{}'.format(i)) for i in range(n)))
-    g = Integer(*(formula.AddVar('g{}'.format(i)) for i in range(n)))
+    a = Integer(*(formula.AddVars('a', n)))
+    b = Integer(*(formula.AddVars('b', n)))
+    c = Integer(*(formula.AddVars('c', n)))
+    d = Integer(*(formula.AddVars('d', n)))
+    e = Integer(*(formula.AddVars('e', n)))
+    f = Integer(*(formula.AddVars('f', n)))
+    g = Integer(*(formula.AddVars('g', n)))
 
     formula.Add(a > 1)
     formula.Add(b > 1)
@@ -37,31 +37,15 @@ def encode(n):
     #formula.Simplify()  # Takes a while and doesn't really simplify the CNF much.
     return formula
 
-def bin_to_int(blist):
-    result = 0
-    for b in blist:
-        result *= 2
-        result += 1 if b else 0
-    return result
-
 def print_solution(sol, *extra_args):
     n = extra_args[0]
-
-    a_bits = [sol['a{}'.format(i)] for i in range(n)]
-    b_bits = [sol['b{}'.format(i)] for i in range(n)]
-    c_bits = [sol['c{}'.format(i)] for i in range(n)]
-    d_bits = [sol['d{}'.format(i)] for i in range(n)]
-    e_bits = [sol['e{}'.format(i)] for i in range(n)]
-    f_bits = [sol['f{}'.format(i)] for i in range(n)]
-    g_bits = [sol['g{}'.format(i)] for i in range(n)]
-
-    print('a = {}'.format(bin_to_int(a_bits)))
-    print('b = {}'.format(bin_to_int(b_bits)))
-    print('c = {}'.format(bin_to_int(c_bits)))
-    print('d = {}'.format(bin_to_int(d_bits)))
-    print('e = {}'.format(bin_to_int(e_bits)))
-    print('f = {}'.format(bin_to_int(f_bits)))
-    print('g = {}'.format(bin_to_int(g_bits)))
+    print('a = {}'.format(sol.integer('a', n)))
+    print('b = {}'.format(sol.integer('b', n)))
+    print('c = {}'.format(sol.integer('c', n)))
+    print('d = {}'.format(sol.integer('d', n)))
+    print('e = {}'.format(sol.integer('e', n)))
+    print('f = {}'.format(sol.integer('f', n)))
+    print('g = {}'.format(sol.integer('g', n)))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Determine if a number is prime by attempting to factor it")
@@ -75,4 +59,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [bin_to_int], extra_args=[n])
+        formula.WriteExtractor(f, print_solution, [], extra_args=[n])
