@@ -1,6 +1,5 @@
 * Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
-* Implement very simple clause caching/suppressing duplicate clauses
 * Support integer division/subtraction by re-arranging parse tree into addition/multiplication
   instead of solving for the result.
 * Generate a bash script for sat generation/solving/extracting
