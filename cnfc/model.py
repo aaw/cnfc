@@ -7,6 +7,7 @@ from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul
 from .regex import regex_match
 from .util import Generator, gather_common_operands, reduce_evaluated
+from .cache import cached_generate_var
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
@@ -103,6 +104,7 @@ class Not(BoolExpr):
     def __repr__(self):
         return 'Not({})'.format(self.expr)
 
+    @cached_generate_var
     def generate_var(self, formula):
         return ~self.expr.generate_var(formula)
 
@@ -116,6 +118,7 @@ class BooleanTernaryExpr(BoolExpr):
     def __repr__(self):
         return 'BooleanTernaryExpr({})'.format(self.expr)
 
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -130,6 +133,7 @@ class OrderedBinaryBoolExpr(BoolExpr):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
 class Implies(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return Or(Not(self.first), self.second).generate_var(formula)
 
@@ -139,6 +143,7 @@ class Implies(OrderedBinaryBoolExpr):
         yield (~fv, sv)
 
 class And(MultiBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         v = formula.AddVar()
         subvars = [expr.generate_var(formula) for expr in self.exprs]
@@ -152,6 +157,7 @@ class And(MultiBoolExpr):
             yield (expr.generate_var(formula),)
 
 class Or(MultiBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         v = formula.AddVar()
         subvars = [expr.generate_var(formula) for expr in self.exprs]
@@ -164,6 +170,7 @@ class Or(MultiBoolExpr):
         yield tuple(expr.generate_var(formula) for expr in self.exprs)
 
 class Eq(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         v = formula.AddVar()
         fv = self.first.generate_var(formula)
@@ -181,6 +188,7 @@ class Eq(OrderedBinaryBoolExpr):
         yield (~sv, fv)
 
 class Neq(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         v = formula.AddVar()
         fv = self.first.generate_var(formula)
@@ -209,6 +217,7 @@ class OrderedBinaryTupleBoolExpr(BoolExpr):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
 class TupleEq(OrderedBinaryTupleBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -220,6 +229,7 @@ class TupleEq(OrderedBinaryTupleBoolExpr):
         yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleNeq(OrderedBinaryTupleBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -231,6 +241,7 @@ class TupleNeq(OrderedBinaryTupleBoolExpr):
         yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleLt(OrderedBinaryTupleBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -240,6 +251,7 @@ class TupleLt(OrderedBinaryTupleBoolExpr):
         yield from tuple_less_than(formula, t1, t2, strict=True)
 
 class TupleLe(OrderedBinaryTupleBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -249,6 +261,7 @@ class TupleLe(OrderedBinaryTupleBoolExpr):
         yield from tuple_less_than(formula, t1, t2, strict=False)
 
 class TupleGt(OrderedBinaryTupleBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -258,6 +271,7 @@ class TupleGt(OrderedBinaryTupleBoolExpr):
         yield from tuple_less_than(formula, t2, t1, strict=True)
 
 class TupleGe(OrderedBinaryTupleBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -461,6 +475,7 @@ class RegexMatch(BoolExpr):
         self.tuple = tup
         self.regex = regex
 
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -506,6 +521,7 @@ class NumFalse(CardinalityConstraint, TupleExpr):
         return reduce_evaluated(tuple_add, indicators, formula)
 
 class NumEq(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -523,6 +539,7 @@ class NumEq(OrderedBinaryBoolExpr):
         yield from exactly_n_true(formula, vars, n)
 
 class NumNeq(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -540,6 +557,7 @@ class NumNeq(OrderedBinaryBoolExpr):
         yield from not_exactly_n_true(formula, vars, n)
 
 class NumLt(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -556,6 +574,7 @@ class NumLt(OrderedBinaryBoolExpr):
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumLe(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -572,6 +591,7 @@ class NumLe(OrderedBinaryBoolExpr):
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumGt(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 
@@ -588,6 +608,7 @@ class NumGt(OrderedBinaryBoolExpr):
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumGe(OrderedBinaryBoolExpr):
+    @cached_generate_var
     def generate_var(self, formula):
         return generate_var_from_cnf(self, formula)
 

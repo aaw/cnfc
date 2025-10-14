@@ -13,13 +13,14 @@ def raw_lit(expr):
     else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))
 
 class Formula:
-    def __init__(self, buffer_class=None, check_variables=True):
+    def __init__(self, buffer_class=None, check_variables=True, use_expression_cache=True):
         if buffer_class is None:
             buffer_class = MemoryBuffer
         self.check_variables = check_variables
         self.vars = {}
         self.buffer = buffer_class()
         self.nextvar = 1
+        self.expression_cache = {} if use_expression_cache else None
 
     def AddVar(self, name=None):
         if self.vars.get(name) is not None:
@@ -79,6 +80,7 @@ class Formula:
 
     def PopCheckpoint(self):
         self.buffer.PopCheckpoint()
+        if self.expression_cache is not None: self.expression_cache = {}
 
     def WriteCNF(self, fd):
         self.buffer.Flush(fd)
