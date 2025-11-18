@@ -10,14 +10,14 @@ BITLENGTH = 4
 def encode_equation_as_sat(min_year, max_year):
     formula = Formula(FileBuffer)
     # Date is d1d2/m1m2/y1y2y3y4
-    d1 = Integer(*(formula.AddVars('d1', BITLENGTH)))
-    d2 = Integer(*(formula.AddVars('d2', BITLENGTH)))
-    m1 = Integer(*(formula.AddVars('m1', BITLENGTH)))
-    m2 = Integer(*(formula.AddVars('m2', BITLENGTH)))
-    y1 = Integer(*(formula.AddVars('y1', BITLENGTH)))
-    y2 = Integer(*(formula.AddVars('y2', BITLENGTH)))
-    y3 = Integer(*(formula.AddVars('y3', BITLENGTH)))
-    y4 = Integer(*(formula.AddVars('y4', BITLENGTH)))
+    d1 = Integer(formula.AddVars('d1', BITLENGTH))
+    d2 = Integer(formula.AddVars('d2', BITLENGTH))
+    m1 = Integer(formula.AddVars('m1', BITLENGTH))
+    m2 = Integer(formula.AddVars('m2', BITLENGTH))
+    y1 = Integer(formula.AddVars('y1', BITLENGTH))
+    y2 = Integer(formula.AddVars('y2', BITLENGTH))
+    y3 = Integer(formula.AddVars('y3', BITLENGTH))
+    y4 = Integer(formula.AddVars('y4', BITLENGTH))
     varz = [d1, d2, m1, m2, y1, y2, y3, y4]
 
     day = d1 * Integer(10) + d2
@@ -45,7 +45,7 @@ def encode_equation_as_sat(min_year, max_year):
     # The correct leap year constraint (divisible by 4, unless divisible by 100, unless divisible by 400) is hard
     # to encode, so we'll just use a simpler check and deal with invalid leap years by blocking them if they
     # arise as solutions to the other constraints.
-    x = Integer(*(formula.AddVar('x_{}'.format(i)) for i in range(12)))
+    x = Integer(formula.AddVars('x', 12))
     formula.Add(If(day == 29, Or(month != 2, And(month == 2, year == x * Integer(4)))))
 
     # Constraint: year is in the range we're searching.
@@ -57,7 +57,7 @@ def encode_equation_as_sat(min_year, max_year):
     # Constraint: product of day, month, year is a square.
     # log_2(12) + log_2(31) + log_2(9999) + 2 <= 24 bits should be enough to hold the product, so 12 bits
     # should be enough to hold the square root of the product. We use 13 just in case.
-    s = Integer(*(formula.AddVar('s_{}'.format(i)) for i in range(13)))
+    s = Integer(formula.AddVars('s', 13))
     formula.Add(month * day * year == s * s)
 
     return formula

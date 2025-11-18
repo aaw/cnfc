@@ -44,7 +44,7 @@ class Formula:
             names = args
         else:
             raise TypeError('No matching call to AddVars')
-        return (self.AddVar(name.strip()) for name in names)
+        return tuple(self.AddVar(name.strip()) for name in names)
 
     def AddClause(self, *disjuncts):
         # Convert any BooleanLiterals to actual bools

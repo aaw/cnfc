@@ -9,8 +9,8 @@ def encode(n):
     # The two factors p and q should be non-trivial factors, so their
     # bit length should be strictly less than the bit length of n.
     n_bitlength = len(bin(n)[2:])
-    p = Integer(*(formula.AddVars('p', n_bitlength-1)))
-    q = Integer(*(formula.AddVars('q', n_bitlength-1)))
+    p = Integer(formula.AddVars('p', n_bitlength-1))
+    q = Integer(formula.AddVars('q', n_bitlength-1))
 
     formula.Add(p > 1)
     formula.Add(q > 1)

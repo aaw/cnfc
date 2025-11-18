@@ -24,3 +24,25 @@ def IsPalindrome(num, base=10):
         disjuncts.append(And(*conjuncts))
 
     return Or(*disjuncts)
+
+def Max(*args):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        args = list(args[0])
+    else:
+        args = list(args)
+    assert(len(args) > 1)
+    while len(args) > 1:
+        a, b = args.pop(), args.pop()
+        args.append(TupleMax(a,b))
+    return args[0]
+
+def Min(*args):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        args = list(args[0])
+    else:
+        args = list(args)
+    assert(len(args) > 1)
+    while len(args) > 1:
+        a, b = args.pop(), args.pop()
+        args.append(TupleMin(a,b))
+    return args[0]

@@ -13,16 +13,16 @@ def block(solution, varz):
 
 def encode_equation_as_sat():
     formula = Formula(FileBuffer)
-    a = Integer(*(formula.AddVars('a', BITLENGTH)))
-    b = Integer(*(formula.AddVars('b', BITLENGTH)))
-    c = Integer(*(formula.AddVars('c', BITLENGTH)))
-    d = Integer(*(formula.AddVars('d', BITLENGTH)))
-    e = Integer(*(formula.AddVars('e', BITLENGTH)))
-    f = Integer(*(formula.AddVars('f', BITLENGTH)))
-    g = Integer(*(formula.AddVars('g', BITLENGTH)))
-    h = Integer(*(formula.AddVars('h', BITLENGTH)))
-    i = Integer(*(formula.AddVars('i', BITLENGTH)))
-    j = Integer(*(formula.AddVars('j', BITLENGTH)))
+    a = Integer(formula.AddVars('a', BITLENGTH))
+    b = Integer(formula.AddVars('b', BITLENGTH))
+    c = Integer(formula.AddVars('c', BITLENGTH))
+    d = Integer(formula.AddVars('d', BITLENGTH))
+    e = Integer(formula.AddVars('e', BITLENGTH))
+    f = Integer(formula.AddVars('f', BITLENGTH))
+    g = Integer(formula.AddVars('g', BITLENGTH))
+    h = Integer(formula.AddVars('h', BITLENGTH))
+    i = Integer(formula.AddVars('i', BITLENGTH))
+    j = Integer(formula.AddVars('j', BITLENGTH))
     varz = [a,b,c,d,e,f,g,h,i,j]
 
     # Block known solutions

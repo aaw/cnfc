@@ -2,6 +2,8 @@ from .bool_lit import rpad, lpad, BooleanLiteral
 from .tseytin import *
 from .util import Generator
 
+# Harvey's encoding for lexicographic comparison of tuples. See:
+# https://www.curtisbright.com/bln/2024/12/24/harveys-sat-encoding-for-lexicographic-ordering
 def tuple_less_than(formula, x, y, strict=False):
     x = lpad(x, len(y) - len(x))
     y = lpad(y, len(x) - len(y))
@@ -32,6 +34,48 @@ def tuple_less_than(formula, x, y, strict=False):
         yield (y[n-1], ~a[n-2])
     else:
         yield (~x[n-1], y[n-1], ~a[n-2])
+
+def tuple_max(formula, x, y):
+    x = lpad(x, len(y) - len(x))
+    y = lpad(y, len(x) - len(y))
+    n = len(x)
+    result = [formula.AddVar() for i in range(n)]
+
+    lt = formula.AddVar()  # lt == x <= y
+    for clause in tuple_less_than(formula, x, y):
+        yield (~lt, *clause)
+        yield (lt, *(~v for v in clause))
+
+    for i in range(n):
+        # ~lt => (x == result)
+        yield (lt, ~result[i], x[i])
+        yield (lt, result[i], ~x[i])
+        # lt => (y == result)
+        yield (~lt, ~result[i], y[i])
+        yield (~lt, result[i], ~y[i])
+
+    return result
+
+def tuple_min(formula, x, y):
+    x = lpad(x, len(y) - len(x))
+    y = lpad(y, len(x) - len(y))
+    n = len(x)
+    result = [formula.AddVar() for i in range(n)]
+
+    lt = formula.AddVar()  # lt == x <= y
+    for clause in tuple_less_than(formula, x, y):
+        yield (~lt, *clause)
+        yield (lt, *(~v for v in clause))
+
+    for i in range(n):
+        # lt => (x == result)
+        yield (~lt, ~result[i], x[i])
+        yield (~lt, result[i], ~x[i])
+        # ~lt => (y == result)
+        yield (lt, ~result[i], y[i])
+        yield (lt, result[i], ~y[i])
+
+    return result
 
 def ladner_fischer_network(n):
     zs, reduced = [0]*n, [list(range(n))]

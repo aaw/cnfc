@@ -13,13 +13,13 @@ def encode(n):
     # B^2 + D^2 + F^2
     # B^2 + E^2 = G^2
 
-    a = Integer(*(formula.AddVars('a', n)))
-    b = Integer(*(formula.AddVars('b', n)))
-    c = Integer(*(formula.AddVars('c', n)))
-    d = Integer(*(formula.AddVars('d', n)))
-    e = Integer(*(formula.AddVars('e', n)))
-    f = Integer(*(formula.AddVars('f', n)))
-    g = Integer(*(formula.AddVars('g', n)))
+    a = Integer(formula.AddVars('a', n))
+    b = Integer(formula.AddVars('b', n))
+    c = Integer(formula.AddVars('c', n))
+    d = Integer(formula.AddVars('d', n))
+    e = Integer(formula.AddVars('e', n))
+    f = Integer(formula.AddVars('f', n))
+    g = Integer(formula.AddVars('g', n))
 
     formula.Add(a > 1)
     formula.Add(b > 1)

@@ -47,6 +47,13 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertEqual(x.vid, 1)
         self.assertEqual(y.vid, 2)
 
+    def test_integer_to_and_from_vars(self):
+        f = Formula()
+        bits = 4
+        p = Integer(f.AddVars('p', bits))
+        varz = p.as_tuple()
+        self.assertEqual(len(varz), bits)
+
     def test_boolean_expr_parsing(self):
         f = Formula()
         x,y,z,w = f.AddVars('x y z w')
@@ -835,6 +842,79 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(Tuple(*x) < 1)
         self.assertUnsat(f)
         f.PopCheckpoint()
+
+    def test_integer_comparison_exhaustive(self):
+        f = Formula()
+        # Test comparison of all numbers x + y where x,y < 9
+        limit = 9
+        for x in range(limit):
+            for y in range(limit):
+                if x < y:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) < Integer(y))
+                    self.assertSat(f)
+                    f.PopCheckpoint()
+
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) >= Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+                if x <= y:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) <= Integer(y))
+                    self.assertSat(f)
+                    f.PopCheckpoint()
+
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) > Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+                if x == y:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) == Integer(y))
+                    self.assertSat(f)
+                    f.PopCheckpoint()
+
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) != Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+                if x != y:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) != Integer(y))
+                    self.assertSat(f)
+                    f.PopCheckpoint()
+
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) == Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+                if x > y:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) > Integer(y))
+                    self.assertSat(f)
+                    f.PopCheckpoint()
+
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) <= Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+                if x >= y:
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) >= Integer(y))
+                    self.assertSat(f)
+                    f.PopCheckpoint()
+
+                    f.PushCheckpoint()
+                    f.Add(Integer(x) < Integer(y))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
 
     def test_integer_addition_basic(self):
         f = Formula()

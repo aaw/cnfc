@@ -12,12 +12,12 @@ BITLENGTH = 3
 
 def encode_equation_as_sat():
     formula = Formula()
-    x1 = Integer(*(formula.AddVars('x1', BITLENGTH)))
-    x2 = Integer(*(formula.AddVars('x2', BITLENGTH)))
-    x3 = Integer(*(formula.AddVars('x3', BITLENGTH)))
-    x4 = Integer(*(formula.AddVars('x4', BITLENGTH)))
-    x5 = Integer(*(formula.AddVars('x5', BITLENGTH)))
-    x6 = Integer(*(formula.AddVars('x6', BITLENGTH)))
+    x1 = Integer(formula.AddVars('x1', BITLENGTH))
+    x2 = Integer(formula.AddVars('x2', BITLENGTH))
+    x3 = Integer(formula.AddVars('x3', BITLENGTH))
+    x4 = Integer(formula.AddVars('x4', BITLENGTH))
+    x5 = Integer(formula.AddVars('x5', BITLENGTH))
+    x6 = Integer(formula.AddVars('x6', BITLENGTH))
     formula.Add(215*x1 + 275*x2 + 335*x3 + 355*x4 + 420*x5 + 580*x6 == 1505)
     return formula
 

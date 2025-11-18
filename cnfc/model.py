@@ -4,7 +4,7 @@ import math
 
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
 from .bool_lit import BooleanLiteral, lpad
-from .tuples import tuple_less_than, tuple_add, tuple_mul
+from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
 from .regex import regex_match
 from .util import Generator, gather_common_operands, reduce_evaluated
 from .cache import cached_generate_var
@@ -14,6 +14,7 @@ from .cache import cached_generate_var
 def generate_var_from_cnf(instance, formula):
     vars_to_and = []
     for clause in instance.generate_cnf(formula):
+        # TODO: do i need a fresh var for each clause or should i just use one?
         v = formula.AddVar()
         vars_to_and.append(v)
         formula.AddClause(~v, *clause)
@@ -378,6 +379,30 @@ class TupleMul(TupleCompositeExpr):
     def __len__(self):
         return sum(len(arg) for arg in self.args)
 
+class TupleMax(TupleCompositeExpr):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.args = gather_common_operands(self.__class__, self.args)
+
+    def evaluate(self, formula):
+        return reduce_evaluated(tuple_max, [arg.evaluate(formula) for arg in self.args], formula)
+
+    def __len__(self):
+        return max(len(arg) for arg in self.args)
+
+class TupleMin(TupleCompositeExpr):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.args = gather_common_operands(self.__class__, self.args)
+
+    def evaluate(self, formula):
+        return reduce_evaluated(tuple_min, [arg.evaluate(formula) for arg in self.args], formula)
+
+    def __len__(self):
+        # "max" is not a typo here. We don't know if the leading bits are set
+        # in the longest tuple so we have to assume the worst.
+        return max(len(arg) for arg in self.args)
+
 class TupleSub(TupleCompositeExpr):
     def evaluate(self, formula):
         t1, t2 = self.args
@@ -459,6 +484,9 @@ class Tuple(TupleExpr):
     def evaluate(self, formula):
         return [expr.generate_var(formula) for expr in self.exprs]
 
+    def as_tuple(self):
+        return tuple(self.exprs)
+
 class Integer(Tuple):
     def __init__(self, *values):
         if len(values) == 1 and type(values[0]) == int:
@@ -467,6 +495,8 @@ class Integer(Tuple):
             bitstring = bin(value)[2:]
             m = {'0': False, '1': True}
             self.exprs = [BooleanLiteral(m[ch]) for ch in bitstring]
+        elif len(values) == 1 and type(values[0]) == tuple:
+            self.exprs = values[0]
         else:
             self.exprs = values
 

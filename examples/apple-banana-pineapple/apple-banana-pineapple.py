@@ -15,9 +15,9 @@ BITLENGTH = 270
 
 def encode_equation_as_sat():
     formula = Formula(FileBuffer)
-    a = Integer(*(formula.AddVars('a', BITLENGTH)))
-    b = Integer(*(formula.AddVars('b', BITLENGTH)))
-    c = Integer(*(formula.AddVars('c', BITLENGTH)))
+    a = Integer(formula.AddVars('a', BITLENGTH))
+    b = Integer(formula.AddVars('b', BITLENGTH))
+    c = Integer(formula.AddVars('c', BITLENGTH))
     a2 = a*a
     b2 = b*b
     c2 = c*c
