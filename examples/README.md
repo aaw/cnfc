@@ -4,12 +4,13 @@ Examples
    * [apple-banana-pineapple](apple-banana-pineapple): Solve a problem 95% of people can't solve.
    * [attacking chessboard](attacking-chessboard): Finds a configuration of a chess board with a prescribed number of empty squares with different numbers of pieces attacking.
    * [boggle](boggle): Finds Boggle boards that achieve high scores.
+   * [complex-matrix-multiplications](complex-matrix-multiplications): Minimize the number of multiplications needed for the product of two 2-by-2 complex matrices.
    * [cuboid](cuboid): Finds a [Perfect Cuboid](https://mathworld.wolfram.com/PerfectCuboid.html).
    * [jane-st-altered-states](jane-st-altered-states): Solves the Jane Stree [Altered States](https://www.janestreet.com/puzzles/altered-states-index/) puzzle.
    * [jane-st-altered-states-2](jane-st-altered-states-2): Solves the Jane Stree [Altered States 2](https://www.janestreet.com/puzzles/altered-states-2-index/) puzzle.
    * [jane-st-number-cross-4](jane-st-number-cross-4): Solves the Jane Street [Number Cross 4](https://www.janestreet.com/puzzles/number-cross-4-index/) puzzle.
    * [maximize-iterative-rewriting-replacements](maximize-iterative-rewriting-replacements): Finds traces of string transformations created by a particular rewriting rule.
-   * [matrix-multiplications](matrix-multiplications): Minimize the number of multiplications needed for the product of two n-by-n matrices.
+   * [matrix-multiplications](matrix-multiplications): Minimize the number of multiplications needed for the product of two n-by-n real matrices.
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
