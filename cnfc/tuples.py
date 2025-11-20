@@ -35,47 +35,70 @@ def tuple_less_than(formula, x, y, strict=False):
     else:
         yield (~x[n-1], y[n-1], ~a[n-2])
 
-def tuple_max(formula, x, y):
+
+def __tuple_min_or_max(formula, x, y, is_min=True):
     x = lpad(x, len(y) - len(x))
     y = lpad(y, len(x) - len(y))
     n = len(x)
     result = [formula.AddVar() for i in range(n)]
 
-    lt = formula.AddVar()  # lt == x <= y
-    for clause in tuple_less_than(formula, x, y):
-        yield (~lt, *clause)
-        yield (lt, *(~v for v in clause))
+    if is_min:
+        # Assert that result <= x
+        yield from tuple_less_than(formula, result, x, strict=False)
+        # Assert that result <= y
+        yield from tuple_less_than(formula, result, y, strict=False)
+    else: # max
+        # Assert that x <= result
+        yield from tuple_less_than(formula, x, result, strict=False)
+        # Assert that y <= result
+        yield from tuple_less_than(formula, y, result, strict=False)
 
+    # eq_x == (result == x)
+    eq_x = formula.AddVar()
+    eq_x_vars = []
     for i in range(n):
-        # ~lt => (x == result)
-        yield (lt, ~result[i], x[i])
-        yield (lt, result[i], ~x[i])
-        # lt => (y == result)
-        yield (~lt, ~result[i], y[i])
-        yield (~lt, result[i], ~y[i])
+        # v == (result[i] == x[i])
+        v = formula.AddVar()
+        eq_x_vars.append(v)
+        formula.AddClause(~result[i], ~x[i], v)
+        formula.AddClause(result[i], x[i], v)
+        formula.AddClause(result[i], ~x[i], ~v)
+        formula.AddClause(~result[i], x[i], ~v)
+    # Set eq_x to the AND of all of the intermediate v's
+    yield (eq_x, *(~cv for cv in eq_x_vars))
+    for cv in eq_x_vars: yield (~eq_x, cv)
+
+    # eq_y == (result == y)
+    eq_y = formula.AddVar()
+    eq_y_vars = []
+    for i in range(n):
+        v = formula.AddVar()
+        eq_y_vars.append(v)
+        formula.AddClause(~result[i], ~y[i], v)
+        formula.AddClause(result[i], y[i], v)
+        formula.AddClause(result[i], ~y[i], ~v)
+        formula.AddClause(~result[i], y[i], ~v)
+    # Set eq_y to the AND of all of the intermediate v's
+    yield (eq_y, *(~cv for cv in eq_y_vars))
+    for cv in eq_y_vars: yield (~eq_y, cv)
+
+    # Assert that result is either x or y
+    yield (eq_x, eq_y)
 
     return result
+
 
 def tuple_min(formula, x, y):
-    x = lpad(x, len(y) - len(x))
-    y = lpad(y, len(x) - len(y))
-    n = len(x)
-    result = [formula.AddVar() for i in range(n)]
+    gen = Generator(__tuple_min_or_max(formula, x, y, is_min=True))
+    yield from gen
+    return gen.result
 
-    lt = formula.AddVar()  # lt == x <= y
-    for clause in tuple_less_than(formula, x, y):
-        yield (~lt, *clause)
-        yield (lt, *(~v for v in clause))
 
-    for i in range(n):
-        # lt => (x == result)
-        yield (~lt, ~result[i], x[i])
-        yield (~lt, result[i], ~x[i])
-        # ~lt => (y == result)
-        yield (lt, ~result[i], y[i])
-        yield (lt, result[i], ~y[i])
+def tuple_max(formula, x, y):
+    gen = Generator(__tuple_min_or_max(formula, x, y, is_min=False))
+    yield from gen
+    return gen.result
 
-    return result
 
 def ladner_fischer_network(n):
     zs, reduced = [0]*n, [list(range(n))]
@@ -94,6 +117,7 @@ def ladner_fischer_network(n):
             if item not in finished:
                 yield (result[i-1], item)
                 finished.add(item)
+
 
 # Brent-Kung adder from "A Regular Layout for Parallel Adders",
 # IEEE Trans. on Comp. C-31 (3): 260-264.
@@ -157,6 +181,7 @@ def tuple_add(formula, x_a, x_b):
 
     result.reverse()
     return result
+
 
 # Very naive multiplier implemented with repeated addition
 #

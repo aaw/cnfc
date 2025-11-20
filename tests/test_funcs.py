@@ -74,6 +74,21 @@ class TestFuncs(unittest.TestCase, SatTestCase):
         f.PushCheckpoint()
         f.Add(Min([x,y,z]) == y)
         self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_simple_min_unsat(self):
+        f = Formula()
+        y = Integer(2)
+        z = Integer(1)
+        f.Add(Min(y,z) == y)
+        self.assertUnsat(f)
+
+    def test_simple_max_unsat(self):
+        f = Formula()
+        y = Integer(2)
+        z = Integer(1)
+        f.Add(Max(y,z) == z)
+        self.assertUnsat(f)
 
     def test_min_max_exhaustive(self):
         f = Formula()

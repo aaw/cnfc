@@ -14,7 +14,6 @@ from .cache import cached_generate_var
 def generate_var_from_cnf(instance, formula):
     vars_to_and = []
     for clause in instance.generate_cnf(formula):
-        # TODO: do i need a fresh var for each clause or should i just use one?
         v = formula.AddVar()
         vars_to_and.append(v)
         formula.AddClause(~v, *clause)
