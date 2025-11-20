@@ -64,5 +64,5 @@ C_{2,1} = -m_4 + -m_7 + -m_9 + -m_10 + -m_11 + -m_12 + m_13 + -m_18 + -m_21 + -m
 C_{2,2} = -m_2 + -m_3 + m_7 + m_9 + -m_14 + -m_15 + -m_17 + -m_19 + -m_20 + -m_21 + -m_23 + (-m_7 + m_8 + m_10 + m_14 + m_19 + m_22 + m_26)*I
 ```
 
-In the example above, one of the multiplications (`m3`) isn't used in the final results, so we've actually discovered an algorithm with 39 multiplication instead of the 40 we asked for.
+In the example above, one of the multiplications (`m6`) isn't used in the final results, so we've actually discovered an algorithm with 39 multiplication instead of the 40 we asked for.
 This 39-multiplication solution took about a day to find on my laptop.
