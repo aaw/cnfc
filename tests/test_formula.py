@@ -665,6 +665,19 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
         f.PopCheckpoint()  # all coords equal
 
+    def test_tuple_inequality_and_negation(self):
+        f = Formula()
+
+        f.PushCheckpoint()
+        f.Add(Not(Integer(1) < Integer(2)))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(1) < Integer(2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_tuple_inequality(self):
         f = Formula()
         dimension = 5
@@ -1279,6 +1292,11 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertSat(f)
         f.PopCheckpoint()
 
+        f.PushCheckpoint()
+        f.Add(If(Integer(1) < Integer(2), Integer(0), Integer(1)) == Integer(1))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
     def test_boolean_ternary(self):
         f = Formula()
         a,b,c = f.AddVars('a b c')
@@ -1321,6 +1339,21 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
         f.PushCheckpoint()
         f.Add(If(~a, ~b, ~c))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(If(Integer(1) < Integer(2), BooleanLiteral(False), BooleanLiteral(True)))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Not(If(Integer(1) < Integer(2), BooleanLiteral(False), BooleanLiteral(True))))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Not(Not(If(Integer(1) < Integer(2), BooleanLiteral(False), BooleanLiteral(True)))))
         self.assertUnsat(f)
         f.PopCheckpoint()
 

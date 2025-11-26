@@ -2,38 +2,22 @@ from .bool_lit import rpad, lpad, BooleanLiteral
 from .tseytin import *
 from .util import Generator
 
-# Harvey's encoding for lexicographic comparison of tuples. See:
-# https://www.curtisbright.com/bln/2024/12/24/harveys-sat-encoding-for-lexicographic-ordering
 def tuple_less_than(formula, x, y, strict=False):
     x = lpad(x, len(y) - len(x))
     y = lpad(y, len(x) - len(y))
     n = len(x)
-    if n == 0:
-        if strict:
-            yield (BooleanLiteral(False),)
-        return
-    elif n == 1:
-        if strict:
-            yield (y[0],)
-            yield (~x[0],)
-        else:
-            yield (~x[0], y[0])
-        return
 
-    # Otherwise, n > 1.
-    a = [formula.AddVar() for i in range(n-1)]
-    yield (~x[0], y[0])
-    yield (~x[0], a[0])
-    yield (y[0], a[0])
-    for i in range(1, n-1):
-        yield (~x[i], y[i], ~a[i-1])
-        yield (~x[i], a[i], ~a[i-1])
-        yield (y[i], a[i], ~a[i-1])
-    if strict:
-        yield (~x[n-1], ~a[n-2])
-        yield (y[n-1], ~a[n-2])
-    else:
-        yield (~x[n-1], y[n-1], ~a[n-2])
+    # Harvey's encoding for lexicographic comparison of tuples. See:
+    # https://www.curtisbright.com/bln/2024/12/24/harveys-sat-encoding-for-lexicographic-ordering
+    a = [formula.AddVar() for i in range(n)] + [BooleanLiteral(not strict)]
+    for i in range(n):
+        yield (a[i+1], y[i], ~a[i])
+        yield (a[i+1], ~x[i], ~a[i])
+        yield (y[i], ~x[i], ~a[i])
+        yield (~a[i+1], ~y[i], a[i])
+        yield (~a[i+1], x[i], a[i])
+        yield (~y[i], x[i], a[i])
+    return a[0]
 
 
 def __tuple_min_or_max(formula, x, y, is_min=True):
@@ -44,14 +28,22 @@ def __tuple_min_or_max(formula, x, y, is_min=True):
 
     if is_min:
         # Assert that result <= x
-        yield from tuple_less_than(formula, result, x, strict=False)
+        g = Generator(tuple_less_than(formula, result, x, strict=False))
+        yield from g
+        yield (g.result,)
         # Assert that result <= y
-        yield from tuple_less_than(formula, result, y, strict=False)
+        g = Generator(tuple_less_than(formula, result, y, strict=False))
+        yield from g
+        yield (g.result,)
     else: # max
         # Assert that x <= result
-        yield from tuple_less_than(formula, x, result, strict=False)
+        g = Generator(tuple_less_than(formula, x, result, strict=False))
+        yield from g
+        yield (g.result,)
         # Assert that y <= result
-        yield from tuple_less_than(formula, y, result, strict=False)
+        g = Generator(tuple_less_than(formula, y, result, strict=False))
+        yield from g
+        yield (g.result,)
 
     # eq_x == (result == x)
     eq_x = formula.AddVar()
@@ -60,6 +52,7 @@ def __tuple_min_or_max(formula, x, y, is_min=True):
         # v == (result[i] == x[i])
         v = formula.AddVar()
         eq_x_vars.append(v)
+# TODO: here and below, use gen_* helpers from tseytin module
         formula.AddClause(~result[i], ~x[i], v)
         formula.AddClause(result[i], x[i], v)
         formula.AddClause(result[i], ~x[i], ~v)
@@ -100,7 +93,7 @@ def tuple_max(formula, x, y):
     return gen.result
 
 
-def ladner_fischer_network(n):
+def __ladner_fischer_network(n):
     zs, reduced = [0]*n, [list(range(n))]
     while len(reduced[-1]) > 1:
         prev, current = reduced[-1], []
@@ -160,7 +153,7 @@ def tuple_add(formula, x_a, x_b):
     # Work-efficient prefix sums. This does not currently beat the naive
     # linear accumulation above, but leaving it here for testing.
     # https://blog.aaw.io/2023/11/05/work-efficient-prefix-sums.html
-    # for x,y in ladner_fischer_network(len(gps)):
+    # for x,y in __ladner_fischer_network(len(gps)):
     #     g, p = formula.AddVar(), formula.AddVar()
     #     yield from operator_o(formula, gps[y], gps[x], g, p)
     #     gps[y] = (g,p)

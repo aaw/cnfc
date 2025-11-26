@@ -116,7 +116,7 @@ class BooleanTernaryExpr(BoolExpr):
         self.cond, self.if_true, self.if_false = cond, if_true, if_false
 
     def __repr__(self):
-        return 'BooleanTernaryExpr({})'.format(self.expr)
+        return 'BooleanTernaryExpr({}, {}, {})'.format(self.cond, self.if_true, self.if_false)
 
     @cached_generate_var
     def generate_var(self, formula):
@@ -240,45 +240,45 @@ class TupleNeq(OrderedBinaryTupleBoolExpr):
         t2 = lpad(t2, len(t1) - len(t2))
         yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
-class TupleLt(OrderedBinaryTupleBoolExpr):
+class TupleInequality(OrderedBinaryTupleBoolExpr):
+    def _make_generator(self, formula):
+        raise NotImplementedError  # Subclasses implement this
+
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        gen = self._make_generator(formula)
+        for clause in gen:
+            formula.AddClause(*clause)
+        return gen.result
 
     def generate_cnf(self, formula):
+        gen = self._make_generator(formula)
+        yield from gen
+        yield (gen.result,)
+
+class TupleLt(TupleInequality):
+    def _make_generator(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        yield from tuple_less_than(formula, t1, t2, strict=True)
+        return Generator(tuple_less_than(formula, t1, t2, strict=True))
 
-class TupleLe(OrderedBinaryTupleBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
-
-    def generate_cnf(self, formula):
+class TupleLe(TupleInequality):
+    def _make_generator(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        yield from tuple_less_than(formula, t1, t2, strict=False)
+        return Generator(tuple_less_than(formula, t1, t2, strict=False))
 
-class TupleGt(OrderedBinaryTupleBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
-
-    def generate_cnf(self, formula):
+class TupleGt(TupleInequality):
+    def _make_generator(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        yield from tuple_less_than(formula, t2, t1, strict=True)
+        return Generator(tuple_less_than(formula, t2, t1, strict=True))
 
-class TupleGe(OrderedBinaryTupleBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
-
-    def generate_cnf(self, formula):
+class TupleGe(TupleInequality):
+    def _make_generator(self, formula):
         t1 = self.first.evaluate(formula)
         t2 = self.second.evaluate(formula)
-        yield from tuple_less_than(formula, t2, t1, strict=False)
+        return Generator(tuple_less_than(formula, t2, t1, strict=False))
 
 # Any expression that results in a Tuple.
 class TupleExpr:
@@ -662,7 +662,7 @@ def If(arg1, arg2, arg3=None):
     else:
         if isinstance(arg2, TupleExpr) and isinstance(arg3, TupleExpr):
             return TupleTernaryExpr(arg1, arg2, arg3)
-        elif isinstance(arg2, BoolExpr) and isinstance(arg3, BoolExpr):
+        elif (isinstance(arg2, BoolExpr) or isinstance(arg2, BooleanLiteral)) and (isinstance(arg3, BoolExpr) or isinstance(arg3, BooleanLiteral)):
             return BooleanTernaryExpr(arg1, arg2, arg3)
     raise ValueError("Unsupported form of If.")
 

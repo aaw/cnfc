@@ -1,4 +1,5 @@
 from cnfc.tuples import tuple_less_than
+from cnfc.util import Generator
 from cnfc import *
 from .util import SatTestCase
 
@@ -24,8 +25,11 @@ class TestCardinality(unittest.TestCase, SatTestCase):
                         f.AddClause(y[i]) if yv[i] else f.AddClause(~y[i])
 
                     f.PushCheckpoint()  # <= comparison
-                    for clause in tuple_less_than(f, x, y, strict=False):
+
+                    gen = Generator(tuple_less_than(f, x, y, strict=False))
+                    for clause in gen:
                         f.AddClause(*clause)
+                    f.AddClause(gen.result)
                     if xv <= yv:
                         self.assertSat(f)
                     else:
@@ -33,8 +37,10 @@ class TestCardinality(unittest.TestCase, SatTestCase):
                     f.PopCheckpoint()  # <= comparison
 
                     f.PushCheckpoint()  # < comparison
-                    for clause in tuple_less_than(f, x, y, strict=True):
+                    gen = Generator(tuple_less_than(f, x, y, strict=True))
+                    for clause in gen:
                         f.AddClause(*clause)
+                    f.AddClause(gen.result)
                     if xv < yv:
                         self.assertSat(f)
                     else:

@@ -14,3 +14,6 @@
   sum of the varz. Test and remove all the selection network code if it isn't dramatically more
   efficient.
 * Support negative integers with twos-complement representation.
+* Audit use of formula.Add/formula.AddClause in subcalls, especially stuff like reduce_evaluated
+  which should probably be yielding instead so they can be composed? Should be easy to test with
+  some nested calls. Also a few instances in model.py in pow/mod, etc.
