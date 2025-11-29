@@ -12,6 +12,7 @@ Examples
    * [maximize-iterative-rewriting-replacements](maximize-iterative-rewriting-replacements): Finds traces of string transformations created by a particular rewriting rule.
    * [matrix-multiplications](matrix-multiplications): Minimize the number of multiplications needed for the product of two n-by-n real matrices.
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
+   * [n-fractions](n-fractions): Solve some previously unknown cases of the [n-Fractions puzzle](https://www.csplib.org/Problems/prob041/references/).
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
    * [pandigital-alphametic](pandigital-alphametic): Solves the pandigital alphametic A x BC x DEF = GHIJ.
