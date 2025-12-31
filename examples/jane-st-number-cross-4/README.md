@@ -19,7 +19,7 @@ interesting restrictions:
 To solve this puzzle with the script in this directory, run:
 
 ```
-$ poetry run python3 examples/jane-st-number-cross-4/jane-st-number-cross-4.py /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/jane-st-number-cross-4/jane-st-number-cross-4.py /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 ```

@@ -12,7 +12,7 @@ on each pink diagonal equals the sum of the numbers in the blue square.)
 To solve it, generate the CNF file and extractor:
 
 ```
-$ poetry run python3 examples/product-sum-sudoku/product-sum-sudoku.py /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/product-sum-sudoku/product-sum-sudoku.py /tmp/out.cnf /tmp/extractor.py
 ```
 
 Solve the CNF file:

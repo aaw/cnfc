@@ -10,7 +10,7 @@ The script in this directory will prove that _T(n)_ &ge; _k_ for any _n, k_. So 
 a few minutes on a laptop by running:
 
 ```
-$ poetry run python3 examples/trifference/trifference.py 5 10 /tmp/cnf /tmp/extractor.py
+$ uv run python examples/trifference/trifference.py 5 10 /tmp/cnf /tmp/extractor.py
 $ kissat /tmp/cnf > /tmp/out
 $ python3 /tmp/extractor.py /tmp/cnf /tmp/out
 {00000, 01111, 11002, 11021, 11211, 12000, 20112, 20120, 20200, 22111}
@@ -19,7 +19,7 @@ $ python3 /tmp/extractor.py /tmp/cnf /tmp/out
 and
 
 ```
-$ poetry run python3 examples/trifference/trifference.py 5 11 /tmp/cnf /tmp/extractor.py
+$ uv run python examples/trifference/trifference.py 5 11 /tmp/cnf /tmp/extractor.py
 $ kissat /tmp/cnf > /tmp/out
 $ python3 /tmp/extractor.py /tmp/cnf /tmp/out
 UNSATISFIABLE

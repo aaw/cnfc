@@ -4,7 +4,7 @@ Primality Test
 Generate a formula that's unsatisfiable exactly when the input number is prime:
 
 ```
-$ poetry run python3 examples/prime/prime.py 100123456789 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/prime/prime.py 100123456789 /tmp/out.cnf /tmp/extractor.py
 ```
 
 Next, solve the CNF file using [kissat](https://github.com/arminbiere/kissat) or any other SAT solver that accepts DIMACS CNF input files:

@@ -4,7 +4,7 @@ Sudoku solver
 First, generate the DIMACS CNF file and the extractor script for a [hard Sudoku puzzle](http://magictour.free.fr/top95):
 
 ```
-$ poetry run python3 examples/sudoku/sudoku.py /tmp/out.cnf /tmp/extractor.py 4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......
+$ uv run python examples/sudoku/sudoku.py /tmp/out.cnf /tmp/extractor.py 4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......
 Board to solve:
 +---------+---------+---------+
 | 4       |         | 8     5 |

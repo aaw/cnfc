@@ -6,7 +6,7 @@ asks for a particular bijection that can be used in a string replacement rule wh
 bijection and trace of length at least N, generate a formula for that value of N (below, we use 60):
 
 ```
-$ poetry run python3 examples/maximize-iterative-rewriting-replacements/maximize-iterative-rewriting-replacements.py 60 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/maximize-iterative-rewriting-replacements/maximize-iterative-rewriting-replacements.py 60 /tmp/out.cnf /tmp/extractor.py
 ```
 
 Next, solve the CNF file using [kissat](https://github.com/arminbiere/kissat) or any other SAT solver that accepts DIMACS CNF input files:

@@ -10,7 +10,7 @@ Tournament Scheduling
 It doesn't look like 7 rounds is possible, but you can solve 5 rounds with the script in this directory:
 
 ```
-$ poetry run python3 examples/tournament-scheduling/tournament-scheduling.py --rounds 5 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/tournament-scheduling/tournament-scheduling.py --rounds 5 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat-out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat-out
 ```

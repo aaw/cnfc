@@ -17,7 +17,7 @@ start with M" and "contains a coast-to-coast chain".
 To solve this puzzle with the script in this directory, run:
 
 ```
-$ poetry run python3 examples/jane-st-number-altered-states-2/jane-st-altered-states-2.py 165379868 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/jane-st-number-altered-states-2/jane-st-altered-states-2.py 165379868 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
  G  O  L  C  S
@@ -55,7 +55,7 @@ args to target bonus achievements:
 For example, forcing the `C2C` bonus (a coast-to-coast chain) and the minimum allowable total score:
 
 ```
-$ poetry run python3 examples/jane-st-number-altered-states-2/jane-st-altered-states-2.py 165379868 /tmp/out.cnf /tmp/extractor.py --extras=C2C
+$ uv run python examples/jane-st-number-altered-states-2/jane-st-altered-states-2.py 165379868 /tmp/out.cnf /tmp/extractor.py --extras=C2C
 Forcing C2C.
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 # a few hours later...

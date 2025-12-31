@@ -12,7 +12,7 @@ This script generates a formula that satisfiable exactly when a strongly regular
 length 5 is a strongly regular graph with parameters _n_=5, _k_=2, _λ_=0, _μ_=1, so generate the CNF file and extractor with:
 
 ```
-$ poetry run python3 examples/strongly-regular-graph/strongly-regular-graph.py 5 2 0 1 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/strongly-regular-graph/strongly-regular-graph.py 5 2 0 1 /tmp/out.cnf /tmp/extractor.py
 ```
 
 Next, solve the CNF file using [kissat](https://github.com/arminbiere/kissat) or any other SAT solver that accepts DIMACS CNF input files:

@@ -10,7 +10,7 @@ To verify Dan's result that the max score on a 4-by-4 board with the enable2k wo
 [the enable2k wordlist](https://github.com/danvk/hybrid-boggle/tree/main/wordlists) and run:
 
 ```
-$ poetry run python3 examples/boggle/boggle.py 3626 --dice=new --rows=4 --cols=4 --words=enable2k.txt /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/boggle/boggle.py 3626 --dice=new --rows=4 --cols=4 --words=enable2k.txt /tmp/out.cnf /tmp/extractor.py
 ```
 
 This generates a 44 GB CNF file with 400 million variables and 1.5 billion clauses. The formula asserts that it's impossible

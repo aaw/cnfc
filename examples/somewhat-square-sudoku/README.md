@@ -10,7 +10,7 @@ values 1-9. This Sudoku uses the numbers 0-9 with one value (your choice) exclud
 You can solve this puzzle with the script in this directory. The greatest common divisor is 12345679, so:
 
 ```
-$ poetry run python3 examples/somewhat-square-sudoku/somewhat-square-sudoku.py 12345679 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/somewhat-square-sudoku/somewhat-square-sudoku.py 12345679 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 
@@ -31,7 +31,7 @@ Actual GCD: 12345679
 And trying any larger divisor doesn't work:
 
 ```
-$ poetry run python3 examples/somewhat-square-sudoku/somewhat-square-sudoku.py 12345680 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/somewhat-square-sudoku/somewhat-square-sudoku.py 12345680 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 UNSATISFIABLE

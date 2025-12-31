@@ -7,7 +7,7 @@ exists with side lengths and face diagonals representable with up to _n_ bits.
 To prove, for example, that no perfect cuboid exists with side and face diagonal lengths < 1024:
 
 ```
-$ poetry run python3 examples/cuboid/cuboid.py 10 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/cuboid/cuboid.py 10 /tmp/out.cnf /tmp/extractor.py
 ```
 
 Next, solve the CNF file using [kissat](https://github.com/arminbiere/kissat) or any other SAT solver that accepts DIMACS CNF input files:

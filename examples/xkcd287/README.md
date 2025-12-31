@@ -12,7 +12,7 @@ Multiplying both sides by 100, this is just the Diophantine equation:
 The example in this subdirectory encodes this equation into SAT. To solve it, run:
 
 ```
-$ poetry run python3 examples/xkcd287/xkcd287.py /tmp/cnf /tmp/extractor.py
+$ uv run python examples/xkcd287/xkcd287.py /tmp/cnf /tmp/extractor.py
 $ kissat /tmp/cnf > /tmp/solved
 $ python3 /tmp/extractor.py /tmp/cnf /tmp/solved
 (2.15 * 1) + (2.75 * 0) + (3.35 * 0) + (3.55 * 2) + (4.20 * 0) + (5.80 * 1) = 15.05

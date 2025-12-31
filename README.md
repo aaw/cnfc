@@ -179,10 +179,10 @@ pip install cnfc
 
 ## Development
 
-Install [poetry](https://python-poetry.org/docs/#installation) and run `poetry install`. Then you can bring up a shell, etc. Run tests with:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and run tests with:
 
 ```
-poetry run python3 -m unittest discover
+uv run python -m unittest discover
 ```
 
 To publish a new version to PyPI, bump the version in `pyproject.toml` and create a release in Github.

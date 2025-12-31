@@ -12,7 +12,7 @@ that places exactly one square attacked by 0 pieces, exactly one square attacked
 Example:
 
 ```
-$ poetry run python3 examples/attacking-chessboard/attacking-chessboard.py --uniuqe 15 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/attacking-chessboard/attacking-chessboard.py --unique 15 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp.out.cnf /tmp/kissat.out
 Solution:

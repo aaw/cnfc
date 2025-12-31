@@ -26,7 +26,7 @@ which leaves only the case of n=44 unresolved.
 To solve, you must pass the value of n and an upper bound on the LCM of the `y_i z_i`'s:
 
 ```
-$ poetry run python3 examples/n-fractions/n-fractions.py 41 8400 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/n-fractions/n-fractions.py 41 8400 /tmp/out.cnf /tmp/extractor.py
 $ cadical /tmp/out.cnf > /tmp/cadical.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/cadical.out
 1/35 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 7/76 + 1/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/84 + 2/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95 + 3/95
@@ -34,7 +34,7 @@ LCM of ys and zs: 7980
 ```
 
 ```
-$ poetry run python3 examples/n-fractions/n-fractions.py 42 8400 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/n-fractions/n-fractions.py 42 8400 /tmp/out.cnf /tmp/extractor.py
 $ cadical /tmp/out.cnf > /tmp/cadical.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/cadical.out
 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 2/76 + 2/76 + 2/76 + 2/76 + 2/76 + 2/76 + 2/76 + 2/76 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 1/95 + 1/95 + 1/95 + 1/95 + 1/95 + 1/95 + 1/95 + 1/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95
@@ -42,7 +42,7 @@ LCM of ys and zs: 7980
 ```
 
 ```
-$ poetry run python3 n-fractions.py 43 8400 /tmp/out.cnf /tmp/extractor.py
+$ uv run python n-fractions.py 43 8400 /tmp/out.cnf /tmp/extractor.py
 $ cadical /tmp/out.cnf > /tmp/cadical.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/cadical.out
 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 1/76 + 2/76 + 1/84 + 2/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 3/84 + 1/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 2/95 + 3/95
@@ -52,7 +52,7 @@ LCM of ys and zs: 7980
 Cadical resolved the n=41 and n=43 cases in a few minutes each and the n=42 case in a few hours. I could also verify that there's no LCM below 32000 that works for this problem by letting cadical run for 4 days:
 
 ```
-$ poetry run python3 n-fractions.py 44 32000 /tmp/out.cnf /tmp/extractor.py
+$ uv run python n-fractions.py 44 32000 /tmp/out.cnf /tmp/extractor.py
 $ cadical /tmp/out.cnf > /tmp/cadical.out
 # 4 days later...
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/cadical.out

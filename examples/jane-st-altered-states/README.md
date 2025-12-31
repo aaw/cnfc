@@ -9,7 +9,7 @@ lengths of state names that appear in the grid.
 Given a minimum target score (60, for example), you can solve this puzzle with the script in this directory:
 
 ```
-$ poetry run python3 examples/jane-st-altered-states/jane-st-altered-states.py 60 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/jane-st-altered-states/jane-st-altered-states.py 60 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
  C  R  A  C  I

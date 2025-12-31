@@ -14,7 +14,7 @@ memory on my laptop after thinking for a few hours. I may try re-running this so
 equation is simply solvable by a program without resorting to elliptic curves:
 
 ```
-$ poetry run python3 examples/apple-banana-pineapple/apple-banana-pineapple.py /tmp/cnf /tmp/extractor.py
+$ uv run python examples/apple-banana-pineapple/apple-banana-pineapple.py /tmp/cnf /tmp/extractor.py
 $ kissat /tmp/cnf > /tmp/solved
 $ python3 /tmp/extractor.py /tmp/cnf /tmp/solved
 ```

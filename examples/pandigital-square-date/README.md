@@ -7,12 +7,12 @@ The original problem was posed [here](https://puzzling.stackexchange.com/questio
 You can verify that `13/09/2548` is the smallest future year by running:
 
 ```
-$ poetry run python3 examples/pandigital-square-date/pandigital-square-date.py --max_year=2547 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/pandigital-square-date/pandigital-square-date.py --max_year=2547 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 UNSATISFIABLE
 
-$ poetry run python3 examples/pandigital-square-date/pandigital-square-date.py --max_year=2548 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/pandigital-square-date/pandigital-square-date.py --max_year=2548 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 13/09/2548

@@ -14,7 +14,7 @@ of multiplications or additions, assuming that multiplication of the underlying 
 To discover a way to multiply two 2-by-2 matrices with only 7 multiplications, run:
 
 ```
-$ poetry run python3 examples/matrix-multiplications/matrix-multiplications.py 2 7 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/matrix-multiplications/matrix-multiplications.py 2 7 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 m_0 = (-a_{2,1}) * (b_{1,1} + -b_{1,2})
@@ -42,18 +42,18 @@ script above to restrict the maximum number of <i>a</i>'s or <i>b</i>'s in any <
 a single addition in any <i>a</i> sum or <i>b</i> sum like Strassen's algorithm:
 
 ```
-$ poetry run python3 examples/matrix-multiplications/matrix-multiplications.py 2 7 --max_additions_per_term=1 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/matrix-multiplications/matrix-multiplications.py 2 7 --max_additions_per_term=1 /tmp/out.cnf /tmp/extractor.py
 ```
 
 You can also minimize the total number of additions globally with the `--max_total_additions` flag. The current best total number of additions
 for 2-by-2 matrices is 12, so to try to discover an algorithm that beats this, run:
 
 ```
-$ poetry run python3 examples/matrix-multiplications/matrix-multiplications.py 2 7 --max_total_additions=11 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/matrix-multiplications/matrix-multiplications.py 2 7 --max_total_additions=11 /tmp/out.cnf /tmp/extractor.py
 ```
 
 To try to discover a 3-by-3 algorithm that beats Laderman's 23 multiplications, run:
 
 ```
-$ poetry run python3 examples/matrix-multiplications/matrix-multiplications.py 3 22 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/matrix-multiplications/matrix-multiplications.py 3 22 /tmp/out.cnf /tmp/extractor.py
 ```

@@ -14,7 +14,7 @@ find an algorithm to uses 20 or fewer multiplications. This seems to be a hard p
 bound of 21. For example:
 
 ```
-$ poetry run python3 examples/complex-matrix-multiplications/complex-matrix-multiplications.py 40 /tmp/out.cnf /tmp/extractor.py
+$ uv run python examples/complex-matrix-multiplications/complex-matrix-multiplications.py 40 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
 $ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 m_0 = (-b_{1,2}) * (c_{2,2})
