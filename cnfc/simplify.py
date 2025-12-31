@@ -143,3 +143,45 @@ def strengthen_self_subsumed(b):
     for clause in clauses:
         new_b.Append(clause)
     return new_b
+
+
+def eliminate_blocked_clauses(b, max_iterations=None):
+    if max_iterations is None: max_iterations = 30
+
+    # Given v in c1, -v in c2, if we resolve c1 and c2 on variable v, is the result a tautology?
+    def is_resolved_tautology(c1, c2, v):
+        lits = sorted(c1 + c2, key=lambda x: abs(x))
+        for i in range(len(lits)-1):
+            if abs(lits[i]) != abs(v) and lits[i] == -lits[i+1]: return True
+        return False
+
+    clauses = [c for c in b.AllClauses()]
+    for iteration in range(max_iterations):
+        occur = defaultdict(list)
+        for i, clause in enumerate(clauses):
+            for lit in clause:
+                occur[lit].append(i)
+
+        to_remove = set()
+        for c1i, c1 in enumerate(clauses):
+            if len(c1) == 1: continue
+            for lit in c1:
+                skip = False
+                for c2i in occur[-lit]:
+                    if not is_resolved_tautology(c1, clauses[c2i], lit):
+                        skip = True
+                        break
+                if skip or len(occur[-lit]) == 0: continue
+                to_remove.add(c1i)
+                break
+
+        if not to_remove: break
+
+        clauses = [c for i,c in enumerate(clauses) if i not in to_remove]
+
+    new_b = b.__class__(maxvar=b.maxvar)
+    for comment in b.AllComments():
+        new_b.AddComment(comment)
+    for clause in clauses:
+        new_b.Append(clause)
+    return new_b
