@@ -1465,5 +1465,168 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+class TestPlaistedGreenbaum(unittest.TestCase, SatTestCase):
+    """Tests for Plaisted-Greenbaum encoding optimization."""
+
+    def count_clauses(self, formula):
+        """Count the number of clauses in a formula."""
+        return len(formula.buffer.clauses)
+
+    def test_plaisted_greenbaum_generates_fewer_clauses_for_and(self):
+        """Plaisted-Greenbaum should generate fewer clauses for nested AND expressions."""
+        # Test with nested AND in OR - this forces generate_var to be called with polarity
+        # (a & b) | (c & d) - the AND subexpressions need Tseytin variables
+        f_tseytin = Formula(use_plaisted_greenbaum=False)
+        a, b, c, d = f_tseytin.AddVars('a b c d')
+        f_tseytin.Add((a & b) | (c & d))
+
+        f_polarity = Formula(use_plaisted_greenbaum=True)
+        a, b, c, d = f_polarity.AddVars('a b c d')
+        f_polarity.Add((a & b) | (c & d))
+
+        tseytin_clauses = self.count_clauses(f_tseytin)
+        polarity_clauses = self.count_clauses(f_polarity)
+
+        # Plaisted-Greenbaum should have fewer clauses
+        self.assertLess(polarity_clauses, tseytin_clauses,
+            f"Plaisted-Greenbaum ({polarity_clauses}) should have fewer clauses than Tseytin ({tseytin_clauses})")
+
+    def test_plaisted_greenbaum_generates_fewer_clauses_for_or(self):
+        """Plaisted-Greenbaum should generate fewer clauses for nested OR expressions."""
+        # Test with nested OR in AND - this forces generate_var to be called with polarity
+        # (a | b) & (c | d) - the OR subexpressions need Tseytin variables
+        f_tseytin = Formula(use_plaisted_greenbaum=False)
+        a, b, c, d = f_tseytin.AddVars('a b c d')
+        f_tseytin.Add((a | b) & (c | d))
+
+        f_polarity = Formula(use_plaisted_greenbaum=True)
+        a, b, c, d = f_polarity.AddVars('a b c d')
+        f_polarity.Add((a | b) & (c | d))
+
+        tseytin_clauses = self.count_clauses(f_tseytin)
+        polarity_clauses = self.count_clauses(f_polarity)
+
+        # Plaisted-Greenbaum should have fewer clauses
+        self.assertLess(polarity_clauses, tseytin_clauses,
+            f"Plaisted-Greenbaum ({polarity_clauses}) should have fewer clauses than Tseytin ({tseytin_clauses})")
+
+    def test_plaisted_greenbaum_equivalent_sat_results(self):
+        """Both encodings should produce equivalent SAT results."""
+        # Test case 1: SAT formula
+        f_tseytin = Formula(use_plaisted_greenbaum=False)
+        x, y = f_tseytin.AddVars('x y')
+        f_tseytin.Add(x | y)
+        f_tseytin.Add(~x | y)
+        self.assertSat(f_tseytin)
+
+        f_polarity = Formula(use_plaisted_greenbaum=True)
+        x, y = f_polarity.AddVars('x y')
+        f_polarity.Add(x | y)
+        f_polarity.Add(~x | y)
+        self.assertSat(f_polarity)
+
+        # Test case 2: UNSAT formula
+        f_tseytin = Formula(use_plaisted_greenbaum=False)
+        x = f_tseytin.AddVar('x')
+        f_tseytin.Add(x)
+        f_tseytin.Add(~x)
+        self.assertUnsat(f_tseytin)
+
+        f_polarity = Formula(use_plaisted_greenbaum=True)
+        x = f_polarity.AddVar('x')
+        f_polarity.Add(x)
+        f_polarity.Add(~x)
+        self.assertUnsat(f_polarity)
+
+    def test_plaisted_greenbaum_nested_expressions(self):
+        """Test Plaisted-Greenbaum with nested AND/OR expressions."""
+        # (a & b) | (c & d) should work with both encodings
+        f_tseytin = Formula(use_plaisted_greenbaum=False)
+        a, b, c, d = f_tseytin.AddVars('a b c d')
+        f_tseytin.Add((a & b) | (c & d))
+        f_tseytin.Add(a)
+        f_tseytin.Add(b)
+        self.assertSat(f_tseytin)
+
+        f_polarity = Formula(use_plaisted_greenbaum=True)
+        a, b, c, d = f_polarity.AddVars('a b c d')
+        f_polarity.Add((a & b) | (c & d))
+        f_polarity.Add(a)
+        f_polarity.Add(b)
+        self.assertSat(f_polarity)
+
+    def test_plaisted_greenbaum_with_negation(self):
+        """Test Plaisted-Greenbaum correctly flips polarity through negation."""
+        f_tseytin = Formula(use_plaisted_greenbaum=False)
+        a, b = f_tseytin.AddVars('a b')
+        f_tseytin.Add(~(a & b))
+        f_tseytin.Add(a)
+        f_tseytin.Add(b)
+        self.assertUnsat(f_tseytin)
+
+        f_polarity = Formula(use_plaisted_greenbaum=True)
+        a, b = f_polarity.AddVars('a b')
+        f_polarity.Add(~(a & b))
+        f_polarity.Add(a)
+        f_polarity.Add(b)
+        self.assertUnsat(f_polarity)
+
+        # With negation, a & b can be false
+        f_tseytin2 = Formula(use_plaisted_greenbaum=False)
+        a, b = f_tseytin2.AddVars('a b')
+        f_tseytin2.Add(~(a & b))
+        self.assertSat(f_tseytin2)
+
+        f_polarity2 = Formula(use_plaisted_greenbaum=True)
+        a, b = f_polarity2.AddVars('a b')
+        f_polarity2.Add(~(a & b))
+        self.assertSat(f_polarity2)
+
+    def test_plaisted_greenbaum_complex_formula(self):
+        """Test Plaisted-Greenbaum with a more complex formula structure."""
+        # Create identical formulas with both encodings
+        for use_polarity in [False, True]:
+            f = Formula(use_plaisted_greenbaum=use_polarity)
+            a, b, c, d = f.AddVars('a b c d')
+
+            # ((a | b) & (c | d)) & ~(a & c)
+            f.Add(((a | b) & (c | d)) & ~(a & c))
+
+            # Should be SAT (e.g., a=T, b=F, c=F, d=T works)
+            f.PushCheckpoint()
+            f.Add(a)
+            f.Add(~b)
+            f.Add(~c)
+            f.Add(d)
+            self.assertSat(f)
+            f.PopCheckpoint()
+
+            # Should be UNSAT when a=c=T (violates ~(a & c))
+            f.PushCheckpoint()
+            f.Add(a)
+            f.Add(c)
+            self.assertUnsat(f)
+            f.PopCheckpoint()
+
+    def test_plaisted_greenbaum_fewer_clauses_overall(self):
+        """Verify Plaisted-Greenbaum produces fewer total clauses for a typical formula."""
+        def build_formula(use_polarity):
+            f = Formula(use_plaisted_greenbaum=use_polarity)
+            a, b, c, d, e = f.AddVars('a b c d e')
+            # Build a moderately complex formula
+            f.Add((a | b) & (c | d) & (a | ~c | e))
+            f.Add((~a | ~b) | (d & e))
+            return f
+
+        f_tseytin = build_formula(use_polarity=False)
+        f_polarity = build_formula(use_polarity=True)
+
+        tseytin_clauses = self.count_clauses(f_tseytin)
+        polarity_clauses = self.count_clauses(f_polarity)
+
+        # Plaisted-Greenbaum should produce fewer clauses overall
+        self.assertLessEqual(polarity_clauses, tseytin_clauses,
+            f"Plaisted-Greenbaum ({polarity_clauses}) should have <= clauses than Tseytin ({tseytin_clauses})")
+
 if __name__ == '__main__':
     unittest.main()

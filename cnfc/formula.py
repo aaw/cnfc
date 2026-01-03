@@ -3,6 +3,7 @@ from .buffer import *
 from .extractor import generate_extractor
 from .simplify import *
 from .log import logger
+from .tseytin import POLARITY_POS, POLARITY_BOTH
 
 # Given one of the various forms of variables/literals, return an integer
 # representation of the underlying literal.
@@ -13,7 +14,8 @@ def raw_lit(expr):
     else: raise ValueError("Expected Var, BooleanLiteral or Literal, got {}".format(expr))
 
 class Formula:
-    def __init__(self, buffer_class=None, check_variables=True, use_expression_cache=True):
+    def __init__(self, buffer_class=None, check_variables=True, use_expression_cache=True,
+                 use_plaisted_greenbaum=True):
         if buffer_class is None:
             buffer_class = MemoryBuffer
         self.check_variables = check_variables
@@ -21,6 +23,13 @@ class Formula:
         self.buffer = buffer_class()
         self.nextvar = 1
         self.expression_cache = {} if use_expression_cache else None
+        self.use_plaisted_greenbaum = use_plaisted_greenbaum
+
+    def get_polarity(self, polarity):
+        """Return effective polarity based on encoding mode."""
+        if self.use_plaisted_greenbaum:
+            return polarity
+        return POLARITY_BOTH
 
     def AddVar(self, name=None):
         if self.vars.get(name) is not None:

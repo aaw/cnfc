@@ -1,3 +1,5 @@
+from .tseytin import POLARITY_BOTH
+
 class BooleanLiteral:
     def __init__(self, val):
         assert type(val) == bool
@@ -9,7 +11,7 @@ class BooleanLiteral:
     def __invert__(self):
         return BooleanLiteral(not self.val)
 
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         return self
 
     def generate_cnf(self, formula):

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import math
 
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
-from .tseytin import gen_and, gen_or, gen_eq, gen_neq
+from .tseytin import gen_and, gen_or, gen_eq, gen_neq, POLARITY_POS, POLARITY_NEG, POLARITY_BOTH, flip_polarity
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
 from .regex import regex_match
@@ -12,7 +12,7 @@ from .cache import cached_generate_var
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
-def generate_var_from_cnf(instance, formula):
+def generate_var_from_cnf(instance, formula, polarity=POLARITY_BOTH):
     vars_to_and = []
     for clause in instance.generate_cnf(formula):
         v = formula.AddVar()
@@ -22,7 +22,7 @@ def generate_var_from_cnf(instance, formula):
             formula.AddClause(*c)
 
     # AND the clause variables to recreate the CNF as a single variable
-    return And(*vars_to_and).generate_var(formula)
+    return And(*vars_to_and).generate_var(formula, polarity)
 
 class BoolExpr:
     def __eq__(self, other):
@@ -69,7 +69,7 @@ class Literal(BoolExpr):
     def __invert__(self):
         return Literal(self.var, sign=-self.sign)
 
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         return self
 
     def generate_cnf(self, formula):
@@ -86,7 +86,7 @@ class Var(BoolExpr):
     def __invert__(self):
         return Literal(self, sign=-1)
 
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         return Literal(self, sign=1)
 
     def generate_cnf(self, formula):
@@ -107,11 +107,15 @@ class Not(BoolExpr):
         return 'Not({})'.format(self.expr)
 
     @cached_generate_var
-    def generate_var(self, formula):
-        return ~self.expr.generate_var(formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        # Negation flips the polarity for the child
+        child_polarity = formula.get_polarity(flip_polarity(polarity))
+        return ~self.expr.generate_var(formula, child_polarity)
 
     def generate_cnf(self, formula):
-        yield (~self.expr.generate_var(formula),)
+        # When generating CNF, we want Not(expr) to be true, so expr has negative polarity
+        polarity = formula.get_polarity(POLARITY_NEG)
+        yield (~self.expr.generate_var(formula, polarity),)
 
 class BooleanTernaryExpr(BoolExpr):
     def __init__(self, cond, if_true, if_false):
@@ -121,8 +125,8 @@ class BooleanTernaryExpr(BoolExpr):
         return 'BooleanTernaryExpr({}, {}, {})'.format(self.cond, self.if_true, self.if_false)
 
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         yield from Or(And(self.cond, self.if_true), And(~self.cond, self.if_false)).generate_cnf(formula)
@@ -136,45 +140,58 @@ class OrderedBinaryBoolExpr(BoolExpr):
 
 class Implies(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return Or(Not(self.first), self.second).generate_var(formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return Or(Not(self.first), self.second).generate_var(formula, polarity)
 
     def generate_cnf(self, formula):
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+        # Implies(a, b) means ~a | b must be true
+        # a has negative polarity (we may need it false), b has positive polarity
+        neg_polarity = formula.get_polarity(POLARITY_NEG)
+        pos_polarity = formula.get_polarity(POLARITY_POS)
+        fv = self.first.generate_var(formula, neg_polarity)
+        sv = self.second.generate_var(formula, pos_polarity)
         yield (~fv, sv)
 
 class And(MultiBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         v = formula.AddVar()
-        subvars = [expr.generate_var(formula) for expr in self.exprs]
-        for clause in gen_and(subvars, v):
+        effective_polarity = formula.get_polarity(polarity)
+        # Children of AND inherit the same polarity
+        subvars = [expr.generate_var(formula, effective_polarity) for expr in self.exprs]
+        for clause in gen_and(subvars, v, effective_polarity):
             formula.AddClause(*clause)
         return v
 
     def generate_cnf(self, formula):
+        # When generating CNF for And, each child must be true (positive polarity)
+        polarity = formula.get_polarity(POLARITY_POS)
         for expr in self.exprs:
-            yield (expr.generate_var(formula),)
+            yield (expr.generate_var(formula, polarity),)
 
 class Or(MultiBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         v = formula.AddVar()
-        subvars = [expr.generate_var(formula) for expr in self.exprs]
-        for clause in gen_or(subvars, v):
+        effective_polarity = formula.get_polarity(polarity)
+        # Children of OR inherit the same polarity
+        subvars = [expr.generate_var(formula, effective_polarity) for expr in self.exprs]
+        for clause in gen_or(subvars, v, effective_polarity):
             formula.AddClause(*clause)
         return v
 
     def generate_cnf(self, formula):
-        yield tuple(expr.generate_var(formula) for expr in self.exprs)
+        # When generating CNF for Or, at least one child must be true (positive polarity)
+        polarity = formula.get_polarity(POLARITY_POS)
+        yield tuple(expr.generate_var(formula, polarity) for expr in self.exprs)
 
 class Eq(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         v = formula.AddVar()
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+        # Eq is symmetric - operands need POLARITY_BOTH
+        fv = self.first.generate_var(formula, POLARITY_BOTH)
+        sv = self.second.generate_var(formula, POLARITY_BOTH)
         for clause in gen_eq((fv, sv), v):
             formula.AddClause(*clause)
         return v
@@ -187,10 +204,11 @@ class Eq(OrderedBinaryBoolExpr):
 
 class Neq(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         v = formula.AddVar()
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+        # Neq is symmetric - operands need POLARITY_BOTH
+        fv = self.first.generate_var(formula, POLARITY_BOTH)
+        sv = self.second.generate_var(formula, POLARITY_BOTH)
         for clause in gen_neq((fv, sv), v):
             formula.AddClause(*clause)
         return v
@@ -214,8 +232,8 @@ class OrderedBinaryTupleBoolExpr(BoolExpr):
 
 class TupleEq(OrderedBinaryTupleBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
@@ -226,8 +244,8 @@ class TupleEq(OrderedBinaryTupleBoolExpr):
 
 class TupleNeq(OrderedBinaryTupleBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         t1 = self.first.evaluate(formula)
@@ -241,7 +259,7 @@ class TupleInequality(OrderedBinaryTupleBoolExpr):
         raise NotImplementedError  # Subclasses implement this
 
     @cached_generate_var
-    def generate_var(self, formula):
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
         gen = self._make_generator(formula)
         for clause in gen:
             formula.AddClause(*clause)
@@ -501,8 +519,8 @@ class RegexMatch(BoolExpr):
         self.regex = regex
 
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         yield from regex_match(formula, self.tuple.evaluate(formula), self.regex)
@@ -547,8 +565,8 @@ class NumFalse(CardinalityConstraint, TupleExpr):
 
 class NumEq(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -565,8 +583,8 @@ class NumEq(OrderedBinaryBoolExpr):
 
 class NumNeq(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -583,8 +601,8 @@ class NumNeq(OrderedBinaryBoolExpr):
 
 class NumLt(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -600,8 +618,8 @@ class NumLt(OrderedBinaryBoolExpr):
 
 class NumLe(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -617,8 +635,8 @@ class NumLe(OrderedBinaryBoolExpr):
 
 class NumGt(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -634,8 +652,8 @@ class NumGt(OrderedBinaryBoolExpr):
 
 class NumGe(OrderedBinaryBoolExpr):
     @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    def generate_var(self, formula, polarity=POLARITY_BOTH):
+        return generate_var_from_cnf(self, formula, polarity)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
