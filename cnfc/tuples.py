@@ -52,14 +52,9 @@ def __tuple_min_or_max(formula, x, y, is_min=True):
         # v == (result[i] == x[i])
         v = formula.AddVar()
         eq_x_vars.append(v)
-# TODO: here and below, use gen_* helpers from tseytin module
-        formula.AddClause(~result[i], ~x[i], v)
-        formula.AddClause(result[i], x[i], v)
-        formula.AddClause(result[i], ~x[i], ~v)
-        formula.AddClause(~result[i], x[i], ~v)
-    # Set eq_x to the AND of all of the intermediate v's
-    yield (eq_x, *(~cv for cv in eq_x_vars))
-    for cv in eq_x_vars: yield (~eq_x, cv)
+        for clause in gen_eq((result[i], x[i]), v):
+            formula.AddClause(*clause)
+    yield from gen_and(eq_x_vars, eq_x)
 
     # eq_y == (result == y)
     eq_y = formula.AddVar()
@@ -67,13 +62,9 @@ def __tuple_min_or_max(formula, x, y, is_min=True):
     for i in range(n):
         v = formula.AddVar()
         eq_y_vars.append(v)
-        formula.AddClause(~result[i], ~y[i], v)
-        formula.AddClause(result[i], y[i], v)
-        formula.AddClause(result[i], ~y[i], ~v)
-        formula.AddClause(~result[i], y[i], ~v)
-    # Set eq_y to the AND of all of the intermediate v's
-    yield (eq_y, *(~cv for cv in eq_y_vars))
-    for cv in eq_y_vars: yield (~eq_y, cv)
+        for clause in gen_eq((result[i], y[i]), v):
+            formula.AddClause(*clause)
+    yield from gen_and(eq_y_vars, eq_y)
 
     # Assert that result is either x or y
     yield (eq_x, eq_y)

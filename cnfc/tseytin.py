@@ -33,3 +33,7 @@ def gen_neq(xs, v):
 
 def gen_eq(xs, v):
     yield from gen_xnor(xs, v)
+
+def gen_iff(a, b):
+    yield (~a, b)
+    yield (a, ~b)

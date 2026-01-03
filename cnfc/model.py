@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import math
 
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
+from .tseytin import gen_and, gen_or, gen_eq, gen_neq
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
 from .regex import regex_match
@@ -16,10 +17,11 @@ def generate_var_from_cnf(instance, formula):
     for clause in instance.generate_cnf(formula):
         v = formula.AddVar()
         vars_to_and.append(v)
-        formula.AddClause(~v, *clause)
-        for cv in clause:
-            formula.AddClause(v, ~cv)
+        # Set v equal to the original clause
+        for c in gen_or(clause, v):
+            formula.AddClause(*c)
 
+    # AND the clause variables to recreate the CNF as a single variable
     return And(*vars_to_and).generate_var(formula)
 
 class BoolExpr:
@@ -147,9 +149,8 @@ class And(MultiBoolExpr):
     def generate_var(self, formula):
         v = formula.AddVar()
         subvars = [expr.generate_var(formula) for expr in self.exprs]
-        formula.AddClause(*([~sv for sv in subvars] + [v]))
-        for subvar in subvars:
-            formula.AddClause(~v, subvar)
+        for clause in gen_and(subvars, v):
+            formula.AddClause(*clause)
         return v
 
     def generate_cnf(self, formula):
@@ -161,9 +162,8 @@ class Or(MultiBoolExpr):
     def generate_var(self, formula):
         v = formula.AddVar()
         subvars = [expr.generate_var(formula) for expr in self.exprs]
-        formula.AddClause(*(subvars + [~v]))
-        for subvar in subvars:
-            formula.AddClause(v, ~subvar)
+        for clause in gen_or(subvars, v):
+            formula.AddClause(*clause)
         return v
 
     def generate_cnf(self, formula):
@@ -175,10 +175,8 @@ class Eq(OrderedBinaryBoolExpr):
         v = formula.AddVar()
         fv = self.first.generate_var(formula)
         sv = self.second.generate_var(formula)
-        formula.AddClause(~fv, ~sv, v)
-        formula.AddClause(fv, sv, v)
-        formula.AddClause(fv, ~sv, ~v)
-        formula.AddClause(~fv, sv, ~v)
+        for clause in gen_eq((fv, sv), v):
+            formula.AddClause(*clause)
         return v
 
     def generate_cnf(self, formula):
@@ -193,10 +191,8 @@ class Neq(OrderedBinaryBoolExpr):
         v = formula.AddVar()
         fv = self.first.generate_var(formula)
         sv = self.second.generate_var(formula)
-        formula.AddClause(~fv, ~sv, ~v)
-        formula.AddClause(fv, sv, ~v)
-        formula.AddClause(fv, ~sv, v)
-        formula.AddClause(~fv, sv, v)
+        for clause in gen_neq((fv, sv), v):
+            formula.AddClause(*clause)
         return v
 
     def generate_cnf(self, formula):

@@ -355,16 +355,11 @@ def regex_match(formula, tup, regex):
             if zero_conj is None and one_conj is None:
                 yield (~vs[(state,i)],)
             elif zero_conj is None:
-                yield (vs[(state,i)], ~one_conj)
-                yield (~vs[(state,i)], one_conj)
+                yield from gen_iff(one_conj, vs[(state,i)])
             elif one_conj is None:
-                yield (vs[(state,i)], ~zero_conj)
-                yield (~vs[(state,i)], zero_conj)
+                yield from gen_iff(zero_conj, vs[(state,i)])
             else:
-                disj = formula.AddVar()
-                yield from gen_or((one_conj, zero_conj), disj)
-                yield (vs[(state,i)], ~disj)
-                yield (~vs[(state,i)], disj)
+                yield from gen_or((one_conj, zero_conj), vs[(state,i)])
 
     # Must end in accepting state.
     yield [vs[(state,len(tup))] for state in dfa.accepting]
