@@ -19,8 +19,7 @@ def encode():
 
     # Constraint: a,b,c,d,e,f between 1 and 10, inclusive.
     for v in varz:
-        formula.Add(1 <= v)
-        formula.Add(v <= 10)
+        formula.Add(1 <= v <= 10)
 
     # Constraint: a,b,c,d,e,f all distinct.
     for i in range(len(varz)):
@@ -34,8 +33,7 @@ def encode():
     formula.Add(f + a == 11)
 
     # Constraint: 3. A is between D and C
-    formula.Add(d <= a)
-    formula.Add(a <= c)
+    formula.Add(d < a < c)
 
     # Constraint: 4. No two variables sum to 14
     for i in range(len(varz)):

@@ -15,8 +15,7 @@ def encode():
     for letter in LETTERS:
         for number in NUMBERS:
             i = Integer(*(formula.AddVar('v{}{}{}'.format(letter, number, i)) for i in range(NUM_BITS)))
-            formula.Add(i > 0)
-            formula.Add(i < 7)
+            formula.Add(0 < i < 7)
             varz[(letter,number)] = i
 
     # Rows

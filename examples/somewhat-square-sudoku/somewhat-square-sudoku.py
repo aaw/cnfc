@@ -22,8 +22,7 @@ def encode(min_gcd):
         for c in COORDS:
             # i holds the 3-bit value of cell (r,c).
             i = Integer(*(formula.AddVar(f'cell:{r}:{c}:{i}') for i in range(NUM_BITS)))
-            formula.Add(i >= 0)
-            formula.Add(i < 10)
+            formula.Add(0 <= i < 10)
             formula.Add(i != exclude)
             varz[(r,c)] = i
 

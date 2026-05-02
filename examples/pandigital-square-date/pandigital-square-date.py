@@ -34,12 +34,10 @@ def encode_equation_as_sat(min_year, max_year):
         formula.Add(NumTrue(*equal_n) <= 1)
 
     # Constraint: month is valid.
-    formula.Add(month > 0)
-    formula.Add(month <= 12)
+    formula.Add(0 < month <= 12)
 
     # Constraint: day is valid, given the month
-    formula.Add(day > 0)
-    formula.Add(day <= 31)
+    formula.Add(0 < day <= 31)
     formula.Add(If(day == 31, Or(month == 1, month == 3, month == 5, month == 7, month == 8, month == 10, month == 12)))
     formula.Add(If(day == 30, Or(month != 2)))
     # The correct leap year constraint (divisible by 4, unless divisible by 100, unless divisible by 400) is hard

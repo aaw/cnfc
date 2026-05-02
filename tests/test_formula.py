@@ -622,6 +622,21 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(NumFalse(x,y,z) <= 1024)
         self.assertSat(f)
 
+    def test_compound_inequality(self):
+        f = Formula()
+        x,y = f.AddVars('x y')
+        i = Integer(*[x,y])
+
+        f.PushCheckpoint()
+        f.Add(Integer(1) < i < Integer(2))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Integer(1) < i < Integer(3))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_tuple_equal_not_equal(self):
         f = Formula()
         dimension = 4

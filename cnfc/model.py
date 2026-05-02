@@ -278,6 +278,8 @@ class TupleGe(TupleInequality):
 
 # Any expression that results in a Tuple.
 class TupleExpr:
+    _pending_chain = None
+
     def __len__(self):
         return len(self.exprs)
 
@@ -287,17 +289,35 @@ class TupleExpr:
     def __ne__(self, other):
         return TupleNeq(self, other)
 
+    # Python's `a < b < c` compiles to `(a < b) and (b < c)`, discarding the
+    # first comparison. To support chained inequalities, each comparison stores
+    # itself on its right-hand operand as _pending_chain. The next comparison in
+    # the chain picks it up and wraps both in And().
+    def _maybe_chain_comparisons(self, clazz):
+        pending = self._pending_chain
+        self._pending_chain = None
+        other = clazz.second
+        if pending is None:
+            combined = clazz
+        elif isinstance(pending, And):
+            combined = And(*pending.exprs, clazz)
+        else:
+            combined = And(pending, clazz)
+        if isinstance(other, TupleExpr):
+            other._pending_chain = combined
+        return combined
+
     def __lt__(self, other):
-        return TupleLt(self, other)
+        return self._maybe_chain_comparisons(TupleLt(self, other))
 
     def __le__(self, other):
-        return TupleLe(self, other)
+        return self._maybe_chain_comparisons(TupleLe(self, other))
 
     def __gt__(self, other):
-        return TupleGt(self, other)
+        return self._maybe_chain_comparisons(TupleGt(self, other))
 
     def __ge__(self, other):
-        return TupleGe(self, other)
+        return self._maybe_chain_comparisons(TupleGe(self, other))
 
     def __add__(self, other):
         return TupleAdd(self, other)

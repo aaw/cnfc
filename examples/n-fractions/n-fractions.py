@@ -27,12 +27,9 @@ def encode(n, max_lcm):
         y = Integer(formula.AddVars(f'y{i}', SOLUTION_BITS))
         z = Integer(formula.AddVars(f'z{i}', SOLUTION_BITS))
         d = Integer(formula.AddVars(f'd{i}', d_bits))
-        formula.Add(x > 0)
-        formula.Add(x < 10)
-        formula.Add(y > 0)
-        formula.Add(y < 10)
-        formula.Add(z > 0)
-        formula.Add(z < 10)
+        formula.Add(0 < x < 10)
+        formula.Add(0 < y < 10)
+        formula.Add(0 < z < 10)
         varz[f'x{i}'] = x
         varz[f'y{i}'] = y
         varz[f'z{i}'] = z
