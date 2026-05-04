@@ -1,4 +1,4 @@
-from collections import defaultdict
+from itertools import combinations
 from cnfc import *
 
 import argparse
@@ -22,9 +22,8 @@ def encode():
         formula.Add(1 <= v <= 10)
 
     # Constraint: a,b,c,d,e,f all distinct.
-    for i in range(len(varz)):
-        for j in range(i+1, len(varz)):
-            formula.Add(varz[i] != varz[j])
+    for x,y in combinations(varz, 2):
+        formula.Add(x != y)
 
     # Constraint: 1. B - D = 2
     formula.Add(b - d == 2)
@@ -36,14 +35,12 @@ def encode():
     formula.Add(d < a < c)
 
     # Constraint: 4. No two variables sum to 14
-    for i in range(len(varz)):
-        for j in range(i+1, len(varz)):
-            formula.Add(varz[i] + varz[j] != 14)
+    for x,y in combinations(varz, 2):
+        formula.Add(x + y != 14)
 
     # Constraint: 5. No two variables sum to 5
-    for i in range(len(varz)):
-        for j in range(i+1, len(varz)):
-            formula.Add(varz[i] + varz[j] != 5)
+    for x,y in combinations(varz, 2):
+        formula.Add(x + y != 5)
 
     # Constraint: 6. C - A = 1
     formula.Add(c - a == 1)

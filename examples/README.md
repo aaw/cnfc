@@ -24,6 +24,7 @@ Examples
    * [somewhat-square-sudoku](somewhat-square-sudoku): Solves the Jane Street [Somewhat Square Sudoku](https://www.janestreet.com/puzzles/somewhat-square-sudoku-index) puzzle.
    * [strongly-regular-graph](strongly-regular-graph): A [strongly regular graph](https://en.wikipedia.org/wiki/Strongly_regular_graph) generator.
    * [sudoku](sudoku): A Sudoku solver.
+   * [superpermutation](superpermutation): Generate [superpermutations](https://en.wikipedia.org/wiki/Superpermutation).
    * [tournament-scheduling](tournament-scheduling): Schedules a particular tournament over several rounds.
    * [trifference](trifference): Finding the largest set of ternary strings with a differing position in each triple.
    * [xkcd.com/287](xkcd287): Solves a simple Diophantine equation.
