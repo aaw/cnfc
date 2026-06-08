@@ -82,15 +82,15 @@ def print_solution(sol, *extra_args):
             print(shift_assignment)
 
 # Solve the formula, print a solution if we find one.
-shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
 solution = formula.Solve()
 if solution:
-    print_solution(solution, extra_args=[shift_assignments])
+    shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
+    print_solution(solution, shift_assignments)
 else:
     print('UNSATISFIABLE')
 ```
 
-You can run the example above with:
+You can run [the example above](examples/scheduling/scheduling.py) with:
 
 ```
 uv run python examples/scheduling/scheduling.py

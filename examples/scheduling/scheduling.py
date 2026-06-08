@@ -52,9 +52,9 @@ def print_solution(sol, *extra_args):
             print(shift_assignment)
 
 # Solve the formula, print a solution if we find one.
-shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
 solution = formula.Solve()
 if solution:
+    shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
     print_solution(solution, shift_assignments)
 else:
     print('UNSATISFIABLE')
