@@ -51,10 +51,11 @@ def print_solution(sol, *extra_args):
         if sol[shift_assignment]:
             print(shift_assignment)
 
-# Solve the formula, print a solution if we find one.
-shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
-solution = formula.Solve()
-if solution:
-    print_solution(solution, shift_assignments)
-else:
-    print('UNSATISFIABLE')
+# Write the resulting CNF file to /tmp/cnf.
+with open('/tmp/cnf', 'w') as f:
+    formula.WriteCNF(f)
+# Write an extractor script to /tmp/extractor.py.
+with open('/tmp/extractor.py', 'w') as f:
+    shift_assignments = \
+        [f'{employee} {shift}' for shift in shifts for employee in employees]
+    formula.WriteExtractor(f, print_solution, extra_args=[shift_assignments])

@@ -1,8 +1,10 @@
 from .model import Var, Literal, BooleanLiteral
 from .buffer import *
 from .extractor import generate_extractor
+from .millisat import Solver
 from .simplify import *
 from .log import logger
+from .solution import Solution
 
 # Given one of the various forms of variables/literals, return an integer
 # representation of the underlying literal.
@@ -87,6 +89,15 @@ class Formula:
 
     def WriteExtractor(self, fd, extractor_fn, extra_fns=None, extra_args=None):
         generate_extractor(fd, extractor_fn, extra_fns, extra_args)
+
+    def Solve(self):
+        clauses = list(self.buffer.AllClauses())
+        result = Solver().solve(self.buffer.maxvar, clauses)
+        if result is False:
+            return None
+        true_vars = {abs(lit) for lit in result if lit > 0}
+        sol = {name: vid in true_vars for name, vid in self.vars.items()}
+        return Solution(sol)
 
     def Simplify(self):
         log = logger()

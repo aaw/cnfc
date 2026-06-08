@@ -1,4 +1,4 @@
-from .millisat import parse_dimacs, Solver
+from cnfc.millisat import parse_dimacs, Solver
 
 import io
 

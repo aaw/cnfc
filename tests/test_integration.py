@@ -16,7 +16,7 @@ import unittest
 
 # Path to the examples directory
 EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), '..', 'examples')
-MILLISAT_PATH = os.path.join(os.path.dirname(__file__), 'millisat.py')
+MILLISAT_PATH = os.path.join(os.path.dirname(__file__), '..', 'cnfc', 'millisat.py')
 
 
 def run_example(example_name, args):

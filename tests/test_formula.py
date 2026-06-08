@@ -1480,5 +1480,24 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+    def test_solve_sat(self):
+        f = Formula()
+        a, b = f.AddVars('a b')
+        f.Add(Or(a, b))
+        f.Add(Not(a))
+        sol = f.Solve()
+        self.assertIsNotNone(sol)
+        self.assertFalse(sol['a'])
+        self.assertTrue(sol['b'])
+        self.assertTrue(sol['a'] or sol['b'])
+        self.assertFalse(sol['a'])
+
+    def test_solve_unsat(self):
+        f = Formula()
+        x = f.AddVar('x')
+        f.Add(x)
+        f.Add(Not(x))
+        self.assertIsNone(f.Solve())
+
 if __name__ == '__main__':
     unittest.main()

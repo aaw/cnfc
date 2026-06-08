@@ -4,13 +4,14 @@ A [CNF](https://en.wikipedia.org/wiki/Conjunctive_normal_form) compiler that gen
 compact DIMACS CNF encodings from higher-level primitives in Python. DIMACS CNF is
 the input format accepted by most SAT solvers.
 
-In contrast to optimization libraries like Z3, PySAT or ortools that provide both
-a language for modeling optimization problems and integrated solvers,
-cnfc only generates DIMACS CNF files and expects you to bring your own SAT solver to
-solve the output formula. This works better for harder combinatorial problems that
-may take hours or days to solve, since it gives you the flexibility to run your own
-preprocessing or cubing as an intermediate step or pass the input to one or more
-solvers that might work best on your problem.
+For simpler problems, cnfc comes bundled with an efficient pure Python
+[CDCL SAT solver](https://github.com/aaw/millisat) and a `Formula.Solve()`
+method that returns a solution without needing to build/install a SAT solver.
+
+For harder combinatorial problems that may take hours or days to solve, cnfc can also
+write DIMACS CNF files that you pass to an external solver of your choice. You get the
+flexibility to run your own preprocessing or cubing as an intermediate step, or hand
+the problem off to whichever solver works best for your problem.
 
 Read on for an extended example or look at the [examples](examples) in this repository
 to get started.
@@ -80,33 +81,22 @@ def print_solution(sol, *extra_args):
         if sol[shift_assignment]:
             print(shift_assignment)
 
-# Write the resulting CNF file to /tmp/cnf.
-with open('/tmp/cnf', 'w') as f:
-    formula.WriteCNF(f)
-# Write an extractor script to /tmp/extractor.py.
-with open('/tmp/extractor.py', 'w') as f:
-    shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
-    formula.WriteExtractor(f, print_solution, extra_args=[shift_assignments])
+# Solve the formula, print a solution if we find one.
+shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
+solution = formula.Solve()
+if solution:
+    print_solution(solution, extra_args=[shift_assignments])
+else:
+    print('UNSATISFIABLE')
 ```
 
-This script will generate a DIMACS CNF file (/tmp/cnf) and a script (/tmp/extractor.py) that will
-let you extract and print out the solution from the solver output. You'll need a SAT solver like
-[kissat](https://github.com/arminbiere/kissat) or [cadical](https://github.com/arminbiere/cadical)
-to solve the CNF file.
-
-To see the solution, run the script above, then run a solver on the CNF file, saving the output:
+You can run the example above with:
 
 ```
-$ kissat /tmp/cnf > /tmp/solver-output
+uv run python examples/scheduling/scheduling.py
 ```
 
-and finally, run the extractor script on the CNF file and the output of the solver:
-
-```
-$ python3 /tmp/extractor.py /tmp/cnf /tmp/solver-output
-```
-
-You should see a complete schedule like:
+and it'll print a complete schedule like:
 
 ```
 Zakaria Sun 7-3
@@ -153,9 +143,47 @@ and then re-run the solver and extractor, we should see:
 UNSATISFIABLE
 ```
 
-instead of a schedule, which tells us that there's no assignment of people to shifts that satisfies all of the criteria we've laid out.
+which tells us that there's no assignment of people to shifts that satisfies all of the criteria we've laid out.
 
-A [runnable version of this script](examples/scheduling) is in the [examples subdirectory](examples) of this repository.
+Instead of solving in Python, you can instead generate a DIMACS CNF file and an "extractor" to
+convert the solution from a SAT solver into something meaningful to you:
+
+```
+# Write the resulting CNF file to /tmp/cnf.
+with open('/tmp/cnf', 'w') as f:
+    formula.WriteCNF(f)
+# Write an extractor script to /tmp/extractor.py.
+with open('/tmp/extractor.py', 'w') as f:
+    shift_assignments = [f'{employee} {shift}' for shift in shifts for employee in employees]
+    formula.WriteExtractor(f, print_solution, extra_args=[shift_assignments])
+```
+
+Adding the lines above instead of running `formula.Solve()` will generate a DIMACS CNF file
+(/tmp/cnf) and an extractor script (/tmp/extractor.py). You'll need a SAT solver like
+[kissat](https://github.com/arminbiere/kissat) or [cadical](https://github.com/arminbiere/cadical)
+to solve the CNF file.
+
+To see the solution, run a [modified version of the script above](examples/scheduling/scheduling-external.py):
+
+```
+uv run python examples/scheduling/scheduling-external.py
+```
+
+then run a solver on the CNF file, saving the output:
+
+```
+$ kissat /tmp/cnf > /tmp/solver-output
+```
+
+and finally, run the extractor script on the CNF file and the output of the solver:
+
+```
+$ python3 /tmp/extractor.py /tmp/cnf /tmp/solver-output
+```
+
+You should see similar output here to the output from the earlier version of the script that solved the problem entirely in Python.
+
+Runnable versions of these scripts are in the [examples subdirectory](examples) of this repository.
 
 ## Features
 
