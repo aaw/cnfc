@@ -13,6 +13,7 @@ Examples
    * [matrix-multiplications](matrix-multiplications): Minimize the number of multiplications needed for the product of two n-by-n real matrices.
    * [minesweeper](minesweeper): Places mines on a minesweeper board to generate patterns in the numbered tiles.
    * [n-fractions](n-fractions): Solve some previously unknown cases of the [n-Fractions puzzle](https://www.csplib.org/Problems/prob041/references/).
+   * [no-three-in-line](no-three-in-line): Generate configurations of 2n points on an n-by-n grid with [no three points in a line](https://en.wikipedia.org/wiki/No-three-in-line_problem).
    * [nonagram](nonagram): Solves [nonagram puzzles](https://en.wikipedia.org/wiki/Nonogram).
    * [nqueens](nqueens): An N-queens solver.
    * [pandigital-alphametic](pandigital-alphametic): Solves the pandigital alphametic A x BC x DEF = GHIJ.
