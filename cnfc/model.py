@@ -6,7 +6,7 @@ from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at
 from .tseytin import gen_and, gen_or, gen_eq, gen_neq, gen_if
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
-from .regex import regex_match
+from .regex import regex_match, regex_match_states
 from .util import Generator, gather_common_operands, reduce_evaluated
 from .cache import cached_generate_var
 
@@ -532,7 +532,10 @@ class RegexMatch(BoolExpr):
 
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        gen = Generator(regex_match_states(formula, self.tuple.evaluate(formula), self.regex))
+        for clause in gen:
+            formula.AddClause(*clause)
+        return Or(*gen.result).generate_var(formula)
 
     def generate_cnf(self, formula):
         yield from regex_match(formula, self.tuple.evaluate(formula), self.regex)

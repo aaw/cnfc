@@ -1375,77 +1375,69 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_boolean_ternary_exhaustive(self):
         for condition, true_value, false_value in itertools.product((False, True), repeat=3):
-            with self.subTest(condition=condition, true_value=true_value,
-                              false_value=false_value):
-                f = Formula()
-                a,b,c = f.AddVars('a b c')
-                f.Add(a if condition else ~a)
-                f.Add(b if true_value else ~b)
-                f.Add(c if false_value else ~c)
-                f.Add(If(a, b, c))
+            f = Formula()
+            a,b,c = f.AddVars('a b c')
+            f.Add(a if condition else ~a)
+            f.Add(b if true_value else ~b)
+            f.Add(c if false_value else ~c)
+            f.Add(If(a, b, c))
 
-                expected = true_value if condition else false_value
-                if expected:
-                    self.assertSat(f)
-                else:
-                    self.assertUnsat(f)
+            expected = true_value if condition else false_value
+            if expected:
+                self.assertSat(f)
+            else:
+                self.assertUnsat(f)
 
     def test_negated_boolean_ternary_exhaustive(self):
         for condition, true_value, false_value in itertools.product((False, True), repeat=3):
-            with self.subTest(condition=condition, true_value=true_value,
-                              false_value=false_value):
-                f = Formula()
-                a,b,c = f.AddVars('a b c')
-                f.Add(a if condition else ~a)
-                f.Add(b if true_value else ~b)
-                f.Add(c if false_value else ~c)
-                f.Add(Not(If(a, b, c)))
+            f = Formula()
+            a,b,c = f.AddVars('a b c')
+            f.Add(a if condition else ~a)
+            f.Add(b if true_value else ~b)
+            f.Add(c if false_value else ~c)
+            f.Add(Not(If(a, b, c)))
 
-                expected = true_value if condition else false_value
-                if expected:
-                    self.assertUnsat(f)
-                else:
-                    self.assertSat(f)
+            expected = true_value if condition else false_value
+            if expected:
+                self.assertUnsat(f)
+            else:
+                self.assertSat(f)
 
     def test_nested_boolean_ternary_exhaustive(self):
         for condition, true_value, false_value, result in itertools.product((False, True), repeat=4):
-            with self.subTest(condition=condition, true_value=true_value,
-                              false_value=false_value, result=result):
-                f = Formula()
-                a,b,c,d = f.AddVars('a b c d')
-                f.Add(a if condition else ~a)
-                f.Add(b if true_value else ~b)
-                f.Add(c if false_value else ~c)
-                f.Add(d if result else ~d)
-                f.Add(If(a, b, c) == d)
+            f = Formula()
+            a,b,c,d = f.AddVars('a b c d')
+            f.Add(a if condition else ~a)
+            f.Add(b if true_value else ~b)
+            f.Add(c if false_value else ~c)
+            f.Add(d if result else ~d)
+            f.Add(If(a, b, c) == d)
 
-                expected = true_value if condition else false_value
-                if result == expected:
-                    self.assertSat(f)
-                else:
-                    self.assertUnsat(f)
+            expected = true_value if condition else false_value
+            if result == expected:
+                self.assertSat(f)
+            else:
+                self.assertUnsat(f)
 
     def test_tuple_ternary_exhaustive(self):
         for condition in (False, True):
             for true_value in range(4):
                 for false_value in range(4):
                     for result in range(4):
-                        with self.subTest(condition=condition, true_value=true_value,
-                                          false_value=false_value, result=result):
-                            f = Formula()
-                            a = f.AddVar('a')
-                            b = Integer(f.AddVars('b', 2))
-                            c = Integer(f.AddVars('c', 2))
-                            f.Add(a if condition else ~a)
-                            f.Add(b == true_value)
-                            f.Add(c == false_value)
-                            f.Add(If(a, b, c) == result)
+                        f = Formula()
+                        a = f.AddVar('a')
+                        b = Integer(f.AddVars('b', 2))
+                        c = Integer(f.AddVars('c', 2))
+                        f.Add(a if condition else ~a)
+                        f.Add(b == true_value)
+                        f.Add(c == false_value)
+                        f.Add(If(a, b, c) == result)
 
-                            expected = true_value if condition else false_value
-                            if result == expected:
-                                self.assertSat(f)
-                            else:
-                                self.assertUnsat(f)
+                        expected = true_value if condition else false_value
+                        if result == expected:
+                            self.assertSat(f)
+                        else:
+                            self.assertUnsat(f)
 
     def test_negated_cardinality_equality(self):
         f = Formula()
@@ -1478,11 +1470,10 @@ class TestFormula(unittest.TestCase, SatTestCase):
         for count, n in ((NumTrue(a,b,c,d,e), 1), (NumFalse(a,b,c,d,e), 4)):
             for expr in (count == n, count != n+1, count < n+1,
                          count <= n, count > n-1, count >= n):
-                with self.subTest(expr=repr(expr)):
-                    f.PushCheckpoint()
-                    f.Add(Not(expr))
-                    self.assertUnsat(f)
-                    f.PopCheckpoint()
+                f.PushCheckpoint()
+                f.Add(Not(expr))
+                self.assertUnsat(f)
+                f.PopCheckpoint()
 
     def test_nested_cardinality_comparisons_exhaustive(self):
         for size in (0, 1, 2, 5):
@@ -1498,16 +1489,15 @@ class TestFormula(unittest.TestCase, SatTestCase):
                                        (count < n+1, value < n+1), (count <= n, value <= n),
                                        (count > n-1, value > n-1), (count >= n, value >= n))
                         for expr, expected in comparisons:
-                            with self.subTest(size=size, assignment=assignment, expr=repr(expr)):
-                                f.PushCheckpoint()
-                                f.Add(Or(expr) if expected else Not(expr))
-                                self.assertSat(f)
-                                f.PopCheckpoint()
+                            f.PushCheckpoint()
+                            f.Add(Or(expr) if expected else Not(expr))
+                            self.assertSat(f)
+                            f.PopCheckpoint()
 
-                                f.PushCheckpoint()
-                                f.Add(Not(expr) if expected else Or(expr))
-                                self.assertUnsat(f)
-                                f.PopCheckpoint()
+                            f.PushCheckpoint()
+                            f.Add(Not(expr) if expected else Or(expr))
+                            self.assertUnsat(f)
+                            f.PopCheckpoint()
 
     def test_composite_cardinality_test(self):
         f = Formula()
@@ -1546,6 +1536,50 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.PushCheckpoint()
         f.Add((NumTrue(a,c,e) > 2) | (NumFalse(a,b,c,d,e) < 1))
         self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_negated_regex_match_rejects_matching_input(self):
+        f = Formula()
+        f.Add(Not(RegexMatch(Integer(1), "1")))
+        self.assertUnsat(f)
+
+    def test_negated_regex_match_accepts_nonmatching_input(self):
+        f = Formula()
+        f.Add(Not(RegexMatch(Integer(0), "1")))
+        self.assertSat(f)
+
+    def test_regex_match_result_is_true_for_matching_input(self):
+        f = Formula()
+        x, y, matches = f.AddVars('x y matches')
+        f.Add(Eq(RegexMatch(Tuple(x, y), "01"), matches))
+        f.Add(~x)
+        f.Add(y)
+
+        f.PushCheckpoint()
+        f.Add(matches)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~matches)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_regex_match_result_is_false_for_nonmatching_input(self):
+        f = Formula()
+        x, y, matches = f.AddVars('x y matches')
+        f.Add(Eq(RegexMatch(Tuple(x, y), "01"), matches))
+        f.Add(~x)
+        f.Add(~y)
+
+        f.PushCheckpoint()
+        f.Add(~matches)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(matches)
+        self.assertUnsat(f)
         f.PopCheckpoint()
 
     def test_regex_match_simple(self):

@@ -3,6 +3,7 @@ from functools import reduce
 from itertools import combinations
 from .tseytin import *
 from .cardinality import at_most_one_true
+from .util import Generator
 import sre_parse
 import uuid
 
@@ -304,6 +305,12 @@ def remove_dead_state(dfa):
 
 # Generate CNF clauses that are true iff the given regex matches the tuple of literals.
 def regex_match(formula, tup, regex):
+    gen = Generator(regex_match_states(formula, tup, regex))
+    yield from gen
+    yield gen.result
+
+# Define the state transitions and return the final accepting-state literals.
+def regex_match_states(formula, tup, regex):
     dfa = regex_to_dfa(regex)
     all_states = all_dfa_states(dfa)
 
@@ -361,5 +368,4 @@ def regex_match(formula, tup, regex):
             else:
                 yield from gen_or((one_conj, zero_conj), vs[(state,i)])
 
-    # Must end in accepting state.
-    yield [vs[(state,len(tup))] for state in dfa.accepting]
+    return [vs[(state,len(tup))] for state in dfa.accepting]
