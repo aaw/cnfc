@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import math
 
 from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true, select_max_n, pairwise_sorting_network
-from .tseytin import gen_and, gen_or, gen_eq, gen_neq
+from .tseytin import gen_and, gen_or, gen_eq, gen_neq, gen_if
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
 from .regex import regex_match
@@ -122,10 +122,20 @@ class BooleanTernaryExpr(BoolExpr):
 
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        cond = self.cond.generate_var(formula)
+        if_true = self.if_true.generate_var(formula)
+        if_false = self.if_false.generate_var(formula)
+        v = formula.AddVar()
+        for clause in gen_if(cond, if_true, if_false, v):
+            formula.AddClause(*clause)
+        return v
 
     def generate_cnf(self, formula):
-        yield from Or(And(self.cond, self.if_true), And(~self.cond, self.if_false)).generate_cnf(formula)
+        cond = self.cond.generate_var(formula)
+        if_true = self.if_true.generate_var(formula)
+        if_false = self.if_false.generate_var(formula)
+        yield (~cond, if_true)
+        yield (cond, if_false)
 
 class OrderedBinaryBoolExpr(BoolExpr):
     def __init__(self, first, second):
@@ -542,7 +552,8 @@ class TupleTernaryExpr(Tuple):
         t2 = self.if_false.evaluate(formula)
         t1 = lpad(t1, len(t2) - len(t1))
         t2 = lpad(t2, len(t1) - len(t2))
-        return [Or(And(self.cond, t1[i]), And(~self.cond, t2[i])).generate_var(formula) for i in range(len(t1))]
+        cond = self.cond.generate_var(formula)
+        return [BooleanTernaryExpr(cond, t1[i], t2[i]).generate_var(formula) for i in range(len(t1))]
 
 class CardinalityConstraint(NumExpr):
     def __init__(self, *exprs):

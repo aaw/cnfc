@@ -1,6 +1,7 @@
 from cnfc import *
 from .util import SatTestCase, write_cnf_to_string
 import math
+import itertools
 import unittest
 
 class TestFormula(unittest.TestCase, SatTestCase):
@@ -1371,6 +1372,80 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(Not(Not(If(Integer(1) < Integer(2), BooleanLiteral(False), BooleanLiteral(True)))))
         self.assertUnsat(f)
         f.PopCheckpoint()
+
+    def test_boolean_ternary_exhaustive(self):
+        for condition, true_value, false_value in itertools.product((False, True), repeat=3):
+            with self.subTest(condition=condition, true_value=true_value,
+                              false_value=false_value):
+                f = Formula()
+                a,b,c = f.AddVars('a b c')
+                f.Add(a if condition else ~a)
+                f.Add(b if true_value else ~b)
+                f.Add(c if false_value else ~c)
+                f.Add(If(a, b, c))
+
+                expected = true_value if condition else false_value
+                if expected:
+                    self.assertSat(f)
+                else:
+                    self.assertUnsat(f)
+
+    def test_negated_boolean_ternary_exhaustive(self):
+        for condition, true_value, false_value in itertools.product((False, True), repeat=3):
+            with self.subTest(condition=condition, true_value=true_value,
+                              false_value=false_value):
+                f = Formula()
+                a,b,c = f.AddVars('a b c')
+                f.Add(a if condition else ~a)
+                f.Add(b if true_value else ~b)
+                f.Add(c if false_value else ~c)
+                f.Add(Not(If(a, b, c)))
+
+                expected = true_value if condition else false_value
+                if expected:
+                    self.assertUnsat(f)
+                else:
+                    self.assertSat(f)
+
+    def test_nested_boolean_ternary_exhaustive(self):
+        for condition, true_value, false_value, result in itertools.product((False, True), repeat=4):
+            with self.subTest(condition=condition, true_value=true_value,
+                              false_value=false_value, result=result):
+                f = Formula()
+                a,b,c,d = f.AddVars('a b c d')
+                f.Add(a if condition else ~a)
+                f.Add(b if true_value else ~b)
+                f.Add(c if false_value else ~c)
+                f.Add(d if result else ~d)
+                f.Add(If(a, b, c) == d)
+
+                expected = true_value if condition else false_value
+                if result == expected:
+                    self.assertSat(f)
+                else:
+                    self.assertUnsat(f)
+
+    def test_tuple_ternary_exhaustive(self):
+        for condition in (False, True):
+            for true_value in range(4):
+                for false_value in range(4):
+                    for result in range(4):
+                        with self.subTest(condition=condition, true_value=true_value,
+                                          false_value=false_value, result=result):
+                            f = Formula()
+                            a = f.AddVar('a')
+                            b = Integer(f.AddVars('b', 2))
+                            c = Integer(f.AddVars('c', 2))
+                            f.Add(a if condition else ~a)
+                            f.Add(b == true_value)
+                            f.Add(c == false_value)
+                            f.Add(If(a, b, c) == result)
+
+                            expected = true_value if condition else false_value
+                            if result == expected:
+                                self.assertSat(f)
+                            else:
+                                self.assertUnsat(f)
 
     def test_negated_cardinality_equality(self):
         f = Formula()

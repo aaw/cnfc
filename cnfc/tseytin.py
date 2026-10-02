@@ -37,3 +37,9 @@ def gen_eq(xs, v):
 def gen_iff(a, b):
     yield (~a, b)
     yield (a, ~b)
+
+def gen_if(cond, if_true, if_false, v):
+    yield (~cond, ~if_true, v)
+    yield (~cond, if_true, ~v)
+    yield (cond, ~if_false, v)
+    yield (cond, if_false, ~v)
