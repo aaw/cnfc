@@ -62,20 +62,25 @@ class Formula:
 
     def Analyze(self, expr):
         old_buffer = self.buffer
+        old_cache = self.expression_cache
         self.buffer = MemoryBuffer()
-        self.Add(expr)
-        before_count = len(self.buffer.clauses)
-        buffer = simplify(self.buffer)
-        buffer = strengthen_self_subsumed(buffer)
-        buffer = propagate_units(buffer)
-        buffer = simplify(buffer)
-        after_count = len(buffer.clauses)
-        self.buffer = old_buffer
-        return {
-            'clauses': before_count,
-            'simplified_clauses': after_count,
-            'vars': len(set(v for c in buffer.AllClauses() for v in c)),
-        }
+        self.expression_cache = {} if old_cache is not None else None
+        try:
+            self.Add(expr)
+            before_count = len(self.buffer.clauses)
+            buffer = simplify(self.buffer)
+            buffer = strengthen_self_subsumed(buffer)
+            buffer = propagate_units(buffer)
+            buffer = simplify(buffer)
+            after_count = len(buffer.clauses)
+            return {
+                'clauses': before_count,
+                'simplified_clauses': after_count,
+                'vars': len(set(v for c in buffer.AllClauses() for v in c)),
+            }
+        finally:
+            self.buffer = old_buffer
+            self.expression_cache = old_cache
 
     def PushCheckpoint(self):
         self.buffer.PushCheckpoint()

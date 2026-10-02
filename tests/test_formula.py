@@ -126,6 +126,16 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.AddClause(False)
         self.assertUnsat(f)
 
+    def test_analyze_does_not_define_expressions(self):
+        f = Formula()
+        a,b = f.AddVars('a b')
+        f.Analyze(Not(And(a, b)))
+
+        f.Add(a)
+        f.Add(b)
+        f.Add(Not(And(a, b)))
+        self.assertUnsat(f)
+
     def test_empty_and(self):
         f = Formula()
         f.Add(And(*[]))
@@ -963,6 +973,122 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(Integer(1000) == sum(Integer(1) for i in range(1000)) + Integer(0))
         self.assertSat(f)
         f.PopCheckpoint()
+
+    def test_repeated_arithmetic_expression(self):
+        f = Formula()
+        x = Integer(f.AddVars('x', 2))
+        y = Integer(f.AddVars('y', 2))
+        product = x * y
+        f.Add(x == 2)
+        f.Add(y == 3)
+
+        f.Add(product == 6)
+        f.Add(product + 1 == 7)
+        self.assertSat(f)
+
+        f.Add(product < 6)
+        self.assertUnsat(f)
+
+    def test_arithmetic_expression_in_separate_formulas(self):
+        total = Integer(2) + Integer(1)
+
+        f = Formula()
+        f.Add(total == 3)
+        self.assertSat(f)
+
+        f = Formula()
+        f.AddVar('unused')
+        f.Add(total == 4)
+        self.assertUnsat(f)
+
+    def test_arithmetic_expression_after_checkpoint(self):
+        f = Formula()
+        x = Integer(f.AddVars('x', 2))
+        total = x + 1
+
+        f.PushCheckpoint()
+        f.Add(x == 2)
+        f.Add(total == 3)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.Add(x == 1)
+        f.Add(total == 3)
+        self.assertUnsat(f)
+
+    def test_repeated_arithmetic_without_cache(self):
+        f = Formula(use_expression_cache=False)
+        x = Integer(f.AddVars('x', 2))
+        total = x + 1
+        f.Add(x == 2)
+        f.Add(total == 3)
+        self.assertSat(f)
+
+        f.Add(total == 4)
+        self.assertUnsat(f)
+
+    def test_modifying_evaluated_bits_does_not_change_expression(self):
+        f = Formula()
+        total = Integer(2) + Integer(1)
+        bits = total.evaluate(f)
+        bits.reverse()
+
+        f.Add(total == 3)
+        self.assertSat(f)
+
+    def test_arithmetic_expression_after_analysis(self):
+        f = Formula()
+        x = Integer(f.AddVars('x', 2))
+        total = x + 1
+        f.Analyze(total == 3)
+
+        f.Add(x == 1)
+        f.Add(total == 3)
+        self.assertUnsat(f)
+
+    def test_arithmetic_condition_uses_current_regex(self):
+        f = Formula()
+        matches = RegexMatch(Integer(1), "1")
+        result = If(matches, Integer(1), Integer(0))
+        f.Add(result == 1)
+        self.assertSat(f)
+
+        matches.regex = "0"
+        f.Add(result == 1)
+        self.assertUnsat(f)
+
+    def test_repeated_division_and_remainder(self):
+        f = Formula()
+        x = Integer(f.AddVars('x', 3))
+        quotient = x // 3
+        remainder = x % 3
+        f.Add(x == 7)
+        f.Add(quotient == 2)
+        f.Add(quotient + remainder == 3)
+        self.assertSat(f)
+
+        f.Add(remainder == 2)
+        self.assertUnsat(f)
+
+    def test_arithmetic_expression_after_nested_checkpoints(self):
+        f = Formula()
+        x = Integer(f.AddVars('x', 2))
+        total = x + 1
+
+        f.PushCheckpoint()
+        f.Add(x == 2)
+        f.PushCheckpoint()
+        f.Add(total == 3)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.Add(total == 4)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.Add(x == 1)
+        f.Add(total == 3)
+        self.assertUnsat(f)
 
     def test_degenerate_integer_addition(self):
         f = Formula()

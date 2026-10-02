@@ -8,7 +8,7 @@ from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
 from .regex import regex_match, regex_match_states
 from .util import Generator, gather_common_operands, reduce_evaluated
-from .cache import cached_generate_var
+from .cache import cached_generate_var, cached_evaluate
 
 # A generic way to implement generate_var from a generate_cnf implementation.
 # Not always the most efficient, but a good fallback.
@@ -387,6 +387,7 @@ class TupleAdd(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
+    @cached_evaluate
     def evaluate(self, formula):
         return reduce_evaluated(tuple_add, [arg.evaluate(formula) for arg in self.args], formula)
 
@@ -398,6 +399,7 @@ class TupleMul(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
+    @cached_evaluate
     def evaluate(self, formula):
         return reduce_evaluated(tuple_mul, [arg.evaluate(formula) for arg in self.args], formula)
 
@@ -409,6 +411,7 @@ class TupleMax(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
+    @cached_evaluate
     def evaluate(self, formula):
         return reduce_evaluated(tuple_max, [arg.evaluate(formula) for arg in self.args], formula)
 
@@ -420,6 +423,7 @@ class TupleMin(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
+    @cached_evaluate
     def evaluate(self, formula):
         return reduce_evaluated(tuple_min, [arg.evaluate(formula) for arg in self.args], formula)
 
@@ -429,6 +433,7 @@ class TupleMin(TupleCompositeExpr):
         return max(len(arg) for arg in self.args)
 
 class TupleSub(TupleCompositeExpr):
+    @cached_evaluate
     def evaluate(self, formula):
         t1, t2 = self.args
         # if t1 - t2 == y, then t2 + y == t1
@@ -441,6 +446,7 @@ class TupleSub(TupleCompositeExpr):
         return max(len(self.args[0]), len(self.args[1]))
 
 class TupleDiv(TupleCompositeExpr):
+    @cached_evaluate
     def evaluate(self, formula):
         t1, t2 = self.args
         # if t1 // t2 == x, then t2 * x + y == t1, where 0 <= y < t2
@@ -456,6 +462,7 @@ class TupleDiv(TupleCompositeExpr):
         return len(self.args[0])
 
 class TupleMod(TupleCompositeExpr):
+    @cached_evaluate
     def evaluate(self, formula):
         t1, t2 = self.args
         # Optimization: Turn '(x ** y) % n' into pow(x,y,n)
@@ -474,6 +481,7 @@ class TupleMod(TupleCompositeExpr):
         return len(self.args[1])
 
 class TuplePow(TupleCompositeExpr):
+    @cached_evaluate
     def evaluate(self, formula):
         base, power, mod = self.args
         base = base.evaluate(formula)
@@ -530,6 +538,9 @@ class RegexMatch(BoolExpr):
         self.tuple = tup
         self.regex = regex
 
+    def __repr__(self):
+        return '{}({},{!r})'.format(self.__class__.__name__, self.tuple, self.regex)
+
     @cached_generate_var
     def generate_var(self, formula):
         gen = Generator(regex_match_states(formula, self.tuple.evaluate(formula), self.regex))
@@ -550,6 +561,7 @@ class TupleTernaryExpr(Tuple):
     def __len__(self):
         return max(len(self.if_true), len(self.if_false))
 
+    @cached_evaluate
     def evaluate(self, formula):
         t1 = self.if_true.evaluate(formula)
         t2 = self.if_false.evaluate(formula)
