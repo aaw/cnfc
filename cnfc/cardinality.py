@@ -131,5 +131,8 @@ def at_least_n_true(formula, vin, n):
     elif n == len(vin):
         for v in vin: yield (v,)
         return
+    elif n == 1:
+        yield tuple(vin)
+        return
     yield from select_max_n(formula, vin, n+1)
     yield from at_most_one_false(formula, vin[:n+1])

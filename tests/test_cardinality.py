@@ -7,6 +7,23 @@ import itertools
 import unittest
 
 class TestCardinality(unittest.TestCase, SatTestCase):
+    def test_at_least_one_exhaustive(self):
+        for size in range(1, 9):
+            f = Formula()
+            vs = f.AddVars('x', size)
+            f.Add(NumTrue(*vs) >= 1)
+
+            for values in itertools.product((False, True), repeat=size):
+                with self.subTest(values=values):
+                    f.PushCheckpoint()
+                    for v, value in zip(vs, values):
+                        f.Add(v if value else ~v)
+                    if any(values):
+                        self.assertSat(f)
+                    else:
+                        self.assertUnsat(f)
+                    f.PopCheckpoint()
+
     def test_at_most_one_exhaustive(self):
         for size in range(1, 9):
             f = Formula()
