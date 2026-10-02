@@ -92,6 +92,10 @@ def exactly_n_true(formula, vin, n):
     elif n == len(vin):
         for v in vin: yield (v,)
         return
+    elif n == 1:
+        yield tuple(vin)
+        yield from at_most_one_true(formula, vin)
+        return
     yield from select_max_n(formula, vin, n+1)
     yield from at_least_one_false(vin[:n+1])
     yield from at_most_one_false(formula, vin[:n+1])
@@ -113,6 +117,9 @@ def at_most_n_true(formula, vin, n):
         for v in vin: yield (~v,)
         return
     elif n >= len(vin):
+        return
+    elif n == 1:
+        yield from at_most_one_true(formula, vin)
         return
     yield from select_max_n(formula, vin, n+1)
     yield from at_least_one_false(vin[:n+1])
