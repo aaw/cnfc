@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 import math
 
-from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true
+from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at_most_n_true, select_max_n, pairwise_sorting_network
 from .tseytin import gen_and, gen_or, gen_eq, gen_neq
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
@@ -565,10 +565,60 @@ class NumFalse(CardinalityConstraint, TupleExpr):
         indicators = [If(v, Integer(0), Integer(1)).evaluate(formula) for v in self.exprs]
         return reduce_evaluated(tuple_add, indicators, formula)
 
+def generate_cardinality_var(instance, formula, relation):
+    if type(instance.second) is not int:
+        return relation(instance.first, instance.second).generate_var(formula)
+
+    vs = [expr.generate_var(formula) for expr in instance.first.exprs]
+    if isinstance(instance.first, NumFalse):
+        vs = [~v for v in vs]
+    elif not isinstance(instance.first, NumTrue):
+        raise ValueError("Only NumTrue and NumFalse are supported.")
+    n, size = instance.second, len(vs)
+
+    if relation in (TupleEq, TupleNeq):
+        if n < 0 or n > size:
+            raise ValueError("n out of range")
+        if n > size // 2:
+            vs, n = [~v for v in vs], size - n
+        if n == 0:
+            result = And(*[~v for v in vs]).generate_var(formula)
+        else:
+            # Always enforce the sorting network.
+            # Negation applies only to the comparison result.
+            for clause in select_max_n(formula, vs, n+1):
+                formula.AddClause(*clause)
+            for clause in pairwise_sorting_network(formula, vs, 0, n+1):
+                formula.AddClause(*clause)
+            result = And(vs[n-1], ~vs[n]).generate_var(formula)
+        return ~result if relation is TupleNeq else result
+
+    # Reduce inequalities to a threshold: at least n inputs are true.
+    negate = relation in (TupleLt, TupleLe)
+    if relation in (TupleGt, TupleLe):
+        n += 1
+    if (negate and n <= 0) or (not negate and n > size):
+        raise ValueError("n out of range")
+    if n <= 0:
+        result = BooleanLiteral(True)
+    elif n > size:
+        result = BooleanLiteral(False)
+    else:
+        # Use the smaller threshold on the complemented inputs.
+        if n > (size+1) // 2:
+            vs, n, negate = [~v for v in vs], size-n+1, not negate
+        if n == 1:
+            result = Or(*vs).generate_var(formula)
+        else:
+            for clause in select_max_n(formula, vs, n):
+                formula.AddClause(*clause)
+            result = And(*vs[:n]).generate_var(formula)
+    return ~result if negate else result
+
 class NumEq(OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        return generate_cardinality_var(self, formula, TupleEq)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -586,7 +636,7 @@ class NumEq(OrderedBinaryBoolExpr):
 class NumNeq(OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        return generate_cardinality_var(self, formula, TupleNeq)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -604,7 +654,7 @@ class NumNeq(OrderedBinaryBoolExpr):
 class NumLt(OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        return generate_cardinality_var(self, formula, TupleLt)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -621,7 +671,7 @@ class NumLt(OrderedBinaryBoolExpr):
 class NumLe(OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        return generate_cardinality_var(self, formula, TupleLe)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -638,7 +688,7 @@ class NumLe(OrderedBinaryBoolExpr):
 class NumGt(OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        return generate_cardinality_var(self, formula, TupleGt)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:
@@ -655,7 +705,7 @@ class NumGt(OrderedBinaryBoolExpr):
 class NumGe(OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+        return generate_cardinality_var(self, formula, TupleGe)
 
     def generate_cnf(self, formula):
         if not type(self.second) is int:

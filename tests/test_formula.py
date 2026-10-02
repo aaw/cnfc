@@ -1372,6 +1372,68 @@ class TestFormula(unittest.TestCase, SatTestCase):
         self.assertUnsat(f)
         f.PopCheckpoint()
 
+    def test_negated_cardinality_equality(self):
+        f = Formula()
+        a,b,c,d,e = f.AddVars('a b c d e')
+        f.Add(a)
+        f.Add(~b)
+        f.Add(~c)
+        f.Add(~d)
+        f.Add(~e)
+
+        f.PushCheckpoint()
+        f.Add(Not(NumTrue(a,b,c,d,e) == 1))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Not(NumTrue(a,b,c,d,e) == 2))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_negated_cardinality_comparisons(self):
+        f = Formula()
+        a,b,c,d,e = f.AddVars('a b c d e')
+        f.Add(a)
+        f.Add(~b)
+        f.Add(~c)
+        f.Add(~d)
+        f.Add(~e)
+
+        for count, n in ((NumTrue(a,b,c,d,e), 1), (NumFalse(a,b,c,d,e), 4)):
+            for expr in (count == n, count != n+1, count < n+1,
+                         count <= n, count > n-1, count >= n):
+                with self.subTest(expr=repr(expr)):
+                    f.PushCheckpoint()
+                    f.Add(Not(expr))
+                    self.assertUnsat(f)
+                    f.PopCheckpoint()
+
+    def test_nested_cardinality_comparisons_exhaustive(self):
+        for size in (0, 1, 2, 5):
+            for assignment in range(2**size):
+                num_true = bin(assignment).count('1')
+                f = Formula()
+                vs = f.AddVars('x', size)
+                for i, v in enumerate(vs):
+                    f.AddClause(v if assignment & (1 << i) else ~v)
+                for count, value in ((NumTrue(*vs), num_true), (NumFalse(*vs), size-num_true)):
+                    for n in range(size+1):
+                        comparisons = ((count == n, value == n), (count != n, value != n),
+                                       (count < n+1, value < n+1), (count <= n, value <= n),
+                                       (count > n-1, value > n-1), (count >= n, value >= n))
+                        for expr, expected in comparisons:
+                            with self.subTest(size=size, assignment=assignment, expr=repr(expr)):
+                                f.PushCheckpoint()
+                                f.Add(Or(expr) if expected else Not(expr))
+                                self.assertSat(f)
+                                f.PopCheckpoint()
+
+                                f.PushCheckpoint()
+                                f.Add(Not(expr) if expected else Or(expr))
+                                self.assertUnsat(f)
+                                f.PopCheckpoint()
+
     def test_composite_cardinality_test(self):
         f = Formula()
         a,b,c,d,e = f.AddVars('a b c d e')
