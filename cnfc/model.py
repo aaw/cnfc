@@ -24,6 +24,27 @@ def generate_var_from_cnf(instance, formula):
     # AND the clause variables to recreate the CNF as a single variable
     return And(*vars_to_and).generate_var(formula)
 
+def _combine_comparisons(operand, comparison):
+    pending = getattr(operand, '_pending_chain', None)
+    if pending is None:
+        return comparison
+    tail = pending.exprs[-1] if isinstance(pending, And) else pending
+    for endpoint in (tail.first, tail.second):
+        if getattr(endpoint, '_pending_chain', None) is pending:
+            endpoint._pending_chain = None
+    if isinstance(pending, And):
+        return _ChainedComparison(*pending.exprs, comparison)
+    return _ChainedComparison(pending, comparison)
+
+class _ChainableComparison:
+    def __bool__(self):
+        # Python checks the first comparison before evaluating the next one.
+        tail = self.exprs[-1] if isinstance(self, And) else self
+        for operand in (tail.first, tail.second):
+            if isinstance(operand, (NumExpr, TupleExpr)):
+                operand._pending_chain = self
+        return True
+
 class BoolExpr:
     def __eq__(self, other):
         return Eq(self, other)
@@ -48,16 +69,16 @@ class NumExpr:
         return NumNeq(self, other)
 
     def __lt__(self, other):
-        return NumLt(self, other)
+        return _combine_comparisons(self, NumLt(self, other))
 
     def __le__(self, other):
-        return NumLe(self, other)
+        return _combine_comparisons(self, NumLe(self, other))
 
     def __gt__(self, other):
-        return NumGt(self, other)
+        return _combine_comparisons(self, NumGt(self, other))
 
     def __ge__(self, other):
-        return NumGe(self, other)
+        return _combine_comparisons(self, NumGe(self, other))
 
 class Literal(BoolExpr):
     def __init__(self, var, sign):
@@ -167,6 +188,9 @@ class And(MultiBoolExpr):
         for expr in self.exprs:
             yield (expr.generate_var(formula),)
 
+class _ChainedComparison(_ChainableComparison, And):
+    pass
+
 class Or(MultiBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
@@ -246,7 +270,7 @@ class TupleNeq(OrderedBinaryTupleBoolExpr):
         t2 = lpad(t2, len(t1) - len(t2))
         yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
-class TupleInequality(OrderedBinaryTupleBoolExpr):
+class TupleInequality(_ChainableComparison, OrderedBinaryTupleBoolExpr):
     def _make_generator(self, formula):
         raise NotImplementedError  # Subclasses implement this
 
@@ -288,8 +312,6 @@ class TupleGe(TupleInequality):
 
 # Any expression that results in a Tuple.
 class TupleExpr:
-    _pending_chain = None
-
     def __len__(self):
         return len(self.exprs)
 
@@ -299,35 +321,17 @@ class TupleExpr:
     def __ne__(self, other):
         return TupleNeq(self, other)
 
-    # Python's `a < b < c` compiles to `(a < b) and (b < c)`, discarding the
-    # first comparison. To support chained inequalities, each comparison stores
-    # itself on its right-hand operand as _pending_chain. The next comparison in
-    # the chain picks it up and wraps both in And().
-    def _maybe_chain_comparisons(self, clazz):
-        pending = self._pending_chain
-        self._pending_chain = None
-        other = clazz.second
-        if pending is None:
-            combined = clazz
-        elif isinstance(pending, And):
-            combined = And(*pending.exprs, clazz)
-        else:
-            combined = And(pending, clazz)
-        if isinstance(other, TupleExpr):
-            other._pending_chain = combined
-        return combined
-
     def __lt__(self, other):
-        return self._maybe_chain_comparisons(TupleLt(self, other))
+        return _combine_comparisons(self, TupleLt(self, other))
 
     def __le__(self, other):
-        return self._maybe_chain_comparisons(TupleLe(self, other))
+        return _combine_comparisons(self, TupleLe(self, other))
 
     def __gt__(self, other):
-        return self._maybe_chain_comparisons(TupleGt(self, other))
+        return _combine_comparisons(self, TupleGt(self, other))
 
     def __ge__(self, other):
-        return self._maybe_chain_comparisons(TupleGe(self, other))
+        return _combine_comparisons(self, TupleGe(self, other))
 
     def __add__(self, other):
         return TupleAdd(self, other)
@@ -677,7 +681,7 @@ class NumNeq(OrderedBinaryBoolExpr):
             raise ValueError("Only NumTrue and NumFalse are supported.")
         yield from not_exactly_n_true(formula, vars, n)
 
-class NumLt(OrderedBinaryBoolExpr):
+class NumLt(_ChainableComparison, OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
         return generate_cardinality_var(self, formula, TupleLt)
@@ -694,7 +698,7 @@ class NumLt(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
-class NumLe(OrderedBinaryBoolExpr):
+class NumLe(_ChainableComparison, OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
         return generate_cardinality_var(self, formula, TupleLe)
@@ -711,7 +715,7 @@ class NumLe(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
-class NumGt(OrderedBinaryBoolExpr):
+class NumGt(_ChainableComparison, OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
         return generate_cardinality_var(self, formula, TupleGt)
@@ -728,7 +732,7 @@ class NumGt(OrderedBinaryBoolExpr):
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
-class NumGe(OrderedBinaryBoolExpr):
+class NumGe(_ChainableComparison, OrderedBinaryBoolExpr):
     @cached_generate_var
     def generate_var(self, formula):
         return generate_cardinality_var(self, formula, TupleGe)

@@ -34,8 +34,7 @@ formula.Add(Not(varz[('Keeley', 'Sat 3-11')]))
 # Each employee needs to work at least 3 shifts but no more than 4.
 for employee in employees:
     employee_shifts = [varz[(employee,shift)] for shift in shifts]
-    formula.Add(NumTrue(*employee_shifts) >= 3)
-    formula.Add(NumTrue(*employee_shifts) <= 4)
+    formula.Add(3 <= NumTrue(*employee_shifts) <= 4)
 
 # People can't work both the morning and night shift in a single day.
 for employee in employees:

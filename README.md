@@ -64,8 +64,7 @@ formula.Add(Not(varz[('Keeley', 'Sat 3-11')]))
 # Each employee needs to work at least 3 shifts but no more than 4.
 for employee in employees:
     employee_shifts = [varz[(employee,shift)] for shift in shifts]
-    formula.Add(NumTrue(*employee_shifts) >= 3)
-    formula.Add(NumTrue(*employee_shifts) <= 4)
+    formula.Add(3 <= NumTrue(*employee_shifts) <= 4)
 
 # People can't work both the morning and night shift in a single day.
 for employee in employees:
@@ -209,7 +208,7 @@ In addition, `cnfc` supports:
 
 ## Installation
 
-cnfc is tested on [these versions](https://github.com/aaw/cnfc/blob/master/.github/workflows/python-package.yml#L19) of Python 3. To install
+cnfc is tested on [these versions](https://github.com/aaw/cnfc/blob/master/.github/workflows/python-package.yml#L17) of Python 3. To install
 the latest stable release of cnfc, run:
 
 ```

@@ -633,6 +633,58 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(NumFalse(x,y,z) <= 1024)
         self.assertSat(f)
 
+    def test_chained_count_below_lower_bound(self):
+        f = Formula()
+        a, b, c, d, e = f.AddVars('a b c d e')
+        f.Add(And(a, b, ~c, ~d, ~e))
+        f.Add(3 <= NumTrue(a, b, c, d, e) <= 4)
+        self.assertUnsat(f)
+
+    def test_chained_count_at_lower_bound(self):
+        f = Formula()
+        a, b, c, d, e = f.AddVars('a b c d e')
+        f.Add(And(a, b, c, ~d, ~e))
+        f.Add(3 <= NumTrue(a, b, c, d, e) <= 4)
+        self.assertSat(f)
+
+    def test_chained_count_at_upper_bound(self):
+        f = Formula()
+        a, b, c, d, e = f.AddVars('a b c d e')
+        f.Add(And(a, b, c, d, ~e))
+        f.Add(3 <= NumTrue(a, b, c, d, e) <= 4)
+        self.assertSat(f)
+
+    def test_chained_count_above_upper_bound(self):
+        f = Formula()
+        a, b, c, d, e = f.AddVars('a b c d e')
+        f.Add(And(a, b, c, d, e))
+        f.Add(3 <= NumTrue(a, b, c, d, e) <= 4)
+        self.assertUnsat(f)
+
+    def test_chained_false_count_below_lower_bound(self):
+        f = Formula()
+        a, b, c, d, e = f.AddVars('a b c d e')
+        f.Add(And(~a, ~b, c, d, e))
+        f.Add(3 <= NumFalse(a, b, c, d, e) <= 4)
+        self.assertUnsat(f)
+
+    def test_chained_integer_below_lower_bound(self):
+        f = Formula()
+        f.Add(3 <= Integer(2) <= 4)
+        self.assertUnsat(f)
+
+    def test_unused_comparison_does_not_constrain_next_comparison(self):
+        f = Formula()
+        x, y = Integer(2), Integer(1)
+        unused = x < y
+        f.Add(y < Integer(3))
+        self.assertSat(f)
+
+    def test_longer_comparison_chain_keeps_first_bound(self):
+        f = Formula()
+        f.Add(3 < Integer(2) < Integer(3) < 4)
+        self.assertUnsat(f)
+
     def test_compound_inequality(self):
         f = Formula()
         x,y = f.AddVars('x y')
