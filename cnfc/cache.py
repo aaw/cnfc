@@ -1,6 +1,6 @@
 import hashlib
 
-def cached_generate_var(method):
+def cached_evaluate(method):
     def wrapper(self, formula):
         if formula.expression_cache is None:
             return method(self, formula)
@@ -12,7 +12,7 @@ def cached_generate_var(method):
         return v
     return wrapper
 
-def cached_evaluate(method):
+def cached_evaluate_bits(method):
     def wrapper(self, formula):
         if formula.expression_cache is None:
             return method(self, formula)

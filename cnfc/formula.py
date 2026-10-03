@@ -57,7 +57,7 @@ class Formula:
         self.buffer.Append(tuple(raw_lit(x) for x in disjuncts if type(x) != bool))
 
     def Add(self, expr):
-        for clause in expr.generate_cnf(self):
+        for clause in expr.constraint_clauses(self):
             self.AddClause(*clause)
 
     def Analyze(self, expr):

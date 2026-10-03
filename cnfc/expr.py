@@ -43,10 +43,10 @@ class Literal(BoolExpr):
     def __invert__(self):
         return Literal(self.var, sign=-self.sign)
 
-    def generate_var(self, formula):
+    def evaluate(self, formula):
         return self
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         yield (self,)
 
 class Var(BoolExpr):
@@ -60,10 +60,10 @@ class Var(BoolExpr):
     def __invert__(self):
         return Literal(self, sign=-1)
 
-    def generate_var(self, formula):
+    def evaluate(self, formula):
         return Literal(self, sign=1)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         yield (self,)
 
 class BooleanLiteral:
@@ -77,8 +77,8 @@ class BooleanLiteral:
     def __invert__(self):
         return BooleanLiteral(not self.val)
 
-    def generate_var(self, formula):
+    def evaluate(self, formula):
         return self
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         yield (self,)

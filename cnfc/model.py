@@ -9,13 +9,12 @@ from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
 from .tuples import sign_extend, tuple_negate, tuple_sub
 from .regex import regex_match, regex_match_states
 from .util import Generator, gather_common_operands, reduce_evaluated
-from .cache import cached_generate_var, cached_evaluate
+from .cache import cached_evaluate, cached_evaluate_bits
 
-# A generic way to implement generate_var from a generate_cnf implementation.
-# Not always the most efficient, but a good fallback.
-def generate_var_from_cnf(instance, formula):
+# Build a result literal from the expression's clauses.
+def evaluate_from_clauses(instance, formula):
     vars_to_and = []
-    for clause in instance.generate_cnf(formula):
+    for clause in instance.constraint_clauses(formula):
         v = formula.AddVar()
         vars_to_and.append(v)
         # Set v equal to the original clause
@@ -23,7 +22,7 @@ def generate_var_from_cnf(instance, formula):
             formula.AddClause(*c)
 
     # AND the clause variables to recreate the CNF as a single variable
-    return And(*vars_to_and).generate_var(formula)
+    return And(*vars_to_and).evaluate(formula)
 
 def _combine_comparisons(operand, comparison):
     pending = getattr(operand, '_pending_chain', None)
@@ -91,10 +90,10 @@ class Literal(BoolExpr):
     def __invert__(self):
         return Literal(self.var, sign=-self.sign)
 
-    def generate_var(self, formula):
+    def evaluate(self, formula):
         return self
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         yield (self,)
 
 class Var(BoolExpr):
@@ -108,10 +107,10 @@ class Var(BoolExpr):
     def __invert__(self):
         return Literal(self, sign=-1)
 
-    def generate_var(self, formula):
+    def evaluate(self, formula):
         return Literal(self, sign=1)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         yield (self,)
 
 class MultiBoolExpr(BoolExpr):
@@ -128,12 +127,12 @@ class Not(BoolExpr):
     def __repr__(self):
         return 'Not({})'.format(self.expr)
 
-    @cached_generate_var
-    def generate_var(self, formula):
-        return ~self.expr.generate_var(formula)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return ~self.expr.evaluate(formula)
 
-    def generate_cnf(self, formula):
-        yield (~self.expr.generate_var(formula),)
+    def constraint_clauses(self, formula):
+        yield (~self.expr.evaluate(formula),)
 
 class BooleanTernaryExpr(BoolExpr):
     def __init__(self, cond, if_true, if_false):
@@ -142,20 +141,20 @@ class BooleanTernaryExpr(BoolExpr):
     def __repr__(self):
         return 'BooleanTernaryExpr({}, {}, {})'.format(self.cond, self.if_true, self.if_false)
 
-    @cached_generate_var
-    def generate_var(self, formula):
-        cond = self.cond.generate_var(formula)
-        if_true = self.if_true.generate_var(formula)
-        if_false = self.if_false.generate_var(formula)
+    @cached_evaluate
+    def evaluate(self, formula):
+        cond = self.cond.evaluate(formula)
+        if_true = self.if_true.evaluate(formula)
+        if_false = self.if_false.evaluate(formula)
         v = formula.AddVar()
         for clause in gen_if(cond, if_true, if_false, v):
             formula.AddClause(*clause)
         return v
 
-    def generate_cnf(self, formula):
-        cond = self.cond.generate_var(formula)
-        if_true = self.if_true.generate_var(formula)
-        if_false = self.if_false.generate_var(formula)
+    def constraint_clauses(self, formula):
+        cond = self.cond.evaluate(formula)
+        if_true = self.if_true.evaluate(formula)
+        if_false = self.if_false.evaluate(formula)
         yield (~cond, if_true)
         yield (cond, if_false)
 
@@ -167,72 +166,72 @@ class OrderedBinaryBoolExpr(BoolExpr):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
 class Implies(OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return Or(Not(self.first), self.second).generate_var(formula)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return Or(Not(self.first), self.second).evaluate(formula)
 
-    def generate_cnf(self, formula):
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+    def constraint_clauses(self, formula):
+        fv = self.first.evaluate(formula)
+        sv = self.second.evaluate(formula)
         yield (~fv, sv)
 
 class And(MultiBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
+    @cached_evaluate
+    def evaluate(self, formula):
         v = formula.AddVar()
-        subvars = [expr.generate_var(formula) for expr in self.exprs]
+        subvars = [expr.evaluate(formula) for expr in self.exprs]
         for clause in gen_and(subvars, v):
             formula.AddClause(*clause)
         return v
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         for expr in self.exprs:
-            yield (expr.generate_var(formula),)
+            yield (expr.evaluate(formula),)
 
 class _ChainedComparison(_ChainableComparison, And):
     pass
 
 class Or(MultiBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
+    @cached_evaluate
+    def evaluate(self, formula):
         v = formula.AddVar()
-        subvars = [expr.generate_var(formula) for expr in self.exprs]
+        subvars = [expr.evaluate(formula) for expr in self.exprs]
         for clause in gen_or(subvars, v):
             formula.AddClause(*clause)
         return v
 
-    def generate_cnf(self, formula):
-        yield tuple(expr.generate_var(formula) for expr in self.exprs)
+    def constraint_clauses(self, formula):
+        yield tuple(expr.evaluate(formula) for expr in self.exprs)
 
 class Eq(OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
+    @cached_evaluate
+    def evaluate(self, formula):
         v = formula.AddVar()
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+        fv = self.first.evaluate(formula)
+        sv = self.second.evaluate(formula)
         for clause in gen_eq((fv, sv), v):
             formula.AddClause(*clause)
         return v
 
-    def generate_cnf(self, formula):
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+    def constraint_clauses(self, formula):
+        fv = self.first.evaluate(formula)
+        sv = self.second.evaluate(formula)
         yield (~fv, sv)
         yield (~sv, fv)
 
 class Neq(OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
+    @cached_evaluate
+    def evaluate(self, formula):
         v = formula.AddVar()
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+        fv = self.first.evaluate(formula)
+        sv = self.second.evaluate(formula)
         for clause in gen_neq((fv, sv), v):
             formula.AddClause(*clause)
         return v
 
-    def generate_cnf(self, formula):
-        fv = self.first.generate_var(formula)
-        sv = self.second.generate_var(formula)
+    def constraint_clauses(self, formula):
+        fv = self.first.evaluate(formula)
+        sv = self.second.evaluate(formula)
         yield (fv, sv)
         yield (~fv, ~sv)
 
@@ -268,35 +267,35 @@ class OrderedBinaryTupleBoolExpr(BoolExpr):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
 class TupleEq(OrderedBinaryTupleBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_from_clauses(self, formula)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         t1, t2 = _comparison_bits(self.first, self.second, formula)
-        yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
+        yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).constraint_clauses(formula)
 
 class TupleNeq(OrderedBinaryTupleBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_var_from_cnf(self, formula)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_from_clauses(self, formula)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         t1, t2 = _comparison_bits(self.first, self.second, formula)
-        yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
+        yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).constraint_clauses(formula)
 
 class TupleInequality(_ChainableComparison, OrderedBinaryTupleBoolExpr):
     def _make_generator(self, formula):
         raise NotImplementedError  # Subclasses implement this
 
-    @cached_generate_var
-    def generate_var(self, formula):
+    @cached_evaluate
+    def evaluate(self, formula):
         gen = self._make_generator(formula)
         for clause in gen:
             formula.AddClause(*clause)
         return gen.result
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         gen = self._make_generator(formula)
         yield from gen
         yield (gen.result,)
@@ -409,7 +408,7 @@ class TupleAdd(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         return reduce_evaluated(tuple_add, [_integer_bits(arg, formula) for arg in self.args], formula)
 
@@ -421,7 +420,7 @@ class TupleMul(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         return reduce_evaluated(tuple_mul, [_integer_bits(arg, formula) for arg in self.args], formula)
 
@@ -433,7 +432,7 @@ class TupleMax(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         return reduce_evaluated(tuple_max, [_integer_bits(arg, formula) for arg in self.args], formula)
 
@@ -445,7 +444,7 @@ class TupleMin(TupleCompositeExpr):
         super().__init__(*args)
         self.args = gather_common_operands(self.__class__, self.args)
 
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         return reduce_evaluated(tuple_min, [_integer_bits(arg, formula) for arg in self.args], formula)
 
@@ -455,7 +454,7 @@ class TupleMin(TupleCompositeExpr):
         return max(_integer_width(arg) for arg in self.args)
 
 class TupleNeg(TupleCompositeExpr):
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         bits = _integer_bits(self.args[0], formula)
         gen = Generator(tuple_negate(formula, sign_extend(bits, len(bits) + 1)))
@@ -467,7 +466,7 @@ class TupleNeg(TupleCompositeExpr):
         return _integer_width(self.args[0]) + 1
 
 class TupleSub(TupleCompositeExpr):
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         t1, t2 = self.args
         gen = Generator(tuple_sub(formula, _integer_bits(t1, formula), _integer_bits(t2, formula)))
@@ -489,7 +488,7 @@ def _divmod(formula, dividend, divisor):
     return quotient.evaluate(formula), remainder.evaluate(formula)
 
 class TupleDiv(TupleCompositeExpr):
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         return _divmod(formula, *self.args)[0]
 
@@ -497,7 +496,7 @@ class TupleDiv(TupleCompositeExpr):
         return _integer_width(self.args[0]) + 1
 
 class TupleMod(TupleCompositeExpr):
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         t1, t2 = self.args
         # Turn '(x ** y) % n' into pow(x,y,n).
@@ -509,7 +508,7 @@ class TupleMod(TupleCompositeExpr):
         return _integer_width(self.args[1])
 
 class TuplePow(TupleCompositeExpr):
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         base, power, mod = self.args
         accum = Integer(*_integer_bits(base, formula))
@@ -546,7 +545,7 @@ class Tuple(TupleExpr):
         return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
 
     def evaluate(self, formula):
-        return [expr.generate_var(formula) for expr in self.exprs]
+        return [expr.evaluate(formula) for expr in self.exprs]
 
     def as_tuple(self):
         return tuple(self.exprs)
@@ -586,14 +585,14 @@ class RegexMatch(BoolExpr):
     def __repr__(self):
         return '{}({},{!r})'.format(self.__class__.__name__, self.tuple, self.regex)
 
-    @cached_generate_var
-    def generate_var(self, formula):
+    @cached_evaluate
+    def evaluate(self, formula):
         gen = Generator(regex_match_states(formula, self.tuple.evaluate(formula), self.regex))
         for clause in gen:
             formula.AddClause(*clause)
-        return Or(*gen.result).generate_var(formula)
+        return Or(*gen.result).evaluate(formula)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         yield from regex_match(formula, self.tuple.evaluate(formula), self.regex)
 
 class TupleTernaryExpr(Tuple):
@@ -612,11 +611,11 @@ class TupleTernaryExpr(Tuple):
             return max(_integer_width(self.if_true), _integer_width(self.if_false))
         return max(len(self.if_true), len(self.if_false))
 
-    @cached_evaluate
+    @cached_evaluate_bits
     def evaluate(self, formula):
         t1, t2 = _comparison_bits(self.if_true, self.if_false, formula)
-        cond = self.cond.generate_var(formula)
-        return [BooleanTernaryExpr(cond, t1[i], t2[i]).generate_var(formula) for i in range(len(t1))]
+        cond = self.cond.evaluate(formula)
+        return [BooleanTernaryExpr(cond, t1[i], t2[i]).evaluate(formula) for i in range(len(t1))]
 
 class CardinalityConstraint(NumExpr):
     def __init__(self, *exprs):
@@ -634,7 +633,7 @@ class NumTrue(CardinalityConstraint, TupleExpr):
     def evaluate(self, formula):
         if not self.exprs:
             return Integer(0).evaluate(formula)
-        indicators = [[BooleanLiteral(False), expr.generate_var(formula)] for expr in self.exprs]
+        indicators = [[BooleanLiteral(False), expr.evaluate(formula)] for expr in self.exprs]
         return reduce_evaluated(tuple_add, indicators, formula)
 
 class NumFalse(CardinalityConstraint, TupleExpr):
@@ -646,7 +645,7 @@ class NumFalse(CardinalityConstraint, TupleExpr):
     def evaluate(self, formula):
         if not self.exprs:
             return Integer(0).evaluate(formula)
-        indicators = [[BooleanLiteral(False), ~expr.generate_var(formula)] for expr in self.exprs]
+        indicators = [[BooleanLiteral(False), ~expr.evaluate(formula)] for expr in self.exprs]
         return reduce_evaluated(tuple_add, indicators, formula)
 
 _BINARY_COUNT_MIN_SIZE = 64
@@ -676,14 +675,14 @@ def _cardinality_equality_bound(count, bound):
         return Integer(bound)
     return bound
 
-def generate_cardinality_var(instance, formula, relation):
+def evaluate_cardinality(instance, formula, relation):
     bound = _cardinality_bound(instance.first, instance.second, relation)
     if relation in (TupleEq, TupleNeq):
         bound = _cardinality_equality_bound(instance.first, bound)
     if type(bound) is not int:
-        return relation(instance.first, bound).generate_var(formula)
+        return relation(instance.first, bound).evaluate(formula)
 
-    vs = [expr.generate_var(formula) for expr in instance.first.exprs]
+    vs = [expr.evaluate(formula) for expr in instance.first.exprs]
     if isinstance(instance.first, NumFalse):
         vs = [~v for v in vs]
     elif not isinstance(instance.first, NumTrue):
@@ -696,7 +695,7 @@ def generate_cardinality_var(instance, formula, relation):
         if n > size // 2:
             vs, n = [~v for v in vs], size - n
         if n == 0:
-            result = And(*[~v for v in vs]).generate_var(formula)
+            result = And(*[~v for v in vs]).evaluate(formula)
         else:
             # Always enforce the sorting network.
             # Negation applies only to the comparison result.
@@ -704,7 +703,7 @@ def generate_cardinality_var(instance, formula, relation):
                 formula.AddClause(*clause)
             for clause in pairwise_sorting_network(formula, vs, 0, n+1):
                 formula.AddClause(*clause)
-            result = And(vs[n-1], ~vs[n]).generate_var(formula)
+            result = And(vs[n-1], ~vs[n]).evaluate(formula)
         return ~result if relation is TupleNeq else result
 
     # Reduce inequalities to a threshold: at least n inputs are true.
@@ -722,25 +721,25 @@ def generate_cardinality_var(instance, formula, relation):
         if n > (size+1) // 2:
             vs, n, negate = [~v for v in vs], size-n+1, not negate
         if n == 1:
-            result = Or(*vs).generate_var(formula)
+            result = Or(*vs).evaluate(formula)
         else:
             for clause in select_max_n(formula, vs, n):
                 formula.AddClause(*clause)
-            result = And(*vs[:n]).generate_var(formula)
+            result = And(*vs[:n]).evaluate(formula)
     return ~result if negate else result
 
 class NumEq(OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_cardinality_var(self, formula, TupleEq)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_cardinality(self, formula, TupleEq)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         bound = _cardinality_bound(self.first, self.second, TupleEq)
         bound = _cardinality_equality_bound(self.first, bound)
         if type(bound) is not int:
-            yield from TupleEq(self.first, bound).generate_cnf(formula)
+            yield from TupleEq(self.first, bound).constraint_clauses(formula)
             return
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        vars = [expr.evaluate(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             n = bound
         elif isinstance(self.first, NumFalse):
@@ -750,17 +749,17 @@ class NumEq(OrderedBinaryBoolExpr):
         yield from exactly_n_true(formula, vars, n)
 
 class NumNeq(OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_cardinality_var(self, formula, TupleNeq)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_cardinality(self, formula, TupleNeq)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         bound = _cardinality_bound(self.first, self.second, TupleNeq)
         bound = _cardinality_equality_bound(self.first, bound)
         if type(bound) is not int:
-            yield from TupleNeq(self.first, bound).generate_cnf(formula)
+            yield from TupleNeq(self.first, bound).constraint_clauses(formula)
             return
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        vars = [expr.evaluate(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             n = bound
         elif isinstance(self.first, NumFalse):
@@ -770,16 +769,16 @@ class NumNeq(OrderedBinaryBoolExpr):
         yield from not_exactly_n_true(formula, vars, n)
 
 class NumLt(_ChainableComparison, OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_cardinality_var(self, formula, TupleLt)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_cardinality(self, formula, TupleLt)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         bound = _cardinality_bound(self.first, self.second, TupleLt)
         if type(bound) is not int:
-            yield from TupleLt(self.first, bound).generate_cnf(formula)
+            yield from TupleLt(self.first, bound).constraint_clauses(formula)
             return
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        vars = [expr.evaluate(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             yield from at_most_n_true(formula, vars, bound-1)
         elif isinstance(self.first, NumFalse):
@@ -788,16 +787,16 @@ class NumLt(_ChainableComparison, OrderedBinaryBoolExpr):
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumLe(_ChainableComparison, OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_cardinality_var(self, formula, TupleLe)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_cardinality(self, formula, TupleLe)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         bound = _cardinality_bound(self.first, self.second, TupleLe)
         if type(bound) is not int:
-            yield from TupleLe(self.first, bound).generate_cnf(formula)
+            yield from TupleLe(self.first, bound).constraint_clauses(formula)
             return
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        vars = [expr.evaluate(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             yield from at_most_n_true(formula, vars, bound)
         elif isinstance(self.first, NumFalse):
@@ -806,16 +805,16 @@ class NumLe(_ChainableComparison, OrderedBinaryBoolExpr):
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumGt(_ChainableComparison, OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_cardinality_var(self, formula, TupleGt)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_cardinality(self, formula, TupleGt)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         bound = _cardinality_bound(self.first, self.second, TupleGt)
         if type(bound) is not int:
-            yield from TupleGt(self.first, bound).generate_cnf(formula)
+            yield from TupleGt(self.first, bound).constraint_clauses(formula)
             return
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        vars = [expr.evaluate(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             yield from at_least_n_true(formula, vars, bound+1)
         elif isinstance(self.first, NumFalse):
@@ -824,16 +823,16 @@ class NumGt(_ChainableComparison, OrderedBinaryBoolExpr):
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
 class NumGe(_ChainableComparison, OrderedBinaryBoolExpr):
-    @cached_generate_var
-    def generate_var(self, formula):
-        return generate_cardinality_var(self, formula, TupleGe)
+    @cached_evaluate
+    def evaluate(self, formula):
+        return evaluate_cardinality(self, formula, TupleGe)
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         bound = _cardinality_bound(self.first, self.second, TupleGe)
         if type(bound) is not int:
-            yield from TupleGe(self.first, bound).generate_cnf(formula)
+            yield from TupleGe(self.first, bound).constraint_clauses(formula)
             return
-        vars = [expr.generate_var(formula) for expr in self.first.exprs]
+        vars = [expr.evaluate(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
             yield from at_least_n_true(formula, vars, bound)
         elif isinstance(self.first, NumFalse):

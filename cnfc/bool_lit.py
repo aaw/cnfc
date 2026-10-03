@@ -9,10 +9,10 @@ class BooleanLiteral:
     def __invert__(self):
         return BooleanLiteral(not self.val)
 
-    def generate_var(self, formula):
+    def evaluate(self, formula):
         return self
 
-    def generate_cnf(self, formula):
+    def constraint_clauses(self, formula):
         yield (self,)
 
 def zero_pad(x, y):
