@@ -1,11 +1,8 @@
 * Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
-* Support integer division/subtraction by re-arranging parse tree into addition/multiplication
-  instead of solving for the result.
+* Rewrite integer division comparisons against constants into multiplication bounds to avoid encoding the quotient.
 * Generate a bash script for sat generation/solving/extracting
-* Implement IsPrime predicate using Pratt certificates, drop into jane st. number cross 4
 * Implement Formula.WriteCubedCnf(fd, vars)
-* Make NumTrue auto-convert to NumFalse and vise-versa when appropriate with fixed integers
 * Add a Formula.WriteBlocker method to write a blocking solution extractor
 * NumTrue/NumFalse are specialized for comparisons with int so that "NumTrue(*varz) >= Integer(1)"
   sums up all the variables in varz that are true and compares it to the binary representation of 1,

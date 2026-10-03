@@ -7,6 +7,114 @@ import itertools
 import unittest
 
 class TestCardinality(unittest.TestCase, SatTestCase):
+    def test_exactly_two_false_among_six(self):
+        f = Formula()
+        a,b,c,d,e,g = f.AddVars('a b c d e g')
+        f.Add(NumFalse(a,b,c,d,e,g) == 2)
+        f.Add(a)
+        f.Add(b)
+        f.Add(c)
+        f.Add(~g)
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(~e)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~d)
+        f.Add(~e)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(e)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_not_exactly_four_true_among_six(self):
+        f = Formula()
+        a,b,c,d,e,g = f.AddVars('a b c d e g')
+        f.Add(NumTrue(a,b,c,d,e,g) != 4)
+        f.Add(a)
+        f.Add(b)
+        f.Add(c)
+        f.Add(~g)
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(~e)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~d)
+        f.Add(~e)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(e)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_at_most_four_true_among_six(self):
+        f = Formula()
+        a,b,c,d,e,g = f.AddVars('a b c d e g')
+        f.Add(NumTrue(a,b,c,d,e,g) < 5)
+        f.Add(a)
+        f.Add(b)
+        f.Add(c)
+        f.Add(~g)
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(~e)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~d)
+        f.Add(~e)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(e)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_at_least_four_true_among_six(self):
+        f = Formula()
+        a,b,c,d,e,g = f.AddVars('a b c d e g')
+        f.Add(NumTrue(a,b,c,d,e,g) >= 4)
+        f.Add(a)
+        f.Add(b)
+        f.Add(c)
+        f.Add(~g)
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(~e)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~d)
+        f.Add(~e)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(d)
+        f.Add(e)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
     def test_at_least_one_exhaustive(self):
         for size in range(1, 9):
             f = Formula()
