@@ -213,4 +213,5 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and run te
 uv run python -m unittest discover
 ```
 
-To publish a new version to PyPI, bump the version in `pyproject.toml` and create a release in Github.
+To publish a new version to PyPI, create a GitHub release with the next logical version tag.
+The workflow runs the tests, then builds and publishes the package using the version from the tag.

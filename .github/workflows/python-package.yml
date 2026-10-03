@@ -17,6 +17,8 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.x"]
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
       id: setup-python
       uses: actions/setup-python@v5
@@ -35,6 +37,9 @@ jobs:
     if: github.event_name == 'release'
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.release.tag_name }}
+        fetch-depth: 0
     - name: Install uv
       uses: astral-sh/setup-uv@v4
     - name: Build and publish to PyPI
