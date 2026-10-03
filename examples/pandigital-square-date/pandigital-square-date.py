@@ -4,8 +4,9 @@
 from cnfc import *
 
 import argparse
+import math
 
-BITLENGTH = 4
+BITLENGTH = Integer.bits_needed_for_range(0, 9)
 
 def encode_equation_as_sat(min_year, max_year):
     formula = Formula(FileBuffer)
@@ -26,7 +27,7 @@ def encode_equation_as_sat(min_year, max_year):
 
     # Constraint: Every digit is actually a digit
     for v in varz:
-        formula.Add(v < 10)
+        formula.Add(0 <= v < 10)
 
     # Constraint: Every number 0-9 is assigned to a digit variable at most once.
     for number in range(10):
@@ -43,7 +44,7 @@ def encode_equation_as_sat(min_year, max_year):
     # The correct leap year constraint (divisible by 4, unless divisible by 100, unless divisible by 400) is hard
     # to encode, so we'll just use a simpler check and deal with invalid leap years by blocking them if they
     # arise as solutions to the other constraints.
-    x = Integer(formula.AddVars('x', 12))
+    x = Integer(formula.AddVars('x', Integer.bits_needed_for_range(0, 9999 // 4)))
     formula.Add(If(day == 29, Or(month != 2, And(month == 2, year == x * Integer(4)))))
 
     # Constraint: year is in the range we're searching.
@@ -53,23 +54,22 @@ def encode_equation_as_sat(min_year, max_year):
     formula.Add(year >= Integer(min_year))
 
     # Constraint: product of day, month, year is a square.
-    # log_2(12) + log_2(31) + log_2(9999) + 2 <= 24 bits should be enough to hold the product, so 12 bits
-    # should be enough to hold the square root of the product. We use 13 just in case.
-    s = Integer(formula.AddVars('s', 13))
+    root_bits = Integer.bits_needed_for_range(0, math.isqrt(12 * 31 * 9999))
+    s = Integer(formula.AddVars('s', root_bits))
+    formula.Add(s >= 0)
     formula.Add(month * day * year == s * s)
 
     return formula
 
 def print_solution(sol, *extra_args):
-    bitlength = extra_args[0]
-    d1 = sol.integer('d1', bitlength)
-    d2 = sol.integer('d2', bitlength)
-    m1 = sol.integer('m1', bitlength)
-    m2 = sol.integer('m2', bitlength)
-    y1 = sol.integer('y1', bitlength)
-    y2 = sol.integer('y2', bitlength)
-    y3 = sol.integer('y3', bitlength)
-    y4 = sol.integer('y4', bitlength)
+    d1 = sol.integer('d1')
+    d2 = sol.integer('d2')
+    m1 = sol.integer('m1')
+    m2 = sol.integer('m2')
+    y1 = sol.integer('y1')
+    y2 = sol.integer('y2')
+    y3 = sol.integer('y3')
+    y4 = sol.integer('y4')
     print('{}{}/{}{}/{}{}{}{}'.format(d1,d2,m1,m2,y1,y2,y3,y4))
 
 if __name__ == '__main__':
@@ -84,4 +84,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[BITLENGTH])
+        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[])

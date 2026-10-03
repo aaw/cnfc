@@ -2,6 +2,33 @@ from .bool_lit import rpad, lpad, BooleanLiteral
 from .tseytin import *
 from .util import Generator
 
+def sign_extend(bits, width):
+    return [bits[0]] * (width - len(bits)) + bits
+
+
+def tuple_negate(formula, bits):
+    # Invert each bit above the lowest set bit; keep that bit and its zeros.
+    result = [bits[-1]]
+    lower_nonzero = bits[-1]
+    for bit in reversed(bits[:-1]):
+        v = formula.AddVar()
+        yield from gen_xor((bit, lower_nonzero), v)
+        result.append(v)
+        v = formula.AddVar()
+        yield from gen_or((bit, lower_nonzero), v)
+        lower_nonzero = v
+    return list(reversed(result))
+
+
+def tuple_sub(formula, x, y):
+    width = max(len(x), len(y)) + 1
+    negate = Generator(tuple_negate(formula, sign_extend(y, width)))
+    yield from negate
+    add = Generator(tuple_add(formula, sign_extend(x, width), negate.result))
+    yield from add
+    return add.result[-width:]
+
+
 def tuple_less_than(formula, x, y, strict=False):
     x = lpad(x, len(y) - len(x))
     y = lpad(y, len(x) - len(y))
@@ -21,8 +48,10 @@ def tuple_less_than(formula, x, y, strict=False):
 
 
 def __tuple_min_or_max(formula, x, y, is_min=True):
-    x = lpad(x, len(y) - len(x))
-    y = lpad(y, len(x) - len(y))
+    width = max(len(x), len(y))
+    x, y = sign_extend(x, width), sign_extend(y, width)
+    # Compare in unsigned order, then restore the sign bit.
+    x[0], y[0] = ~x[0], ~y[0]
     n = len(x)
     result = [formula.AddVar() for i in range(n)]
 
@@ -69,6 +98,7 @@ def __tuple_min_or_max(formula, x, y, is_min=True):
     # Assert that result is either x or y
     yield (eq_x, eq_y)
 
+    result[0] = ~result[0]
     return result
 
 
@@ -118,10 +148,17 @@ def tuple_add(formula, x_a, x_b):
         # p_r == (p_a AND p_b)
         yield from gen_and((p_a, p_b), p_r)
 
-    x_a = lpad(x_a, len(x_b) - len(x_a))
-    x_b = lpad(x_b, len(x_a) - len(x_b))
-    if len(x_a) == 0:
-        x_a, x_b = [BooleanLiteral(False)], [BooleanLiteral(False)]
+    nonnegative = all(isinstance(bits[0], BooleanLiteral) and not bits[0].val for bits in (x_a, x_b))
+    width = max(len(x_a), len(x_b)) + 1
+    if nonnegative:
+        # A fixed zero sign lets us add just the magnitude bits.
+        x_a, x_b = x_a[1:], x_b[1:]
+        x_a = lpad(x_a, len(x_b) - len(x_a))
+        x_b = lpad(x_b, len(x_a) - len(x_b))
+        if not x_a:
+            return [BooleanLiteral(False)]
+    else:
+        x_a, x_b = sign_extend(x_a, width), sign_extend(x_b, width)
 
     # Tuples are listed most significant bit in lowest index, we want the reverse for
     # adding so that x[0] is the least significant bit.
@@ -164,7 +201,9 @@ def tuple_add(formula, x_a, x_b):
     result[n] = gps[n-1][0]
 
     result.reverse()
-    return result
+    if nonnegative:
+        return [BooleanLiteral(False)] + result
+    return result[-width:]
 
 
 # Very naive multiplier implemented with repeated addition
@@ -178,32 +217,38 @@ def tuple_add(formula, x_a, x_b):
 #    --------------------------
 #
 def tuple_mul(formula, x_a, x_b):
-    # Make len(x_a) >= len(x_b) so that we minimize additions.
+    # Keep the shorter operand as the multiplier.
     if len(x_a) < len(x_b): x_a, x_b = x_b, x_a
-    if len(x_b) == 0:
+    width = len(x_a) + len(x_b)
+    nonnegative = all(isinstance(bits[0], BooleanLiteral) and not bits[0].val for bits in (x_a, x_b))
+    if nonnegative:
+        x_a, x_b = x_a[1:], x_b[1:]
+    if not x_b:
         return [BooleanLiteral(False)]
     partials = []
-    for i in range(len(x_b)):
-        # AND each bit of x_a with x_b[i]
-        partial = x_a[:]
-        bit = x_b[len(x_b)-i-1]
-        for ia in range(len(partial)):
+    for i, bit in enumerate(reversed(x_b)):
+        bits = x_a if nonnegative else sign_extend(x_a, width - i)
+        partial = []
+        for a in bits:
             v = formula.AddVar()
-            yield from gen_and((partial[ia], bit), v)
-            partial[ia] = v
-        # Pad result on right with i zeros
+            yield from gen_and((a, bit), v)
+            partial.append(v)
         partial = rpad(partial, i)
+        if nonnegative:
+            partial = [BooleanLiteral(False)] + partial
+        elif i == len(x_b) - 1:
+            # The multiplier's sign bit has negative weight.
+            negate = Generator(tuple_negate(formula, partial))
+            yield from negate
+            partial = negate.result
         partials.append(partial)
 
-    # Now reduce all of the partials pair-by-pair using addition
     while len(partials) > 1:
         reduced = []
         for a, b in zip(partials[:-1:2], partials[1::2]):
             gen = Generator(tuple_add(formula, a, b))
             yield from gen
-            reduced.append(gen.result)
-
-        # If there was an odd number of elements, we didn't reduce the last one.
+            reduced.append(gen.result[-width:])
         if len(partials) % 2 == 1:
             reduced.append(partials[-1])
         partials = reduced

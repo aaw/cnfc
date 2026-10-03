@@ -5,16 +5,14 @@ from cnfc.funcs import Max, Min
 import argparse
 import math
 
-SOLUTION_BITS=4  # Need to represent 1-9
-
-def bits_needed(n): return len(bin(n)[2:])
+SOLUTION_BITS = Integer.bits_needed_for_range(1, 9)
 
 def encode(n, max_lcm):
     formula = Formula()
 
     max_d = int(math.ceil(max_lcm/11))
-    d_bits = bits_needed(max_d)
-    lcm_bits = bits_needed(max_lcm)
+    d_bits = Integer.bits_needed_for_range(0, max_d)
+    lcm_bits = Integer.bits_needed_for_range(1, max_lcm)
 
     lcm = Integer(formula.AddVars('lcm', lcm_bits))
     formula.Add(lcm > 0)
@@ -66,19 +64,17 @@ def encode(n, max_lcm):
     return formula
 
 def print_solution(sol, *extra_args):
-    solution_bits = 4
     n, max_lcm = extra_args
-    lcm_bits = len(bin(max_lcm)[2:])
 
     for i in range(1,n+1):
-        x = sol.integer(f'x{i}', solution_bits)
-        y = sol.integer(f'y{i}', solution_bits)
-        z = sol.integer(f'z{i}', solution_bits)
+        x = sol.integer(f'x{i}')
+        y = sol.integer(f'y{i}')
+        z = sol.integer(f'z{i}')
         print(f'{x}/{y}{z}', end='')
         if i != n: print(' + ', end='')
 
     print('')
-    print(f"LCM of ys and zs: {sol.integer('lcm', lcm_bits)}")
+    print(f"LCM of ys and zs: {sol.integer('lcm')}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve the n-fractions puzzle.")

@@ -5,7 +5,7 @@ from cnfc import *
 
 import argparse
 
-BITLENGTH = 4
+BITLENGTH = Integer.bits_needed_for_range(0, 9)
 
 def block(solution, varz):
     digits = [Integer(int(d)) for d in solution if d.isdigit()]
@@ -117,17 +117,16 @@ def encode_equation_as_sat():
     return formula
 
 def print_solution(sol, *extra_args):
-    bitlength = extra_args[0]
-    a = sol.integer('a', bitlength)
-    b = sol.integer('b', bitlength)
-    c = sol.integer('c', bitlength)
-    d = sol.integer('d', bitlength)
-    e = sol.integer('e', bitlength)
-    f = sol.integer('f', bitlength)
-    g = sol.integer('g', bitlength)
-    h = sol.integer('h', bitlength)
-    i = sol.integer('i', bitlength)
-    j = sol.integer('j', bitlength)
+    a = sol.integer('a')
+    b = sol.integer('b')
+    c = sol.integer('c')
+    d = sol.integer('d')
+    e = sol.integer('e')
+    f = sol.integer('f')
+    g = sol.integer('g')
+    h = sol.integer('h')
+    i = sol.integer('i')
+    j = sol.integer('j')
     print('{} x {}{} x {}{}{} = {}{}{}{}'.format(a,b,c,d,e,f,g,h,i,j))
 
 if __name__ == '__main__':
@@ -140,4 +139,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[BITLENGTH])
+        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[])

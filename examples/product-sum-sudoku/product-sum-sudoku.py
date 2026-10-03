@@ -6,7 +6,7 @@ import argparse
 
 LETTERS = ['a','b','c','d','e','f']
 NUMBERS = [1,2,3,4,5,6]
-NUM_BITS = 3
+NUM_BITS = Integer.bits_needed_for_range(1, 6)
 
 def encode():
     formula = Formula()
@@ -14,7 +14,7 @@ def encode():
     varz = {}
     for letter in LETTERS:
         for number in NUMBERS:
-            i = Integer(*(formula.AddVar('v{}{}{}'.format(letter, number, i)) for i in range(NUM_BITS)))
+            i = Integer(formula.AddVars('v:{}:{}'.format(letter, number), NUM_BITS))
             formula.Add(0 < i < 7)
             varz[(letter,number)] = i
 
@@ -57,17 +57,10 @@ def encode():
 
     return formula
 
-def bin_to_int(blist):
-    result = 0
-    for b in blist:
-        result *= 2
-        result += 1 if b else 0
-    return result
-
 def print_solution(sol):
     for letter in ['a','b','c','d','e','f']:
         for number in [1,2,3,4,5,6]:
-            print(' {} '.format(bin_to_int([sol['v{}{}{}'.format(letter, number, i)] for i in range(3)])), end='')
+            print(' {} '.format(sol.integer('v:{}:{}'.format(letter, number))), end='')
         print('')
 
 if __name__ == '__main__':
@@ -80,4 +73,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [bin_to_int])
+        formula.WriteExtractor(f, print_solution)

@@ -96,7 +96,7 @@ class TestCardinality(unittest.TestCase, SatTestCase):
         a,b,bound_bit = f.AddVars('a b bound')
         f.Add(a)
         f.Add(~b)
-        f.Add(NumTrue(a,b) == Integer(bound_bit))
+        f.Add(NumTrue(a,b) == Integer(BooleanLiteral(False), bound_bit))
 
         f.PushCheckpoint()
         f.Add(bound_bit)

@@ -37,9 +37,10 @@ COORDS = [0,1,2,3,4,5,6,7,8,9,10]
 # Cells can be 0-9, so we use 10 to indicate shading.
 SHADED = Integer(10)
 # Enough bits to represent 0-9, plus 10 to indicate shading.
-CELL_BITS = 4
-# The largest possible value of any row is 99999888776, which needs 36.5 bits.
-ROW_BITS = 37
+CELL_BITS = Integer.bits_needed_for_range(0, 10)
+MAX_ROW_VALUE = 99999888776
+ROW_BITS = Integer.bits_needed_for_range(0, MAX_ROW_VALUE)
+ROOT_BITS = Integer.bits_needed_for_range(0, math.isqrt(MAX_ROW_VALUE))
 # A representation of the different groups on the board, needed since there
 # are constraints about uniformity of numbers within groups and distinctness
 # of numbers in neighboring groups.
@@ -158,7 +159,7 @@ def encode():
         for c in COORDS:
             # v:r:c:i is the ith bit of the number in row r, column c.
             i = Integer(*(formula.AddVar('v:{}:{}:{}'.format(r, c, i)) for i in range(CELL_BITS)))
-            formula.Add(i <= SHADED)
+            formula.Add(0 <= i <= SHADED)
             cell_var[(r,c)] = i
 
     # Row vars are tuples representing the integer value of a run, whether that
@@ -169,13 +170,16 @@ def encode():
         for r in COORDS:
             # n:r:j:i is the ith bit of the jth run in row r, for j in [0,1,2,3]
             val = Integer(*(formula.AddVar('n:{}:{}:{}'.format(r, j, i)) for i in range(ROW_BITS)))
+            formula.Add(val >= 0)
             # b:r:j is true iff there is a jth run in row r for j in [0,1,2,3]
             exists = formula.AddVar('b:{}:{}'.format(r,j))
             # sod:r:j:i is the ith bit of the sum of digits of the jth run in row r for j in [0,1,2,3].
-            # The sum of all numbers in a row is at most 99, so we only need 7 bits.
-            rsum = Integer(*(formula.AddVar('sod:{}:{}:{}'.format(r,j,i)) for i in range(7)))
+            # The sum of all numbers in a row is at most 99.
+            rsum = Integer(*(formula.AddVar('sod:{}:{}:{}'.format(r,j,i)) for i in range(Integer.bits_needed_for_range(0, 99))))
+            formula.Add(rsum >= 0)
             # pod:r:j:i is the ith bit of the product of digits of the jth run in row r for j in [0,1,2,3]
             rprod = Integer(*(formula.AddVar('pod:{}:{}:{}'.format(r,j,i)) for i in range(ROW_BITS)))
+            formula.Add(rprod >= 0)
             # row_var is a tuple of (VAL, EXISTS, SUM, PRODUCT)
             row_var[(r,j)] = (val, exists, rsum, rprod)
 
@@ -228,13 +232,17 @@ def encode():
     row01, row01on, _, _ = row_var[(0,1)]
     row02, row02on, _, _ = row_var[(0,2)]
     row03, row03on, _, _ = row_var[(0,3)]
-    x0 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x0 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x0 >= 0)
     formula.Add(If(row00on, x0 * x0 == row00))
-    x1 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x1 >= 0)
     formula.Add(If(row01on, x1 * x1 == row01))
-    x2 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x2 >= 0)
     formula.Add(If(row02on, x2 * x2 == row02))
-    x3 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x3 >= 0)
     formula.Add(If(row03on, x3 * x3 == row03))
 
     # Constraint: Row 1 is one more than a palindrome.
@@ -244,12 +252,16 @@ def encode():
     row12, row12on, _, _ = row_var[(1,2)]
     row13, row13on, _, _ = row_var[(1,3)]
     p0 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p0 >= 0)
     formula.Add(If(row10on, And(IsPalindrome(p0), p0 + Integer(1) == row10)))
     p1 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p1 >= 0)
     formula.Add(If(row11on, And(IsPalindrome(p1), p1 + Integer(1) == row11)))
     p2 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p2 >= 0)
     formula.Add(If(row12on, And(IsPalindrome(p2), p2 + Integer(1) == row12)))
     p3 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p3 >= 0)
     formula.Add(If(row13on, And(IsPalindrome(p3), p3 + Integer(1) == row13)))
 
     # Constraint: Row 2 is a prime raised to a prime.
@@ -304,20 +316,28 @@ def encode():
     row42, row42on, _, _ = row_var[(4,2)]
     row43, row43on, _, _ = row_var[(4,3)]
     five_n_squared0 = Integer(5) * row40 * row40
-    x4a0 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
-    x4b0 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x4a0 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4a0 >= 0)
+    x4b0 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4b0 >= 0)
     formula.Add(If(row40on, Or(x4a0 * x4a0 == five_n_squared0 + Integer(4), x4b0 * x4b0 + Integer(4) == five_n_squared0)))
     five_n_squared1 = Integer(5) * row41 * row41
-    x4a1 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
-    x4b1 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x4a1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4a1 >= 0)
+    x4b1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4b1 >= 0)
     formula.Add(If(row41on, Or(x4a1 * x4a1 == five_n_squared1 + Integer(4), x4b1 * x4b1 + Integer(4) == five_n_squared1)))
     five_n_squared2 = Integer(5) * row42 * row42
-    x4a2 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
-    x4b2 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x4a2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4a2 >= 0)
+    x4b2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4b2 >= 0)
     formula.Add(If(row42on, Or(x4a2 * x4a2 == five_n_squared2 + Integer(4), x4b2 * x4b2 + Integer(4) == five_n_squared2)))
     five_n_squared3 = Integer(5) * row43 * row43
-    x4a3 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
-    x4b3 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x4a3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4a3 >= 0)
+    x4b3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x4b3 >= 0)
     formula.Add(If(row43on, Or(x4a3 * x4a3 == five_n_squared3 + Integer(4), x4b3 * x4b3 + Integer(4) == five_n_squared3)))
 
     # Constraint: Row 5 is a square.
@@ -326,13 +346,17 @@ def encode():
     row51, row51on, _, _ = row_var[(5,1)]
     row52, row52on, _, _ = row_var[(5,2)]
     row53, row53on, _, _ = row_var[(5,3)]
-    x50 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x50 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x50 >= 0)
     formula.Add(If(row50on, x50 * x50 == row50))
-    x51 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x51 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x51 >= 0)
     formula.Add(If(row51on, x51 * x51 == row51))
-    x52 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x52 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x52 >= 0)
     formula.Add(If(row52on, x52 * x52 == row52))
-    x53 = Integer(*(formula.AddVar() for i in range(math.ceil(ROW_BITS/2))))
+    x53 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
+    formula.Add(x53 >= 0)
     formula.Add(If(row53on, x53 * x53 == row53))
 
     # Constraint: Row 6 is a multiple of 37.
@@ -386,23 +410,19 @@ def encode():
     row102, row102on, _, _ = row_var[(10,2)]
     row103, row103on, _, _ = row_var[(10,3)]
     p100 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p100 >= 0)
     formula.Add(If(row100on, And(IsPalindrome(p100), p100 == row100 + Integer(1))))
     p101 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p101 >= 0)
     formula.Add(If(row101on, And(IsPalindrome(p101), p101 == row101 + Integer(1))))
     p102 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p102 >= 0)
     formula.Add(If(row102on, And(IsPalindrome(p102), p102 == row102 + Integer(1))))
     p103 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
+    formula.Add(p103 >= 0)
     formula.Add(If(row103on, And(IsPalindrome(p103), p103 == row103 + Integer(1))))
 
     return formula
-
-# Helper function for solution printing: convert a boolean list to an integer.
-def bin_to_int(blist):
-    result = 0
-    for b in blist:
-        result *= 2
-        result += 1 if b else 0
-    return result
 
 def print_solution(sol, *extra_args):
     def solchr(x):
@@ -410,10 +430,10 @@ def print_solution(sol, *extra_args):
             return 'X'
         else:
             return x
-    coords, value_bits = extra_args[0], extra_args[1]
+    coords = extra_args[0]
     for r in coords:
         for c in coords:
-            print(' {} '.format(solchr(bin_to_int([sol['v:{}:{}:{}'.format(r,c,i)] for i in range(value_bits)]))), end='')
+            print(' {} '.format(solchr(sol.integer('v:{}:{}'.format(r,c)))), end='')
         print('')
 
 if __name__ == '__main__':
@@ -426,4 +446,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [bin_to_int], extra_args=[COORDS, CELL_BITS])
+        formula.WriteExtractor(f, print_solution, extra_args=[COORDS])

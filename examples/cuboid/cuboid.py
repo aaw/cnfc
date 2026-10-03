@@ -13,13 +13,14 @@ def encode(n):
     # B^2 + D^2 + F^2
     # B^2 + E^2 = G^2
 
-    a = Integer(formula.AddVars('a', n))
-    b = Integer(formula.AddVars('b', n))
-    c = Integer(formula.AddVars('c', n))
-    d = Integer(formula.AddVars('d', n))
-    e = Integer(formula.AddVars('e', n))
-    f = Integer(formula.AddVars('f', n))
-    g = Integer(formula.AddVars('g', n))
+    bits = Integer.bits_needed_for_range(0, (1 << n) - 1)
+    a = Integer(formula.AddVars('a', bits))
+    b = Integer(formula.AddVars('b', bits))
+    c = Integer(formula.AddVars('c', bits))
+    d = Integer(formula.AddVars('d', bits))
+    e = Integer(formula.AddVars('e', bits))
+    f = Integer(formula.AddVars('f', bits))
+    g = Integer(formula.AddVars('g', bits))
 
     formula.Add(a > 1)
     formula.Add(b > 1)
@@ -38,14 +39,13 @@ def encode(n):
     return formula
 
 def print_solution(sol, *extra_args):
-    n = extra_args[0]
-    print('a = {}'.format(sol.integer('a', n)))
-    print('b = {}'.format(sol.integer('b', n)))
-    print('c = {}'.format(sol.integer('c', n)))
-    print('d = {}'.format(sol.integer('d', n)))
-    print('e = {}'.format(sol.integer('e', n)))
-    print('f = {}'.format(sol.integer('f', n)))
-    print('g = {}'.format(sol.integer('g', n)))
+    print('a = {}'.format(sol.integer('a')))
+    print('b = {}'.format(sol.integer('b')))
+    print('c = {}'.format(sol.integer('c')))
+    print('d = {}'.format(sol.integer('d')))
+    print('e = {}'.format(sol.integer('e')))
+    print('f = {}'.format(sol.integer('f')))
+    print('g = {}'.format(sol.integer('g')))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Determine if a number is prime by attempting to factor it")
@@ -59,4 +59,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[n])
+        formula.WriteExtractor(f, print_solution, [], extra_args=[])

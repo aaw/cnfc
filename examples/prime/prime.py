@@ -6,11 +6,10 @@ import argparse
 def encode(n):
     formula = Formula()
 
-    # The two factors p and q should be non-trivial factors, so their
-    # bit length should be strictly less than the bit length of n.
-    n_bitlength = len(bin(n)[2:])
-    p = Integer(formula.AddVars('p', n_bitlength-1))
-    q = Integer(formula.AddVars('q', n_bitlength-1))
+    # Non-trivial factors cannot exceed n // 2.
+    bits = Integer.bits_needed_for_range(0, n // 2)
+    p = Integer(formula.AddVars('p', bits))
+    q = Integer(formula.AddVars('q', bits))
 
     formula.Add(p > 1)
     formula.Add(q > 1)
@@ -20,9 +19,8 @@ def encode(n):
 
 def print_solution(sol, *extra_args):
     n = extra_args[0]
-    n_bitlength = len(bin(n)[2:])
-    p = sol.integer('p', n_bitlength-1)
-    q = sol.integer('q', n_bitlength-1)
+    p = sol.integer('p')
+    q = sol.integer('q')
     print('{} can be factored into {} * {}'.format(n, p, q))
 
 if __name__ == '__main__':

@@ -7,20 +7,19 @@ import argparse
 COORDS = [1,2,3,4,5,6,7,8,9]
 VALS = [0,1,2,3,4,5,6,7,8,9]
 BOXES = [[1,2,3],[4,5,6],[7,8,9]]
-NUM_BITS = 4
-GCD_BITS = 31
+NUM_BITS = Integer.bits_needed_for_range(0, 9)
+GCD_BITS = Integer.bits_needed_for_range(1, 999999999)
 
 def encode(min_gcd):
     #formula = Formula(FileBuffer)
     formula = Formula()
 
     exclude = Integer(*(formula.AddVar(f'exclude:{i}') for i in range(NUM_BITS)))
-    formula.Add(exclude < 10)
+    formula.Add(0 <= exclude < 10)
 
     varz = {}
     for r in COORDS:
         for c in COORDS:
-            # i holds the 3-bit value of cell (r,c).
             i = Integer(*(formula.AddVar(f'cell:{r}:{c}:{i}') for i in range(NUM_BITS)))
             formula.Add(0 <= i < 10)
             formula.Add(i != exclude)
@@ -80,16 +79,10 @@ def encode(min_gcd):
     formula.Add(row8 % divisor == 0)
     formula.Add(row9 % divisor == 0)
 
+    formula.Add(1 <= divisor <= 999999999)
     formula.Add(divisor >= min_gcd)
 
     return formula
-
-def bin_to_int(blist):
-    result = 0
-    for b in blist:
-        result *= 2
-        result += 1 if b else 0
-    return result
 
 def gcd(a,b):
     while b:
@@ -97,24 +90,24 @@ def gcd(a,b):
     return a
 
 def print_solution(sol, *extra_args):
-    coords, num_bits, gcd_bits = extra_args
+    coords = extra_args[0]
     for r in coords:
         for c in coords:
-            print(' {} '.format(bin_to_int([sol[f'cell:{r}:{c}:{i}'] for i in range(num_bits)])), end='')
+            print(' {} '.format(sol.integer(f'cell:{r}:{c}')), end='')
         print('')
     print('')
-    divisor = bin_to_int([sol[f'divisor:{i}'] for i in range(gcd_bits)])
+    divisor = sol.integer('divisor')
     print(f'Verified common divisor: {divisor}')
 
-    row1 = sum(bin_to_int([sol[f'cell:1:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row2 = sum(bin_to_int([sol[f'cell:2:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row3 = sum(bin_to_int([sol[f'cell:3:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row4 = sum(bin_to_int([sol[f'cell:4:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row5 = sum(bin_to_int([sol[f'cell:5:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row6 = sum(bin_to_int([sol[f'cell:6:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row7 = sum(bin_to_int([sol[f'cell:7:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row8 = sum(bin_to_int([sol[f'cell:8:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
-    row9 = sum(bin_to_int([sol[f'cell:9:{c}:{i}'] for i in range(num_bits)]) * 10**(9-c) for c in coords)
+    row1 = sum(sol.integer(f'cell:1:{c}') * 10**(9-c) for c in coords)
+    row2 = sum(sol.integer(f'cell:2:{c}') * 10**(9-c) for c in coords)
+    row3 = sum(sol.integer(f'cell:3:{c}') * 10**(9-c) for c in coords)
+    row4 = sum(sol.integer(f'cell:4:{c}') * 10**(9-c) for c in coords)
+    row5 = sum(sol.integer(f'cell:5:{c}') * 10**(9-c) for c in coords)
+    row6 = sum(sol.integer(f'cell:6:{c}') * 10**(9-c) for c in coords)
+    row7 = sum(sol.integer(f'cell:7:{c}') * 10**(9-c) for c in coords)
+    row8 = sum(sol.integer(f'cell:8:{c}') * 10**(9-c) for c in coords)
+    row9 = sum(sol.integer(f'cell:9:{c}') * 10**(9-c) for c in coords)
 
     gcd12 = gcd(row1, row2)
     gcd34 = gcd(row3, row4)
@@ -138,4 +131,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [bin_to_int, gcd], extra_args=[COORDS, NUM_BITS, GCD_BITS])
+        formula.WriteExtractor(f, print_solution, [gcd], extra_args=[COORDS])

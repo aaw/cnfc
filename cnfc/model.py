@@ -6,6 +6,7 @@ from .cardinality import exactly_n_true, not_exactly_n_true, at_least_n_true, at
 from .tseytin import gen_and, gen_or, gen_eq, gen_neq, gen_if
 from .bool_lit import BooleanLiteral, lpad
 from .tuples import tuple_less_than, tuple_add, tuple_mul, tuple_min, tuple_max
+from .tuples import sign_extend, tuple_negate, tuple_sub
 from .regex import regex_match, regex_match_states
 from .util import Generator, gather_common_operands, reduce_evaluated
 from .cache import cached_generate_var, cached_evaluate
@@ -235,6 +236,26 @@ class Neq(OrderedBinaryBoolExpr):
         yield (fv, sv)
         yield (~fv, ~sv)
 
+def _integer_width(expr):
+    return len(expr) + (0 if expr._is_integer else 1)
+
+def _integer_bits(expr, formula):
+    bits = expr.evaluate(formula)
+    return bits if expr._is_integer else [BooleanLiteral(False)] + bits
+
+def _comparison_bits(first, second, formula, ordered=False):
+    if first._is_integer or second._is_integer:
+        t1, t2 = _integer_bits(first, formula), _integer_bits(second, formula)
+        width = max(len(t1), len(t2))
+        t1, t2 = sign_extend(t1, width), sign_extend(t2, width)
+        if ordered:
+            t1[0], t2[0] = ~t1[0], ~t2[0]
+    else:
+        t1, t2 = first.evaluate(formula), second.evaluate(formula)
+        t1 = lpad(t1, len(t2) - len(t1))
+        t2 = lpad(t2, len(t1) - len(t2))
+    return t1, t2
+
 class OrderedBinaryTupleBoolExpr(BoolExpr):
     def __init__(self, first, second):
         self.first, self.second = first, second
@@ -252,10 +273,7 @@ class TupleEq(OrderedBinaryTupleBoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
-        t1 = lpad(t1, len(t2) - len(t1))
-        t2 = lpad(t2, len(t1) - len(t2))
+        t1, t2 = _comparison_bits(self.first, self.second, formula)
         yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleNeq(OrderedBinaryTupleBoolExpr):
@@ -264,10 +282,7 @@ class TupleNeq(OrderedBinaryTupleBoolExpr):
         return generate_var_from_cnf(self, formula)
 
     def generate_cnf(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
-        t1 = lpad(t1, len(t2) - len(t1))
-        t2 = lpad(t2, len(t1) - len(t2))
+        t1, t2 = _comparison_bits(self.first, self.second, formula)
         yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).generate_cnf(formula)
 
 class TupleInequality(_ChainableComparison, OrderedBinaryTupleBoolExpr):
@@ -288,30 +303,28 @@ class TupleInequality(_ChainableComparison, OrderedBinaryTupleBoolExpr):
 
 class TupleLt(TupleInequality):
     def _make_generator(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
+        t1, t2 = _comparison_bits(self.first, self.second, formula, ordered=True)
         return Generator(tuple_less_than(formula, t1, t2, strict=True))
 
 class TupleLe(TupleInequality):
     def _make_generator(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
+        t1, t2 = _comparison_bits(self.first, self.second, formula, ordered=True)
         return Generator(tuple_less_than(formula, t1, t2, strict=False))
 
 class TupleGt(TupleInequality):
     def _make_generator(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
+        t1, t2 = _comparison_bits(self.first, self.second, formula, ordered=True)
         return Generator(tuple_less_than(formula, t2, t1, strict=True))
 
 class TupleGe(TupleInequality):
     def _make_generator(self, formula):
-        t1 = self.first.evaluate(formula)
-        t2 = self.second.evaluate(formula)
+        t1, t2 = _comparison_bits(self.first, self.second, formula, ordered=True)
         return Generator(tuple_less_than(formula, t2, t1, strict=False))
 
 # Any expression that results in a Tuple.
 class TupleExpr:
+    _is_integer = False
+
     def __len__(self):
         return len(self.exprs)
 
@@ -344,6 +357,9 @@ class TupleExpr:
 
     def __rsub__(self, other):
         return TupleSub(other, self)
+
+    def __neg__(self):
+        return TupleNeg(self)
 
     def __mul__(self, other):
         return TupleMul(self, other)
@@ -379,6 +395,8 @@ class TupleCompositeExpr(TupleExpr, ABC):
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, ','.join(map(str, self.args)))
 
+    _is_integer = True
+
     @abstractmethod
     def __len__(self):
         # len should always return an upper bound on the size of the resulting tuple. This needs to be defined per subclass.
@@ -393,10 +411,10 @@ class TupleAdd(TupleCompositeExpr):
 
     @cached_evaluate
     def evaluate(self, formula):
-        return reduce_evaluated(tuple_add, [arg.evaluate(formula) for arg in self.args], formula)
+        return reduce_evaluated(tuple_add, [_integer_bits(arg, formula) for arg in self.args], formula)
 
     def __len__(self):
-        return max(len(arg) for arg in self.args) + int(math.ceil(math.log2(len(self.args)))) + 1
+        return max(_integer_width(arg) for arg in self.args) + int(math.ceil(math.log2(len(self.args))))
 
 class TupleMul(TupleCompositeExpr):
     def __init__(self, *args):
@@ -405,10 +423,10 @@ class TupleMul(TupleCompositeExpr):
 
     @cached_evaluate
     def evaluate(self, formula):
-        return reduce_evaluated(tuple_mul, [arg.evaluate(formula) for arg in self.args], formula)
+        return reduce_evaluated(tuple_mul, [_integer_bits(arg, formula) for arg in self.args], formula)
 
     def __len__(self):
-        return sum(len(arg) for arg in self.args)
+        return sum(_integer_width(arg) for arg in self.args)
 
 class TupleMax(TupleCompositeExpr):
     def __init__(self, *args):
@@ -417,10 +435,10 @@ class TupleMax(TupleCompositeExpr):
 
     @cached_evaluate
     def evaluate(self, formula):
-        return reduce_evaluated(tuple_max, [arg.evaluate(formula) for arg in self.args], formula)
+        return reduce_evaluated(tuple_max, [_integer_bits(arg, formula) for arg in self.args], formula)
 
     def __len__(self):
-        return max(len(arg) for arg in self.args)
+        return max(_integer_width(arg) for arg in self.args)
 
 class TupleMin(TupleCompositeExpr):
     def __init__(self, *args):
@@ -429,72 +447,80 @@ class TupleMin(TupleCompositeExpr):
 
     @cached_evaluate
     def evaluate(self, formula):
-        return reduce_evaluated(tuple_min, [arg.evaluate(formula) for arg in self.args], formula)
+        return reduce_evaluated(tuple_min, [_integer_bits(arg, formula) for arg in self.args], formula)
 
     def __len__(self):
         # "max" is not a typo here. We don't know if the leading bits are set
         # in the longest tuple so we have to assume the worst.
-        return max(len(arg) for arg in self.args)
+        return max(_integer_width(arg) for arg in self.args)
+
+class TupleNeg(TupleCompositeExpr):
+    @cached_evaluate
+    def evaluate(self, formula):
+        bits = _integer_bits(self.args[0], formula)
+        gen = Generator(tuple_negate(formula, sign_extend(bits, len(bits) + 1)))
+        for clause in gen:
+            formula.AddClause(*clause)
+        return gen.result
+
+    def __len__(self):
+        return _integer_width(self.args[0]) + 1
 
 class TupleSub(TupleCompositeExpr):
     @cached_evaluate
     def evaluate(self, formula):
         t1, t2 = self.args
-        # if t1 - t2 == y, then t2 + y == t1
-        ys = [formula.AddVar() for i in range(len(self))]
-        y = Tuple(*ys)
-        formula.Add(t2 + y == t1)
-        return ys
+        gen = Generator(tuple_sub(formula, _integer_bits(t1, formula), _integer_bits(t2, formula)))
+        for clause in gen:
+            formula.AddClause(*clause)
+        return gen.result
 
     def __len__(self):
-        return max(len(self.args[0]), len(self.args[1]))
+        return max(_integer_width(arg) for arg in self.args) + 1
+
+def _divmod(formula, dividend, divisor):
+    quotient = Integer(*[formula.AddVar() for i in range(_integer_width(dividend) + 1)])
+    remainder = Integer(*[formula.AddVar() for i in range(_integer_width(divisor))])
+    formula.Add(divisor * quotient + remainder == dividend)
+    formula.Add(divisor != 0)
+    # Python's remainder has the divisor's sign.
+    formula.Add(If(divisor > 0, And(remainder >= 0, remainder < divisor),
+                               And(remainder <= 0, remainder > divisor)))
+    return quotient.evaluate(formula), remainder.evaluate(formula)
 
 class TupleDiv(TupleCompositeExpr):
     @cached_evaluate
     def evaluate(self, formula):
-        t1, t2 = self.args
-        # if t1 // t2 == x, then t2 * x + y == t1, where 0 <= y < t2
-        xs = [formula.AddVar() for i in range(len(t1))]
-        x = Tuple(*xs)
-        y = Tuple(*[formula.AddVar() for i in range(len(t2))])
-        formula.Add(t2 * x + y == t1)
-        formula.Add(y < t2)
-        formula.Add(t2 > 0)  # Disallow division by zero
-        return xs
+        return _divmod(formula, *self.args)[0]
 
     def __len__(self):
-        return len(self.args[0])
+        return _integer_width(self.args[0]) + 1
 
 class TupleMod(TupleCompositeExpr):
     @cached_evaluate
     def evaluate(self, formula):
         t1, t2 = self.args
-        # Optimization: Turn '(x ** y) % n' into pow(x,y,n)
+        # Turn '(x ** y) % n' into pow(x,y,n).
         if isinstance(t1, TuplePow) and t1.args[2] is None:
             return TuplePow(t1.args[0], t1.args[1], t2).evaluate(formula)
-        # if t1 % t2 == y, then t2 * x + y == t1, where 0 <= y < t2
-        x = Tuple(*[formula.AddVar() for i in range(len(t1))])
-        ys = [formula.AddVar() for i in range(len(t2))]
-        y = Tuple(*ys)
-        formula.Add(t2 * x + y == t1)
-        formula.Add(y < t2)
-        formula.Add(t2 > 0)  # Disallow mod by zero
-        return ys
+        return _divmod(formula, t1, t2)[1]
 
     def __len__(self):
-        return len(self.args[1])
+        return _integer_width(self.args[1])
 
 class TuplePow(TupleCompositeExpr):
     @cached_evaluate
     def evaluate(self, formula):
         base, power, mod = self.args
-        base = base.evaluate(formula)
-        power = power.evaluate(formula)
+        accum = Integer(*_integer_bits(base, formula))
+        formula.Add(power >= 0)
+        power = _integer_bits(power, formula)[1:]
         if mod is not None:
-            mod = Integer(*mod.evaluate(formula))
+            mod = Integer(*_integer_bits(mod, formula))
 
         result = Integer(1)
-        accum = Integer(*base)
+        if not power and mod is not None:
+            return (result % mod).evaluate(formula)
         for bit in reversed(power):
             result = result * If(bit, accum, Integer(1))
             accum = accum * accum
@@ -505,9 +531,10 @@ class TuplePow(TupleCompositeExpr):
 
     def __len__(self):
         base, power, mod = self.args
-        if mod is None:
-            return int(math.floor(len(power) * math.log2(len(base))) + 1)
-        return len(mod)
+        if mod is not None:
+            return _integer_width(mod)
+        max_power = 2 ** (_integer_width(power) - 1) - 1
+        return _integer_width(base) * max_power + 3
 
 class Tuple(TupleExpr):
     def __init__(self, *exprs):
@@ -525,15 +552,29 @@ class Tuple(TupleExpr):
         return tuple(self.exprs)
 
 class Integer(Tuple):
+    _is_integer = True
+
+    @staticmethod
+    def bits_needed_for_range(minimum, maximum):
+        """Smallest two's-complement width for the inclusive range."""
+        if type(minimum) is not int or type(maximum) is not int:
+            raise TypeError('Integer bounds must be integers')
+        if minimum > maximum:
+            raise ValueError('Minimum must not exceed maximum')
+        negative_bits = (~minimum).bit_length() if minimum < 0 else 0
+        positive_bits = maximum.bit_length() if maximum > 0 else 0
+        return max(negative_bits, positive_bits) + 1
+
     def __init__(self, *values):
+        if not values:
+            values = (0,)
         if len(values) == 1 and type(values[0]) == int:
             value = values[0]
-            assert value >= 0, 'Only positive integers are supported. Got {}'.format(value)
-            bitstring = bin(value)[2:]
-            m = {'0': False, '1': True}
-            self.exprs = [BooleanLiteral(m[ch]) for ch in bitstring]
+            width = self.bits_needed_for_range(value, value)
+            bitstring = format(value % (1 << width), '0{}b'.format(width))
+            self.exprs = [BooleanLiteral(ch == '1') for ch in bitstring]
         elif len(values) == 1 and type(values[0]) == tuple:
-            self.exprs = values[0]
+            self.exprs = values[0] or (BooleanLiteral(False),)
         else:
             self.exprs = values
 
@@ -562,15 +603,18 @@ class TupleTernaryExpr(Tuple):
     def __repr__(self):
         return '{}({},{},{})'.format(self.__class__.__name__, self.cond, self.if_true, self.if_false)
 
+    @property
+    def _is_integer(self):
+        return self.if_true._is_integer or self.if_false._is_integer
+
     def __len__(self):
+        if self._is_integer:
+            return max(_integer_width(self.if_true), _integer_width(self.if_false))
         return max(len(self.if_true), len(self.if_false))
 
     @cached_evaluate
     def evaluate(self, formula):
-        t1 = self.if_true.evaluate(formula)
-        t2 = self.if_false.evaluate(formula)
-        t1 = lpad(t1, len(t2) - len(t1))
-        t2 = lpad(t2, len(t1) - len(t2))
+        t1, t2 = _comparison_bits(self.if_true, self.if_false, formula)
         cond = self.cond.generate_var(formula)
         return [BooleanTernaryExpr(cond, t1[i], t2[i]).generate_var(formula) for i in range(len(t1))]
 
@@ -582,28 +626,42 @@ class CardinalityConstraint(NumExpr):
         return '{}({})'.format(self.__class__.__name__, ','.join(repr(e) for e in self.exprs))
 
 class NumTrue(CardinalityConstraint, TupleExpr):
+    _is_integer = True
+
+    def __len__(self):
+        return len(self.exprs).bit_length() + 1
+
     def evaluate(self, formula):
-        if len(self.exprs) == 0:
-            return Integer(0)
-        indicators = [If(v, Integer(1), Integer(0)).evaluate(formula) for v in self.exprs]
+        if not self.exprs:
+            return Integer(0).evaluate(formula)
+        indicators = [[BooleanLiteral(False), expr.generate_var(formula)] for expr in self.exprs]
         return reduce_evaluated(tuple_add, indicators, formula)
 
 class NumFalse(CardinalityConstraint, TupleExpr):
+    _is_integer = True
+
+    def __len__(self):
+        return len(self.exprs).bit_length() + 1
+
     def evaluate(self, formula):
-        if len(self.exprs) == 0:
-            return Integer(0)
-        indicators = [If(v, Integer(0), Integer(1)).evaluate(formula) for v in self.exprs]
+        if not self.exprs:
+            return Integer(0).evaluate(formula)
+        indicators = [[BooleanLiteral(False), ~expr.generate_var(formula)] for expr in self.exprs]
         return reduce_evaluated(tuple_add, indicators, formula)
 
 _BINARY_COUNT_MIN_SIZE = 64
 _BINARY_COUNT_MIN_TARGET = 16
 
 def _cardinality_bound(count, bound, relation):
+    if type(bound) is int and bound < 0:
+        return Integer(bound)
     if not isinstance(bound, Integer) or not all(isinstance(bit, BooleanLiteral) for bit in bound.exprs):
         return bound
     value = 0
     for bit in bound.exprs:
         value = 2 * value + bit.val
+    if bound._is_integer and bound.exprs[0].val:
+        return bound
     size = len(count.exprs)
     # Keep the arithmetic encoding where literal-int bounds would raise.
     if value > size or (relation is TupleLt and value == 0) or (relation is TupleGt and value == size):

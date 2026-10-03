@@ -3,7 +3,7 @@ from cnfc import *
 
 import argparse
 
-NUM_BITS=4  # Need enough to encode integers 1-10
+NUM_BITS = Integer.bits_needed_for_range(1, 10)
 
 def encode():
     formula = Formula()
@@ -49,13 +49,12 @@ def encode():
 
 
 def print_solution(sol, *extra_args):
-    num_bits = extra_args[0]
-    a = sol.integer('a', num_bits)
-    b = sol.integer('b', num_bits)
-    c = sol.integer('c', num_bits)
-    d = sol.integer('d', num_bits)
-    e = sol.integer('e', num_bits)
-    f = sol.integer('f', num_bits)
+    a = sol.integer('a')
+    b = sol.integer('b')
+    c = sol.integer('c')
+    d = sol.integer('d')
+    e = sol.integer('e')
+    f = sol.integer('f')
     print(f'A = {a}\nB = {b}\nC = {c}\nD = {d}\nE = {e}\nF = {f}')
 
 
@@ -69,4 +68,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[NUM_BITS])
+        formula.WriteExtractor(f, print_solution, [], extra_args=[])

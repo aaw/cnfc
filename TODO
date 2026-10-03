@@ -4,4 +4,3 @@
 * Generate a bash script for sat generation/solving/extracting
 * Implement Formula.WriteCubedCnf(fd, vars)
 * Add a Formula.WriteBlocker method to write a blocking solution extractor
-* Support negative integers with twos-complement representation.

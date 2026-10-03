@@ -6,9 +6,8 @@ from cnfc import *
 
 import argparse
 
-# None of x1, x2, x3, x4, x5, x6 need to be more than 3 bits, since
-# the minimum coefficient is 215 and 215 * 8 > 1505.
-BITLENGTH = 3
+# The cheapest item bounds the number of items we can buy.
+BITLENGTH = Integer.bits_needed_for_range(0, 1505 // 215)
 
 def encode_equation_as_sat():
     formula = Formula()
@@ -18,17 +17,18 @@ def encode_equation_as_sat():
     x4 = Integer(formula.AddVars('x4', BITLENGTH))
     x5 = Integer(formula.AddVars('x5', BITLENGTH))
     x6 = Integer(formula.AddVars('x6', BITLENGTH))
+    for x in (x1, x2, x3, x4, x5, x6):
+        formula.Add(x >= 0)
     formula.Add(215*x1 + 275*x2 + 335*x3 + 355*x4 + 420*x5 + 580*x6 == 1505)
     return formula
 
 def print_solution(sol, *extra_args):
-    bitlength = extra_args[0]
-    x1 = sol.integer('x1', bitlength)
-    x2 = sol.integer('x2', bitlength)
-    x3 = sol.integer('x3', bitlength)
-    x4 = sol.integer('x4', bitlength)
-    x5 = sol.integer('x5', bitlength)
-    x6 = sol.integer('x6', bitlength)
+    x1 = sol.integer('x1')
+    x2 = sol.integer('x2')
+    x3 = sol.integer('x3')
+    x4 = sol.integer('x4')
+    x5 = sol.integer('x5')
+    x6 = sol.integer('x6')
     print('(2.15 * {}) + (2.75 * {}) + (3.35 * {}) + (3.55 * {}) + (4.20 * {}) + (5.80 * {}) = 15.05'.format(x1,x2,x3,x4,x5,x6))
 
 if __name__ == '__main__':
@@ -41,4 +41,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[BITLENGTH])
+        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[])

@@ -688,7 +688,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
     def test_compound_inequality(self):
         f = Formula()
         x,y = f.AddVars('x y')
-        i = Integer(*[x,y])
+        i = Integer(BooleanLiteral(False), x, y)
 
         f.PushCheckpoint()
         f.Add(Integer(1) < i < Integer(2))
@@ -1028,8 +1028,8 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_repeated_arithmetic_expression(self):
         f = Formula()
-        x = Integer(f.AddVars('x', 2))
-        y = Integer(f.AddVars('y', 2))
+        x = Integer(f.AddVars('x', Integer.bits_needed_for_range(0, 3)))
+        y = Integer(f.AddVars('y', Integer.bits_needed_for_range(0, 3)))
         product = x * y
         f.Add(x == 2)
         f.Add(y == 3)
@@ -1055,7 +1055,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_arithmetic_expression_after_checkpoint(self):
         f = Formula()
-        x = Integer(f.AddVars('x', 2))
+        x = Integer(f.AddVars('x', Integer.bits_needed_for_range(0, 3)))
         total = x + 1
 
         f.PushCheckpoint()
@@ -1070,7 +1070,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_repeated_arithmetic_without_cache(self):
         f = Formula(use_expression_cache=False)
-        x = Integer(f.AddVars('x', 2))
+        x = Integer(f.AddVars('x', Integer.bits_needed_for_range(0, 3)))
         total = x + 1
         f.Add(x == 2)
         f.Add(total == 3)
@@ -1090,7 +1090,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_arithmetic_expression_after_analysis(self):
         f = Formula()
-        x = Integer(f.AddVars('x', 2))
+        x = Integer(f.AddVars('x', Integer.bits_needed_for_range(0, 3)))
         total = x + 1
         f.Analyze(total == 3)
 
@@ -1100,7 +1100,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_arithmetic_condition_uses_current_regex(self):
         f = Formula()
-        matches = RegexMatch(Integer(1), "1")
+        matches = RegexMatch(Integer(1), "0*1")
         result = If(matches, Integer(1), Integer(0))
         f.Add(result == 1)
         self.assertSat(f)
@@ -1111,7 +1111,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_repeated_division_and_remainder(self):
         f = Formula()
-        x = Integer(f.AddVars('x', 3))
+        x = Integer(f.AddVars('x', Integer.bits_needed_for_range(0, 7)))
         quotient = x // 3
         remainder = x % 3
         f.Add(x == 7)
@@ -1124,7 +1124,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_arithmetic_expression_after_nested_checkpoints(self):
         f = Formula()
-        x = Integer(f.AddVars('x', 2))
+        x = Integer(f.AddVars('x', Integer.bits_needed_for_range(0, 3)))
         total = x + 1
 
         f.PushCheckpoint()
@@ -1249,7 +1249,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         # (x2,x1,x0) == 100b == 4. Does this equal 2 * 2?
 
         f.PushCheckpoint()
-        f.Add(Integer(x2, x1, x0) == Integer(2) * Integer(2))
+        f.Add(Integer(BooleanLiteral(False), x2, x1, x0) == Integer(2) * Integer(2))
         self.assertSat(f)
         f.PopCheckpoint()
 
@@ -1308,7 +1308,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f = Formula()
         x1, x0 = f.AddVars('x1 x0')
         f.Add(x1); f.Add(x0)
-        three = Integer(x1, x0)  # (x1, x0) == 11b == 3
+        three = Integer(BooleanLiteral(False), x1, x0)  # (x1, x0) == 11b == 3
 
         f.PushCheckpoint()
         f.Add(three == Integer(21) // Integer(7))
@@ -1335,7 +1335,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         one = Integer(c, d)  # (c, d) == 01b == 1
 
         f.Add(e); f.Add(~g)
-        two = Integer(e, g)  # (e, g) == 10b == 2
+        two = Integer(BooleanLiteral(False), e, g)  # (e, g) == 10b == 2
 
         f.PushCheckpoint()
         f.Add(zero == Integer(21) % Integer(3))
@@ -1359,7 +1359,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_integer_rmod(self):
         f = Formula()
-        num_bits = 1
+        num_bits = Integer.bits_needed_for_range(0, 1)
         divisor = Integer(*(f.AddVar(f'divisor:{i}') for i in range(num_bits)))
         num2 = Integer(*(f.AddVar(f'cell:{i}') for i in range(num_bits)))
         f.Add(2 % divisor == 0)
@@ -1371,7 +1371,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
         # a TupleCompositeExpr correctly, so (num1 * 4) below was too small (it needs to
         # be at least 4 bits to hold 2*4 = 8) and the formula was incorrectly UNSAT.
         formula = Formula()
-        num_bits = 2
+        num_bits = Integer.bits_needed_for_range(0, 3)
         num1 = Integer(*(formula.AddVar(f'num1:{i}') for i in range(num_bits)))
         divisor = Integer(*(formula.AddVar(f'divisor:{i}') for i in range(num_bits)))
         formula.Add(num1 == 2)
@@ -1604,8 +1604,8 @@ class TestFormula(unittest.TestCase, SatTestCase):
                     for result in range(4):
                         f = Formula()
                         a = f.AddVar('a')
-                        b = Integer(f.AddVars('b', 2))
-                        c = Integer(f.AddVars('c', 2))
+                        b = Integer(f.AddVars('b', Integer.bits_needed_for_range(0, 3)))
+                        c = Integer(f.AddVars('c', Integer.bits_needed_for_range(0, 3)))
                         f.Add(a if condition else ~a)
                         f.Add(b == true_value)
                         f.Add(c == false_value)
@@ -1718,7 +1718,7 @@ class TestFormula(unittest.TestCase, SatTestCase):
 
     def test_negated_regex_match_rejects_matching_input(self):
         f = Formula()
-        f.Add(Not(RegexMatch(Integer(1), "1")))
+        f.Add(Not(RegexMatch(Integer(1), "0*1")))
         self.assertUnsat(f)
 
     def test_negated_regex_match_accepts_nonmatching_input(self):

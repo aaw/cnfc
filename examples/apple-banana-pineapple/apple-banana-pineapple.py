@@ -10,8 +10,9 @@ from cnfc import *
 
 import argparse
 
-# This is enough bits to hold the known smallest known solution.
-BITLENGTH = 270
+# Enough capacity for the known solution, with room to search.
+MAX_VALUE = 10**81 - 1
+BITLENGTH = Integer.bits_needed_for_range(1, MAX_VALUE)
 
 def encode_equation_as_sat():
     formula = Formula(FileBuffer)
@@ -28,10 +29,9 @@ def encode_equation_as_sat():
     return formula
 
 def print_solution(sol, *extra_args):
-    bitlength = extra_args[0]
-    a = sol.integer('a', bitlength)
-    b = sol.integer('b', bitlength)
-    c = sol.integer('c', bitlength)
+    a = sol.integer('a')
+    b = sol.integer('b')
+    c = sol.integer('c')
     print('a = {}'.format(a))
     print('b = {}'.format(b))
     print('c = {}'.format(c))
@@ -46,4 +46,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[BITLENGTH])
+        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[])
