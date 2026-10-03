@@ -7,6 +7,111 @@ import itertools
 import unittest
 
 class TestCardinality(unittest.TestCase, SatTestCase):
+    def test_large_true_count(self):
+        f = Formula()
+        xs = f.AddVars('x', 64)
+        for x in xs[:16]:
+            f.Add(x)
+        for x in xs[16:]:
+            f.Add(~x)
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(*xs) == 16)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(*xs) == 15)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumTrue(*xs) == 17)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_large_false_count(self):
+        f = Formula()
+        xs = f.AddVars('x', 64)
+        for x in xs[:16]:
+            f.Add(x)
+        for x in xs[16:]:
+            f.Add(~x)
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(*xs) == 48)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(*xs) == 47)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(*xs) == 49)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_large_count_not_equal(self):
+        f = Formula()
+        xs = f.AddVars('x', 64)
+        for x in xs[:16]:
+            f.Add(x)
+        for x in xs[16:]:
+            f.Add(~x)
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(*xs) != 48)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(*xs) != 47)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(*xs) != 49)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_negated_large_count_equality(self):
+        f = Formula()
+        xs = f.AddVars('x', 64)
+        for x in xs[:16]:
+            f.Add(x)
+        for x in xs[16:]:
+            f.Add(~x)
+
+        f.PushCheckpoint()
+        f.Add(Not(NumTrue(*xs) == 16))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Not(NumTrue(*xs) == 17))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_negated_large_count_inequality(self):
+        f = Formula()
+        xs = f.AddVars('x', 64)
+        for x in xs[:16]:
+            f.Add(x)
+        for x in xs[16:]:
+            f.Add(~x)
+
+        f.PushCheckpoint()
+        f.Add(Not(NumFalse(*xs) != 48))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Not(NumFalse(*xs) != 47))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
     def test_exactly_two_false_among_six(self):
         f = Formula()
         a,b,c,d,e,g = f.AddVars('a b c d e g')

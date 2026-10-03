@@ -595,9 +595,23 @@ class NumFalse(CardinalityConstraint, TupleExpr):
         indicators = [If(v, Integer(0), Integer(1)).evaluate(formula) for v in self.exprs]
         return reduce_evaluated(tuple_add, indicators, formula)
 
+_BINARY_COUNT_MIN_SIZE = 64
+_BINARY_COUNT_MIN_TARGET = 16
+
+def _cardinality_equality_bound(count, bound):
+    if type(bound) is not int:
+        return bound
+    size = len(count.exprs)
+    if size >= _BINARY_COUNT_MIN_SIZE and min(bound, size - bound) >= _BINARY_COUNT_MIN_TARGET:
+        return Integer(bound)
+    return bound
+
 def generate_cardinality_var(instance, formula, relation):
-    if type(instance.second) is not int:
-        return relation(instance.first, instance.second).generate_var(formula)
+    bound = instance.second
+    if relation in (TupleEq, TupleNeq):
+        bound = _cardinality_equality_bound(instance.first, bound)
+    if type(bound) is not int:
+        return relation(instance.first, bound).generate_var(formula)
 
     vs = [expr.generate_var(formula) for expr in instance.first.exprs]
     if isinstance(instance.first, NumFalse):
@@ -651,8 +665,9 @@ class NumEq(OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleEq)
 
     def generate_cnf(self, formula):
-        if not type(self.second) is int:
-            yield from TupleEq(self.first, self.second).generate_cnf(formula)
+        bound = _cardinality_equality_bound(self.first, self.second)
+        if type(bound) is not int:
+            yield from TupleEq(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
@@ -669,8 +684,9 @@ class NumNeq(OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleNeq)
 
     def generate_cnf(self, formula):
-        if not type(self.second) is int:
-            yield from TupleNeq(self.first, self.second).generate_cnf(formula)
+        bound = _cardinality_equality_bound(self.first, self.second)
+        if type(bound) is not int:
+            yield from TupleNeq(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):

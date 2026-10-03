@@ -4,13 +4,5 @@
 * Generate a bash script for sat generation/solving/extracting
 * Implement Formula.WriteCubedCnf(fd, vars)
 * Add a Formula.WriteBlocker method to write a blocking solution extractor
-* NumTrue/NumFalse are specialized for comparisons with int so that "NumTrue(*varz) >= Integer(1)"
-  sums up all the variables in varz that are true and compares it to the binary representation of 1,
-  but "NumTrue(*varz) >= 1" generates something simpler like an OR of varz. For larger int, we will
-  generate a selection network, but it's not clear if that's more efficient that just computing the
-  sum of the varz. Test and remove all the selection network code if it isn't dramatically more
-  efficient.
+* Use literal-int cardinality encodings for constant Integer bounds.
 * Support negative integers with twos-complement representation.
-* Audit use of formula.Add/formula.AddClause in subcalls, especially stuff like reduce_evaluated
-  which should probably be yielding instead so they can be composed? Should be easy to test with
-  some nested calls. Also a few instances in model.py in pow/mod, etc.
