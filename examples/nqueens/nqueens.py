@@ -30,7 +30,7 @@ def encode(n):
         formula.Add(NumTrue(*diagonal) <= 1)
     for diagonal in backward.values():
         formula.Add(NumTrue(*diagonal) <= 1)
-    return formula
+    return formula, list(vs.values())
 
 def print_solution(sol, *extra_args):
     n = extra_args[0]
@@ -46,11 +46,15 @@ if __name__ == '__main__':
     parser.add_argument('n', type=str, help="Number of queens (also width and height of chessboard).")
     parser.add_argument('outfile', type=str, help='Path to output CNF file.')
     parser.add_argument('extractor', type=str, help='Path to output extractor script.')
+    parser.add_argument('--blocker', help='Path to output solution blocker script.')
     args = parser.parse_args()
 
     n = int(args.n)
-    formula = encode(n)
+    formula, board_vars = encode(n)
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
         formula.WriteExtractor(f, print_solution, extra_args=[n])
+    if args.blocker:
+        with open(args.blocker, 'w') as f:
+            formula.WriteBlocker(f, board_vars)

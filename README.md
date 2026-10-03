@@ -201,6 +201,7 @@ In addition, `cnfc` supports:
    * Automatic expression sharing: repeated boolean and arithmetic expressions reuse their encodings, keeping formulas smaller.
    * Disk-backed generation: for larger formulas that may not fit in memory, `Formula(FileBuffer)` stores clauses on disk during generation.
    * Temporary constraints: `PushCheckpoint()` and `PopCheckpoint()` let you add constraints, solve, then remove them.
+   * Solution blocking: `WriteBlocker()` generates a script to exclude a solution and find another (see [examples/nqueens](examples/nqueens)).
    * Preprocessing: `Formula.Simplify()` removes redundant clauses and propagates forced assignments.
    * Zero-dependency solving: Solve in pure Python with [millisat](https://github.com/aaw/millisat) and `Formula.Solve()` or
      generate DIMACS CNF and bring your own SAT solver.

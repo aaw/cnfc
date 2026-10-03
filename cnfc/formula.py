@@ -1,6 +1,7 @@
 from .model import Var, Literal, BooleanLiteral
 from .buffer import *
 from .extractor import generate_extractor
+from .blocker import generate_blocker
 from .millisat import Solver
 from .simplify import *
 from .log import logger
@@ -94,6 +95,9 @@ class Formula:
 
     def WriteExtractor(self, fd, extractor_fn, extra_fns=None, extra_args=None):
         generate_extractor(fd, extractor_fn, extra_fns, extra_args)
+
+    def WriteBlocker(self, fd, vars):
+        generate_blocker(fd, [var.vid for var in vars])
 
     def Solve(self):
         clauses = list(self.buffer.AllClauses())
