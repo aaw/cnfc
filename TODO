@@ -1,4 +1,3 @@
-* Better multiplication than just repeated addition, re-try ladner-fischer
 * Rename generate_var, generate_cnf to evaluate*
 * Rewrite integer division comparisons against constants into multiplication bounds to avoid encoding the quotient.
 * Generate a bash script for sat generation/solving/extracting
