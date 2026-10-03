@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from itertools import combinations
 
 # Path to the examples directory
 EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), '..', 'examples')
@@ -55,6 +56,8 @@ def solve_cnf(cnf_path, solver_output_path):
         text=True,
         timeout=60
     )
+    if result.returncode not in (10, 20):
+        raise RuntimeError(f"Solver failed: {result.stderr}")
     # Write combined stdout to file (millisat outputs both 'v' lines and 's' line to stdout)
     with open(solver_output_path, 'w') as f:
         f.write(result.stdout)
@@ -77,6 +80,9 @@ def run_extractor(extractor_path, cnf_path, solver_output_path):
         text=True,
         timeout=30
     )
+    if result.returncode != 0:
+        if result.returncode != 1 or result.stdout.strip() != 'UNSATISFIABLE' or result.stderr:
+            raise RuntimeError(f"Extractor failed: {result.stderr}")
     return result.stdout + result.stderr
 
 
@@ -107,6 +113,226 @@ class TestExamplesIntegration(unittest.TestCase):
 
             # Run extractor
             return run_extractor(extractor_path, cnf_path, solver_output_path)
+
+    def test_scheduling(self):
+        output = run_example('scheduling', []).stdout
+        self.assertTrue(output.strip())
+        self.assertNotIn('UNSATISFIABLE', output)
+
+    def test_six_variable_logic_puzzle(self):
+        output = self.run_example_end_to_end(
+            'six-variable-logic-puzzle',
+            lambda cnf, ext: [cnf, ext]
+        )
+        values = dict((name, int(value)) for name, value in re.findall(r'([A-F]) = (\d+)', output))
+        self.assertEqual(set(values), {'A', 'B', 'C', 'D', 'E', 'F'})
+        self.assertEqual(len(set(values.values())), 6)
+        for value in values.values():
+            self.assertGreaterEqual(value, 1)
+            self.assertLessEqual(value, 10)
+
+        a,b,c,d,e,f = [values[name] for name in 'ABCDEF']
+        self.assertEqual(b - d, 2)
+        self.assertEqual(f + a, 11)
+        self.assertLess(d, a)
+        self.assertLess(a, c)
+        self.assertEqual(c - a, 1)
+        for first, second in combinations(values.values(), 2):
+            self.assertNotEqual(first + second, 14)
+            self.assertNotEqual(first + second, 5)
+
+    def test_superpermutation_three_symbols(self):
+        output = self.run_example_end_to_end(
+            'superpermutation',
+            lambda cnf, ext: ['3', '9', cnf, ext]
+        )
+        word = output.strip()
+        self.assertEqual(len(word), 9)
+        self.assertEqual(set(word), {'1', '2', '3'})
+        self.assertIn('123', word)
+        self.assertIn('132', word)
+        self.assertIn('213', word)
+        self.assertIn('231', word)
+        self.assertIn('312', word)
+        self.assertIn('321', word)
+
+    def test_superpermutation_eight_positions_is_too_short(self):
+        output = self.run_example_end_to_end(
+            'superpermutation',
+            lambda cnf, ext: ['3', '8', cnf, ext]
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
+    def test_trifference_four_words(self):
+        output = self.run_example_end_to_end(
+            'trifference',
+            lambda cnf, ext: ['2', '4', cnf, ext]
+        )
+        self.assertTrue(output.strip().startswith('{'))
+        self.assertTrue(output.strip().endswith('}'))
+        words = output.strip()[1:-1].split(', ')
+        self.assertEqual(len(words), 4)
+        self.assertEqual(len(set(words)), 4)
+        for word in words:
+            self.assertEqual(len(word), 2)
+            self.assertTrue(set(word) <= {'0', '1', '2'})
+        for first, second, third in combinations(words, 3):
+            different_first = len({first[0], second[0], third[0]}) == 3
+            different_second = len({first[1], second[1], third[1]}) == 3
+            self.assertTrue(different_first or different_second)
+
+    def test_trifference_five_words_is_impossible(self):
+        output = self.run_example_end_to_end(
+            'trifference',
+            lambda cnf, ext: ['2', '5', cnf, ext]
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
+    def test_no_three_in_line(self):
+        output = self.run_example_end_to_end(
+            'no-three-in-line',
+            lambda cnf, ext: ['4', cnf, ext]
+        )
+        rows = [line.split('───') for line in output.splitlines() if '●' in line or '┼' in line]
+        self.assertEqual(len(rows), 4)
+        positions = []
+        for r, row in enumerate(rows):
+            self.assertEqual(len(row), 4)
+            for c, cell in enumerate(row):
+                self.assertIn(cell, ['●', '┼'])
+                if cell == '●':
+                    positions.append((r, c))
+        self.assertEqual(len(positions), 8)
+        for (r1,c1), (r2,c2), (r3,c3) in combinations(positions, 3):
+            # Equal slopes mean the three points lie on a line.
+            self.assertNotEqual((r2-r1)*(c3-c1), (r3-r1)*(c2-c1))
+
+    def test_strongly_regular_graph_five_cycle(self):
+        output = self.run_example_end_to_end(
+            'strongly-regular-graph',
+            lambda cnf, ext: ['5', '2', '0', '1', cnf, ext]
+        )
+        edges = [(int(u), int(v)) for u, v in re.findall(r'\{(\d+),(\d+)\}', output)]
+        self.assertEqual(len(edges), 5)
+        self.assertEqual(len(set(edges)), 5)
+        neighbors = [set() for _ in range(5)]
+        for u, v in edges:
+            self.assertIn(u, range(5))
+            self.assertIn(v, range(5))
+            self.assertNotEqual(u, v)
+            neighbors[u].add(v)
+            neighbors[v].add(u)
+        for adjacent in neighbors:
+            self.assertEqual(len(adjacent), 2)
+        for u, v in combinations(range(5), 2):
+            common_neighbors = neighbors[u] & neighbors[v]
+            if v in neighbors[u]:
+                self.assertEqual(len(common_neighbors), 0)
+            else:
+                self.assertEqual(len(common_neighbors), 1)
+
+    def test_strongly_regular_graph_odd_degree_sum_is_impossible(self):
+        output = self.run_example_end_to_end(
+            'strongly-regular-graph',
+            lambda cnf, ext: ['5', '3', '0', '1', cnf, ext]
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
+    def test_minesweeper_four_by_four_is_too_small(self):
+        # Nine numbered cells leave seven mines, so an 8 cannot appear.
+        output = self.run_example_end_to_end(
+            'minesweeper',
+            lambda cnf, ext: ['1', '4', cnf, ext]
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
+    def test_cuboid_three_bits_has_no_solution(self):
+        output = self.run_example_end_to_end(
+            'cuboid',
+            lambda cnf, ext: ['3', cnf, ext]
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
+    def test_complex_matrix_one_product_is_insufficient(self):
+        output = self.run_example_end_to_end(
+            'complex-matrix-multiplications',
+            lambda cnf, ext: ['1', cnf, ext]
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
+    def test_matrix_multiplications_two_by_two(self):
+        output = self.run_example_end_to_end(
+            'matrix-multiplications',
+            lambda cnf, ext: ['2', '8', cnf, ext]
+        )
+        a = [[1, 2], [3, 4]]
+        b = [[5, 6], [7, 8]]
+        products = {}
+        for number, a_terms, b_terms in re.findall(r'm_(\d+) = \((.*)\) \* \((.*)\)', output):
+            a_sum = 0
+            for sign, row, col in re.findall(r'(-?)a_\{([12]),([12])\}', a_terms):
+                value = a[int(row)-1][int(col)-1]
+                a_sum += -value if sign == '-' else value
+            b_sum = 0
+            for sign, row, col in re.findall(r'(-?)b_\{([12]),([12])\}', b_terms):
+                value = b[int(row)-1][int(col)-1]
+                b_sum += -value if sign == '-' else value
+            products[int(number)] = a_sum * b_sum
+        self.assertEqual(set(products), set(range(8)))
+
+        result = {}
+        for row, col, terms in re.findall(r'C_\{([12]),([12])\} = (.*)', output):
+            total = 0
+            for sign, number in re.findall(r'(-?)m_(\d+)', terms):
+                value = products[int(number)]
+                total += -value if sign == '-' else value
+            result[(int(row), int(col))] = total
+        self.assertEqual(result, {(1,1): 19, (1,2): 22, (2,1): 43, (2,2): 50})
+
+    def test_tournament_scheduling(self):
+        output = self.run_example_end_to_end(
+            'tournament-scheduling',
+            lambda cnf, ext: [cnf, ext, '--teams', '4', '--rounds', '2', '--players', '8']
+        )
+        pattern = (r'Round (\d+): \((\d+), (\d+)\) vs \((\d+), (\d+)\), '
+                   r'\((\d+), (\d+)\) vs \((\d+), (\d+)\)')
+        rounds = re.findall(pattern, output)
+        self.assertEqual([int(round_[0]) for round_ in rounds], [1, 2])
+        teammates = set()
+        opponents = set()
+        for round_ in rounds:
+            players = [int(player) for player in round_[1:]]
+            self.assertEqual(set(players), set(range(1, 9)))
+            teams = [players[0:2], players[2:4], players[4:6], players[6:8]]
+            for team in teams:
+                pair = tuple(sorted(team))
+                self.assertNotIn(pair, teammates)
+                teammates.add(pair)
+            for first, second in [(teams[0], teams[1]), (teams[2], teams[3])]:
+                for player1 in first:
+                    for player2 in second:
+                        pair = tuple(sorted((player1, player2)))
+                        self.assertNotIn(pair, opponents)
+                        opponents.add(pair)
+
+    def test_boggle(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            words_path = os.path.join(tmpdir, 'words.txt')
+            with open(words_path, 'w') as f:
+                f.write('cat\ncar\n')
+            output = self.run_example_end_to_end(
+                'boggle',
+                lambda cnf, ext: ['2', '--dice', 'classic', '--rows', '2', '--cols', '2',
+                                 '--words', words_path, cnf, ext]
+            )
+        self.assertIn('CAT: 1 points', output)
+        self.assertIn('CAR: 1 points', output)
+        self.assertIn('Total score: 2', output)
+        board = [row.split() for row in output.strip().splitlines()[-2:]]
+        self.assertEqual(len(board[0]), 2)
+        self.assertEqual(len(board[1]), 2)
+        # Every cell in a 2x2 board touches every other cell, so both words exist.
+        self.assertEqual(set(board[0] + board[1]), {'C', 'A', 'T', 'R'})
 
     def test_xkcd287(self):
         """Test the xkcd287 Diophantine equation example."""

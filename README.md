@@ -208,8 +208,8 @@ In addition, `cnfc` supports:
 
 ## Installation
 
-cnfc is tested on [these versions](https://github.com/aaw/cnfc/blob/master/.github/workflows/python-package.yml#L17) of Python 3. To install
-the latest stable release of cnfc, run:
+cnfc is tested on [these versions](https://github.com/aaw/cnfc/blob/master/.github/workflows/python-package.yml#L17) of Python 3 and
+releases are [published to PyPI](https://pypi.org/project/cnfc/). To install the latest stable release of cnfc, run:
 
 ```
 pip install cnfc
