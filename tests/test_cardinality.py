@@ -7,6 +7,125 @@ import itertools
 import unittest
 
 class TestCardinality(unittest.TestCase, SatTestCase):
+    def test_constant_integer_minimum_true_count(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumTrue(a,b,c) >= Integer(1))
+        f.Add(~b)
+        f.Add(~c)
+        self.assertSat(f)
+        f.Add(~a)
+        self.assertUnsat(f)
+
+    def test_constant_integer_maximum_false_count(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumFalse(a,b,c) <= Integer(1))
+        f.Add(~a)
+        f.Add(b)
+        self.assertSat(f)
+        f.Add(~c)
+        self.assertUnsat(f)
+
+    def test_constant_integer_strict_minimum(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumTrue(a,b,c) > Integer(1))
+        f.Add(a)
+        f.Add(~b)
+        self.assertSat(f)
+        f.Add(~c)
+        self.assertUnsat(f)
+
+    def test_constant_integer_strict_maximum(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumFalse(a,b,c) < Integer(2))
+        f.Add(~a)
+        f.Add(b)
+        self.assertSat(f)
+        f.Add(~c)
+        self.assertUnsat(f)
+
+    def test_constant_integer_exact_count(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumTrue(a,b,c) == Integer(1))
+        f.Add(a)
+        f.Add(~b)
+        self.assertSat(f)
+        f.Add(c)
+        self.assertUnsat(f)
+
+    def test_constant_integer_not_equal_count(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(a)
+        f.Add(~b)
+        f.Add(~c)
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(a,b,c) != Integer(1))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(NumFalse(a,b,c) != Integer(2))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_negated_constant_integer_comparison(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(a)
+        f.Add(~b)
+        f.Add(~c)
+
+        f.PushCheckpoint()
+        f.Add(Not(NumTrue(a,b,c) >= Integer(1)))
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(Not(NumTrue(a,b,c) >= Integer(2)))
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+    def test_symbolic_integer_count_bound(self):
+        f = Formula()
+        a,b,bound_bit = f.AddVars('a b bound')
+        f.Add(a)
+        f.Add(~b)
+        f.Add(NumTrue(a,b) == Integer(bound_bit))
+
+        f.PushCheckpoint()
+        f.Add(bound_bit)
+        self.assertSat(f)
+        f.PopCheckpoint()
+
+        f.PushCheckpoint()
+        f.Add(~bound_bit)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+
+    def test_constant_integer_count_above_number_of_inputs(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumTrue(a,b,c) == Integer(4))
+        self.assertUnsat(f)
+
+    def test_constant_integer_strict_bound_at_zero(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumTrue(a,b,c) < Integer(0))
+        self.assertUnsat(f)
+
+    def test_constant_integer_strict_bound_at_number_of_inputs(self):
+        f = Formula()
+        a,b,c = f.AddVars('a b c')
+        f.Add(NumFalse(a,b,c) > Integer(3))
+        self.assertUnsat(f)
+
     def test_large_true_count(self):
         f = Formula()
         xs = f.AddVars('x', 64)

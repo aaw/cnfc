@@ -4,5 +4,4 @@
 * Generate a bash script for sat generation/solving/extracting
 * Implement Formula.WriteCubedCnf(fd, vars)
 * Add a Formula.WriteBlocker method to write a blocking solution extractor
-* Use literal-int cardinality encodings for constant Integer bounds.
 * Support negative integers with twos-complement representation.

@@ -598,6 +598,18 @@ class NumFalse(CardinalityConstraint, TupleExpr):
 _BINARY_COUNT_MIN_SIZE = 64
 _BINARY_COUNT_MIN_TARGET = 16
 
+def _cardinality_bound(count, bound, relation):
+    if not isinstance(bound, Integer) or not all(isinstance(bit, BooleanLiteral) for bit in bound.exprs):
+        return bound
+    value = 0
+    for bit in bound.exprs:
+        value = 2 * value + bit.val
+    size = len(count.exprs)
+    # Keep the arithmetic encoding where literal-int bounds would raise.
+    if value > size or (relation is TupleLt and value == 0) or (relation is TupleGt and value == size):
+        return bound
+    return value
+
 def _cardinality_equality_bound(count, bound):
     if type(bound) is not int:
         return bound
@@ -607,7 +619,7 @@ def _cardinality_equality_bound(count, bound):
     return bound
 
 def generate_cardinality_var(instance, formula, relation):
-    bound = instance.second
+    bound = _cardinality_bound(instance.first, instance.second, relation)
     if relation in (TupleEq, TupleNeq):
         bound = _cardinality_equality_bound(instance.first, bound)
     if type(bound) is not int:
@@ -618,7 +630,7 @@ def generate_cardinality_var(instance, formula, relation):
         vs = [~v for v in vs]
     elif not isinstance(instance.first, NumTrue):
         raise ValueError("Only NumTrue and NumFalse are supported.")
-    n, size = instance.second, len(vs)
+    n, size = bound, len(vs)
 
     if relation in (TupleEq, TupleNeq):
         if n < 0 or n > size:
@@ -665,15 +677,16 @@ class NumEq(OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleEq)
 
     def generate_cnf(self, formula):
-        bound = _cardinality_equality_bound(self.first, self.second)
+        bound = _cardinality_bound(self.first, self.second, TupleEq)
+        bound = _cardinality_equality_bound(self.first, bound)
         if type(bound) is not int:
             yield from TupleEq(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            n = self.second
+            n = bound
         elif isinstance(self.first, NumFalse):
-            n = len(vars) - self.second
+            n = len(vars) - bound
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
         yield from exactly_n_true(formula, vars, n)
@@ -684,15 +697,16 @@ class NumNeq(OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleNeq)
 
     def generate_cnf(self, formula):
-        bound = _cardinality_equality_bound(self.first, self.second)
+        bound = _cardinality_bound(self.first, self.second, TupleNeq)
+        bound = _cardinality_equality_bound(self.first, bound)
         if type(bound) is not int:
             yield from TupleNeq(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            n = self.second
+            n = bound
         elif isinstance(self.first, NumFalse):
-            n = len(vars) - self.second
+            n = len(vars) - bound
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
         yield from not_exactly_n_true(formula, vars, n)
@@ -703,14 +717,15 @@ class NumLt(_ChainableComparison, OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleLt)
 
     def generate_cnf(self, formula):
-        if not type(self.second) is int:
-            yield from TupleLt(self.first, self.second).generate_cnf(formula)
+        bound = _cardinality_bound(self.first, self.second, TupleLt)
+        if type(bound) is not int:
+            yield from TupleLt(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            yield from at_most_n_true(formula, vars, self.second-1)
+            yield from at_most_n_true(formula, vars, bound-1)
         elif isinstance(self.first, NumFalse):
-            yield from at_least_n_true(formula, vars, len(vars) - self.second + 1)
+            yield from at_least_n_true(formula, vars, len(vars) - bound + 1)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
@@ -720,14 +735,15 @@ class NumLe(_ChainableComparison, OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleLe)
 
     def generate_cnf(self, formula):
-        if not type(self.second) is int:
-            yield from TupleLe(self.first, self.second).generate_cnf(formula)
+        bound = _cardinality_bound(self.first, self.second, TupleLe)
+        if type(bound) is not int:
+            yield from TupleLe(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            yield from at_most_n_true(formula, vars, self.second)
+            yield from at_most_n_true(formula, vars, bound)
         elif isinstance(self.first, NumFalse):
-            yield from at_least_n_true(formula, vars, len(vars) - self.second)
+            yield from at_least_n_true(formula, vars, len(vars) - bound)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
@@ -737,14 +753,15 @@ class NumGt(_ChainableComparison, OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleGt)
 
     def generate_cnf(self, formula):
-        if not type(self.second) is int:
-            yield from TupleGt(self.first, self.second).generate_cnf(formula)
+        bound = _cardinality_bound(self.first, self.second, TupleGt)
+        if type(bound) is not int:
+            yield from TupleGt(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            yield from at_least_n_true(formula, vars, self.second+1)
+            yield from at_least_n_true(formula, vars, bound+1)
         elif isinstance(self.first, NumFalse):
-            yield from at_most_n_true(formula, vars, len(vars) - self.second - 1)
+            yield from at_most_n_true(formula, vars, len(vars) - bound - 1)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
@@ -754,14 +771,15 @@ class NumGe(_ChainableComparison, OrderedBinaryBoolExpr):
         return generate_cardinality_var(self, formula, TupleGe)
 
     def generate_cnf(self, formula):
-        if not type(self.second) is int:
-            yield from TupleGe(self.first, self.second).generate_cnf(formula)
+        bound = _cardinality_bound(self.first, self.second, TupleGe)
+        if type(bound) is not int:
+            yield from TupleGe(self.first, bound).generate_cnf(formula)
             return
         vars = [expr.generate_var(formula) for expr in self.first.exprs]
         if isinstance(self.first, NumTrue):
-            yield from at_least_n_true(formula, vars, self.second)
+            yield from at_least_n_true(formula, vars, bound)
         elif isinstance(self.first, NumFalse):
-            yield from at_most_n_true(formula, vars, len(vars) - self.second)
+            yield from at_most_n_true(formula, vars, len(vars) - bound)
         else:
             raise ValueError("Only NumTrue and NumFalse are supported.")
 
