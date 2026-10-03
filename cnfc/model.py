@@ -388,8 +388,6 @@ class TupleExpr:
 class TupleCompositeExpr(TupleExpr, ABC):
     def __init__(self, *args):
         self.args = [Integer(arg) if isinstance(arg, int) else arg for arg in args]
-        # TODO: dummy exprs to make asserts work, fix later when we don't do these asserts any more
-        self.exprs = [None]*(len(self.args[0]))
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, ','.join(map(str, self.args)))

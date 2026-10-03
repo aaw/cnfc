@@ -266,6 +266,9 @@ class TestSignedIntegers(unittest.TestCase, SatTestCase):
         f.Add(Integer(-2) ** 3 % 5 == -3)
         self.assertUnsat(f)
 
+    def test_construct_modular_power_with_large_exponent(self):
+        (Integer(2) ** Integer(1 << 63)) % 3
+
     def test_signed_exponent_must_be_nonnegative(self):
         f = Formula()
         exponent = Integer(f.AddVars('exponent', 3))
