@@ -5,8 +5,8 @@ compact DIMACS CNF encodings from higher-level primitives in Python. DIMACS CNF 
 the input format accepted by most SAT solvers.
 
 For simpler problems, cnfc comes bundled with an efficient pure Python
-[CDCL SAT solver](https://github.com/aaw/millisat) and a `Formula.Solve()`
-method that returns a solution without needing to build/install a SAT solver.
+[CDCL SAT solver](https://github.com/aaw/millisat) so you can solve a system
+of constraints without needing to build/install a SAT solver.
 
 For harder combinatorial problems that may take hours or days to solve, cnfc can also
 write DIMACS CNF files that you pass to an external solver of your choice. You get the
@@ -187,14 +187,25 @@ Runnable versions of these scripts are in the [examples subdirectory](examples) 
 
 ## Features
 
-Arbitrary clauses can be built, composed, and added to formulas with:
+Constraints can be built, composed, and added to formulas with:
 
-   * Familiar boolean operators `And`, `Or`, `Not`, `If`, `Eq`, `Neq`.
+   * Familiar boolean operators `And`, `Or`, `Not`, `If`, `Eq`, `Neq` with shortcuts (`&`, `|`, `~`, `==`, `!=`).
    * `Tuple`s that can be compared for equality, inequality, or lexicographic order.
    * Non-negative `Integer`s that can be added, multiplied, or compared (see [examples/prime](examples/prime)). `%`, `//`, and `**` are also supported. Subtraction is
-     supported as long as the result is non-negative (e.g., `Integer(1) - Integer(2) == x` is unsolvable.
+     supported as long as the result is non-negative (e.g., `Integer(1) - Integer(2) == x` is unsolvable.)
    * `NumTrue` and `NumFalse` for cardinality constraints (see [examples/nqueens](examples/nqueens)).
    * `RegexMatch` to apply binary regular expressions to `Tuple`s (see [examples/nonagram](examples/nonagram)).
+   * A ternary operator: `If(condition, x, y)` selects between integers, tuples, or boolean expressions based on `condition`.
+   * Higher-level [helper functions](cnfc/funcs.py) for working with `Integer`s like `Min` and `Max`.
+
+In addition, `cnfc` supports:
+
+   * Automatic expression sharing: repeated boolean and arithmetic expressions reuse their encodings, keeping formulas smaller.
+   * Disk-backed generation: for larger formulas that may not fit in memory, `Formula(FileBuffer)` stores clauses on disk during generation.
+   * Temporary constraints: `PushCheckpoint()` and `PopCheckpoint()` let you add constraints, solve, then remove them.
+   * Preprocessing: `Formula.Simplify()` removes redundant clauses and propagates forced assignments.
+   * Zero-dependency solving: Solve in pure Python with [millisat](https://github.com/aaw/millisat) and `Formula.Solve()` or
+     generate DIMACS CNF and bring your own SAT solver.
 
 ## Installation
 
