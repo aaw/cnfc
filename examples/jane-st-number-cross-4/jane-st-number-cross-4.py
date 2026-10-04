@@ -11,8 +11,8 @@
 # The encoding below takes advantage of the fact that even though there are
 # 2^11 = 2048 different ways to shade a row of 11 cells, only 54 of these
 # shadings are valid given the constraints about consecutive shaded cells and
-# unshaded run length. So we create a 4-bit integer variable for each cell
-# that represents its contents (0-9, or 10 to represent "shaded"). Then, for
+# unshaded run length. So we create a signed integer variable for each cell
+# that represents its contents (0-9, or -1 to represent "shaded"). Then, for
 # each row, we create 4 integer variables representing the contents of the
 # first, second, third, and fourth integers appearing in runs in that row.
 # We also create 4 boolean variables representing whether there exists a
@@ -34,10 +34,9 @@ import math
 
 # 11 x 11 grid coordinates.
 COORDS = [0,1,2,3,4,5,6,7,8,9,10]
-# Cells can be 0-9, so we use 10 to indicate shading.
-SHADED = Integer(10)
-# Enough bits to represent 0-9, plus 10 to indicate shading.
-CELL_BITS = Integer.bits_needed_for_range(0, 10)
+# Cells contain digits 0-9, or -1 to indicate shading.
+SHADED = Integer(-1)
+CELL_BITS = Integer.bits_needed_for_range(-1, 9)
 MAX_ROW_VALUE = 99999888776
 ROW_BITS = Integer.bits_needed_for_range(0, MAX_ROW_VALUE)
 ROOT_BITS = Integer.bits_needed_for_range(0, math.isqrt(MAX_ROW_VALUE))
@@ -102,7 +101,7 @@ def generate_mask_constraints(row, mask, cell_var, row_var):
     shaded = [i for i, val in enumerate(mask) if not val]
     runs = all_runs(mask)
 
-    # Constraint: Shaded cells are all set to 10.
+    # Constraint: Shaded cells are all set to -1.
     for i in shaded:
         conjuncts.append(cell_var[(row,i)] == SHADED)
 
@@ -159,7 +158,7 @@ def encode():
         for c in COORDS:
             # v:r:c:i is the ith bit of the number in row r, column c.
             i = Integer(*(formula.AddVar('v:{}:{}:{}'.format(r, c, i)) for i in range(CELL_BITS)))
-            formula.Add(0 <= i <= SHADED)
+            formula.Add(SHADED <= i <= 9)
             cell_var[(r,c)] = i
 
     # Row vars are tuples representing the integer value of a run, whether that
@@ -251,18 +250,10 @@ def encode():
     row11, row11on, _, _ = row_var[(1,1)]
     row12, row12on, _, _ = row_var[(1,2)]
     row13, row13on, _, _ = row_var[(1,3)]
-    p0 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p0 >= 0)
-    formula.Add(If(row10on, And(IsPalindrome(p0), p0 + Integer(1) == row10)))
-    p1 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p1 >= 0)
-    formula.Add(If(row11on, And(IsPalindrome(p1), p1 + Integer(1) == row11)))
-    p2 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p2 >= 0)
-    formula.Add(If(row12on, And(IsPalindrome(p2), p2 + Integer(1) == row12)))
-    p3 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p3 >= 0)
-    formula.Add(If(row13on, And(IsPalindrome(p3), p3 + Integer(1) == row13)))
+    formula.Add(If(row10on, IsPalindrome(row10 - Integer(1))))
+    formula.Add(If(row11on, IsPalindrome(row11 - Integer(1))))
+    formula.Add(If(row12on, IsPalindrome(row12 - Integer(1))))
+    formula.Add(If(row13on, IsPalindrome(row13 - Integer(1))))
 
     # Constraint: Row 2 is a prime raised to a prime.
     # This is the trickiest run constraint, since you can encode "not a prime" easily
@@ -320,25 +311,25 @@ def encode():
     formula.Add(x4a0 >= 0)
     x4b0 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
     formula.Add(x4b0 >= 0)
-    formula.Add(If(row40on, Or(x4a0 * x4a0 == five_n_squared0 + Integer(4), x4b0 * x4b0 + Integer(4) == five_n_squared0)))
+    formula.Add(If(row40on, Or(x4a0 * x4a0 == five_n_squared0 + Integer(4), x4b0 * x4b0 == five_n_squared0 - Integer(4))))
     five_n_squared1 = Integer(5) * row41 * row41
     x4a1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
     formula.Add(x4a1 >= 0)
     x4b1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
     formula.Add(x4b1 >= 0)
-    formula.Add(If(row41on, Or(x4a1 * x4a1 == five_n_squared1 + Integer(4), x4b1 * x4b1 + Integer(4) == five_n_squared1)))
+    formula.Add(If(row41on, Or(x4a1 * x4a1 == five_n_squared1 + Integer(4), x4b1 * x4b1 == five_n_squared1 - Integer(4))))
     five_n_squared2 = Integer(5) * row42 * row42
     x4a2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
     formula.Add(x4a2 >= 0)
     x4b2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
     formula.Add(x4b2 >= 0)
-    formula.Add(If(row42on, Or(x4a2 * x4a2 == five_n_squared2 + Integer(4), x4b2 * x4b2 + Integer(4) == five_n_squared2)))
+    formula.Add(If(row42on, Or(x4a2 * x4a2 == five_n_squared2 + Integer(4), x4b2 * x4b2 == five_n_squared2 - Integer(4))))
     five_n_squared3 = Integer(5) * row43 * row43
     x4a3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
     formula.Add(x4a3 >= 0)
     x4b3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
     formula.Add(x4b3 >= 0)
-    formula.Add(If(row43on, Or(x4a3 * x4a3 == five_n_squared3 + Integer(4), x4b3 * x4b3 + Integer(4) == five_n_squared3)))
+    formula.Add(If(row43on, Or(x4a3 * x4a3 == five_n_squared3 + Integer(4), x4b3 * x4b3 == five_n_squared3 - Integer(4))))
 
     # Constraint: Row 5 is a square.
     # print('Generating row 5 run constraints...')
@@ -409,24 +400,16 @@ def encode():
     row101, row101on, _, _ = row_var[(10,1)]
     row102, row102on, _, _ = row_var[(10,2)]
     row103, row103on, _, _ = row_var[(10,3)]
-    p100 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p100 >= 0)
-    formula.Add(If(row100on, And(IsPalindrome(p100), p100 == row100 + Integer(1))))
-    p101 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p101 >= 0)
-    formula.Add(If(row101on, And(IsPalindrome(p101), p101 == row101 + Integer(1))))
-    p102 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p102 >= 0)
-    formula.Add(If(row102on, And(IsPalindrome(p102), p102 == row102 + Integer(1))))
-    p103 = Integer(*(formula.AddVar() for i in range(ROW_BITS)))
-    formula.Add(p103 >= 0)
-    formula.Add(If(row103on, And(IsPalindrome(p103), p103 == row103 + Integer(1))))
+    formula.Add(If(row100on, IsPalindrome(row100 + Integer(1))))
+    formula.Add(If(row101on, IsPalindrome(row101 + Integer(1))))
+    formula.Add(If(row102on, IsPalindrome(row102 + Integer(1))))
+    formula.Add(If(row103on, IsPalindrome(row103 + Integer(1))))
 
     return formula
 
 def print_solution(sol, *extra_args):
     def solchr(x):
-        if x == 10:
+        if x == -1:
             return 'X'
         else:
             return x

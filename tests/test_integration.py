@@ -9,11 +9,14 @@ These tests:
 
 import os
 import re
+import runpy
 import subprocess
 import sys
 import tempfile
 import unittest
-from itertools import combinations
+from itertools import combinations, product
+
+from cnfc import Formula, Integer, Var
 
 # Path to the examples directory
 EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), '..', 'examples')
@@ -86,6 +89,11 @@ def run_extractor(extractor_path, cnf_path, solver_output_path):
     return result.stdout + result.stderr
 
 
+def pin_coefficient(formula, name, value):
+    bits = tuple(Var(f'{name}:{i}', formula.vars[f'{name}:{i}']) for i in range(2))
+    formula.Add(Integer(bits) == value)
+
+
 class TestExamplesIntegration(unittest.TestCase):
     """Integration tests for example scripts."""
 
@@ -113,6 +121,19 @@ class TestExamplesIntegration(unittest.TestCase):
 
             # Run extractor
             return run_extractor(extractor_path, cnf_path, solver_output_path)
+
+    def run_encoded_example(self, example, formula, extra_args):
+        """Solve a constrained example fixture and run its generated extractor."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cnf = os.path.join(tmpdir, 'out.cnf')
+            extractor = os.path.join(tmpdir, 'extractor.py')
+            solver_output = os.path.join(tmpdir, 'solver_output.txt')
+            with open(cnf, 'w') as f:
+                formula.WriteCNF(f)
+            with open(extractor, 'w') as f:
+                formula.WriteExtractor(f, example['print_solution'], extra_args=extra_args)
+            solve_cnf(cnf, solver_output)
+            return run_extractor(extractor, cnf, solver_output)
 
     def test_scheduling(self):
         output = run_example('scheduling', []).stdout
@@ -265,6 +286,9 @@ class TestExamplesIntegration(unittest.TestCase):
             'matrix-multiplications',
             lambda cnf, ext: ['2', '8', cnf, ext]
         )
+        self.assert_matrix_product(output, 8)
+
+    def assert_matrix_product(self, output, num_products):
         a = [[1, 2], [3, 4]]
         b = [[5, 6], [7, 8]]
         products = {}
@@ -278,7 +302,7 @@ class TestExamplesIntegration(unittest.TestCase):
                 value = b[int(row)-1][int(col)-1]
                 b_sum += -value if sign == '-' else value
             products[int(number)] = a_sum * b_sum
-        self.assertEqual(set(products), set(range(8)))
+        self.assertEqual(set(products), set(range(num_products)))
 
         result = {}
         for row, col, terms in re.findall(r'C_\{([12]),([12])\} = (.*)', output):
@@ -288,6 +312,49 @@ class TestExamplesIntegration(unittest.TestCase):
                 total += -value if sign == '-' else value
             result[(int(row), int(col))] = total
         self.assertEqual(result, {(1,1): 19, (1,2): 22, (2,1): 43, (2,2): 50})
+
+    def test_matrix_multiplications_strassen(self):
+        example = runpy.run_path(os.path.join(EXAMPLES_DIR, 'matrix-multiplications', 'matrix-multiplications.py'))
+        # Strassen's seven products use negative coefficients and cancellation,
+        # with one addition per input sum and 18 additions in total.
+        a_terms = [(1,0,0,1), (0,0,1,1), (1,0,0,0), (0,0,0,1),
+                   (1,1,0,0), (-1,0,1,0), (0,1,0,-1)]
+        b_terms = [(1,0,0,1), (1,0,0,0), (0,1,0,-1), (-1,0,1,0),
+                   (0,0,0,1), (1,1,0,0), (0,0,1,1)]
+        c_terms = [(1,0,0,1,-1,0,1), (0,0,1,0,1,0,0),
+                   (0,1,0,1,0,0,0), (1,-1,1,0,0,1,0)]
+        formula = example['encode'](2, 7, 1, 18)
+        for cell, (i, j) in enumerate(product(range(1, 3), repeat=2)):
+            for k in range(7):
+                pin_coefficient(formula, f'a:{i}:{j}:{k}', a_terms[k][cell])
+                pin_coefficient(formula, f'b:{i}:{j}:{k}', b_terms[k][cell])
+                pin_coefficient(formula, f'C:{i}:{j}:{k}', c_terms[cell][k])
+        output = self.run_encoded_example(example, formula, [2, 7])
+        self.assertIn('-a_', output)
+        self.assertIn('-b_', output)
+        self.assertIn('-m_', output)
+        self.assert_matrix_product(output, 7)
+
+    def test_number_cross_shaded_row(self):
+        example = runpy.run_path(os.path.join(EXAMPLES_DIR, 'jane-st-number-cross-4', 'jane-st-number-cross-4.py'))
+        # Exercise one row's mask constraints and board extraction; solving the
+        # entire Jane Street puzzle is too expensive for an integration test.
+        values = [1, 0, -1, 2, 1, -1, 3, 4, -1, 5, 6]
+        formula = Formula()
+        cells = {}
+        for row, col in product(range(11), repeat=2):
+            cell = Integer(formula.AddVars(f'v:{row}:{col}', example['CELL_BITS']))
+            formula.Add(example['SHADED'] <= cell <= 9)
+            formula.Add(cell == values[col])
+            cells[(row, col)] = cell
+        runs = [(10, 1, 0), (21, 3, 2), (34, 7, 12), (56, 11, 30)]
+        row_vars = {(0, run): (Integer(value), formula.AddVar(f'exists:{run}'),
+                               Integer(total), Integer(prod))
+                    for run, (value, total, prod) in enumerate(runs)}
+        formula.Add(example['generate_mask_constraints'](0, [v != -1 for v in values], cells, row_vars))
+        output = self.run_encoded_example(example, formula, [range(11)])
+        rows = [row.split() for row in output.splitlines()]
+        self.assertEqual(rows, [['1', '0', 'X', '2', '1', 'X', '3', '4', 'X', '5', '6']] * 11)
 
     def test_tournament_scheduling(self):
         output = self.run_example_end_to_end(

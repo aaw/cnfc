@@ -1,8 +1,17 @@
-from collections import defaultdict
 from cnfc import *
-from itertools import product, zip_longest
 
 import argparse
+
+COEFFICIENT_BITS = Integer.bits_needed_for_range(-1, 1)
+
+def coefficient_product(a, b, c):
+    # For coefficients in {-1, 0, 1}, a product is nonzero iff all factors
+    # are nonzero, and negative iff an odd number of factors are negative.
+    nonzero = And(a != 0, b != 0, c != 0)
+    negative = ((a < 0) != (b < 0)) != (c < 0)
+    # Two's-complement bits: 00 = 0, 01 = 1, 11 = -1. This avoids the
+    # larger circuit needed to multiply arbitrary signed integers.
+    return Integer(And(nonzero, negative), nonzero)
 
 def encode(n, m, max_additions_per_term, max_total_additions):
     dims = range(1, n+1)
@@ -13,59 +22,39 @@ def encode(n, m, max_additions_per_term, max_total_additions):
     #
     # (a_{1,1} + a_{2,3} - a_{3,3}) * (-b_{1,1} - b_{2,2} + b_{2,3})
     #
-    # The variables below capture the a's and b's in each of these m products
+    # Each coefficient is -1, 0, or 1: subtract, omit, or add the matrix element.
     total_additions = []
     for k in range(m):
         all_a_in_term, all_b_in_term = [], []
         for i in dims:
             for j in dims:
-                # a:i:j:k is true iff a_{i,j} is part of product k
-                pos_a = formula.AddVar(f'a:{i}:{j}:{k}')
-                # -a:i:j:k is true iff -a_{i,j} is part of product k
-                neg_a = formula.AddVar(f'-a:{i}:{j}:{k}')
-                formula.Add(~pos_a | ~neg_a)  # Can only use one of a_{i,j} and -a_{i,j}
-                avarz[(1,i,j,k)] = pos_a
-                avarz[(-1,i,j,k)] = neg_a
-                all_a_in_term.append(pos_a)
-                all_a_in_term.append(neg_a)
-
-                # b:i:j:k is true iff b_{i,j} is part of product k
-                pos_b = formula.AddVar(f'b:{i}:{j}:{k}')
-                # -b:i:j:k is true iff -b_{i,j} is part of product k
-                neg_b = formula.AddVar(f'-b:{i}:{j}:{k}')
-                formula.Add(~pos_b | ~neg_b)   # Can only use one of a_{i,j} and -a_{i,j}
-                bvarz[(1,i,j,k)] = pos_b
-                bvarz[(-1,i,j,k)] = neg_b
-                all_b_in_term.append(pos_b)
-                all_b_in_term.append(neg_b)
+                a = Integer(formula.AddVars(f'a:{i}:{j}:{k}', COEFFICIENT_BITS))
+                b = Integer(formula.AddVars(f'b:{i}:{j}:{k}', COEFFICIENT_BITS))
+                formula.Add(-1 <= a <= 1)
+                formula.Add(-1 <= b <= 1)
+                avarz[(i,j,k)] = a
+                bvarz[(i,j,k)] = b
+                all_a_in_term.append(a != 0)
+                all_b_in_term.append(b != 0)
 
         if max_additions_per_term != -1:
             formula.Add(NumTrue(*all_a_in_term) <= max_additions_per_term + 1)
             formula.Add(NumTrue(*all_b_in_term) <= max_additions_per_term + 1)
 
-        # NumTrue(*all_a_in_term) > 0 and NumTrue(*all_b_in_term) > 0 so both
-        # terms below should be non-negative.
+        # A sum of t matrix elements uses t - 1 additions.
         total_additions.append(NumTrue(*all_a_in_term) - 1)
         total_additions.append(NumTrue(*all_b_in_term) - 1)
 
-    # Generate constraints that specify which of the m_k's are used by which of the
-    # sums that define the final matrix product elements. m_k's can be positive or
-    # negative, but it doesn't make sense to use both.
-    cs, ncs = {}, {}
+    # Signed coefficients specify how each subproduct contributes to C_{i,j}.
+    cs = {}
     for i in dims:
         for j in dims:
             mks = []
             for k in range(m):
-                # C:i:j:k is true iff entry i,j of the final matrix uses subproduct m_k
-                pos_uses_mk = formula.AddVar(f'C:{i}:{j}:{k}')
-                cs[(i,j,k)] = pos_uses_mk
-                # -C:i:j:k is true iff entry i,j of the final matrix uses subproduct -m_k
-                neg_uses_mk = formula.AddVar(f'-C:{i}:{j}:{k}')
-                ncs[(i,j,k)] = neg_uses_mk
-                formula.Add(Or(~pos_uses_mk,~neg_uses_mk))  # Pos and neg will just cancel each other, so disallow.
-                mks.append(pos_uses_mk)
-                mks.append(neg_uses_mk)
-            # NumTrue(mks) > 0 so this term is non-negative.
+                c = Integer(formula.AddVars(f'C:{i}:{j}:{k}', COEFFICIENT_BITS))
+                formula.Add(-1 <= c <= 1)
+                cs[(i,j,k)] = c
+                mks.append(c != 0)
             total_additions.append(NumTrue(*mks) - 1)
 
     if max_total_additions != -1:
@@ -82,34 +71,31 @@ def encode(n, m, max_additions_per_term, max_total_additions):
                         for l in dims:
                             # C_{i,j} = sum(a_{i,k} * b_{k,j} for k in dims)
                             # So we only want a contribution of a_{i_prime,k} * b_{l,j_prime} when k == l, i == i_prime, j == j_prime
-                            pos_abs = \
-                                [cs[(i,j,kk)] & ((avarz[(1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(-1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)] + \
-                                [ncs[(i,j,kk)] & ((avarz[(-1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)]
-                            neg_abs = \
-                                [cs[(i,j,kk)] & ((avarz[(-1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)] + \
-                                [ncs[(i,j,kk)] & ((avarz[(1,i_prime,k,kk)] & bvarz[(1,l,j_prime,kk)]) | (avarz[(-1,i_prime,k,kk)] & bvarz[(-1,l,j_prime,kk)])) for kk in range(m)]
-                            if k == l and i == i_prime and j == j_prime:
-                                formula.Add(NumTrue(*pos_abs) == NumTrue(*neg_abs) + 1)
-                            else:
-                                formula.Add(NumTrue(*pos_abs) == NumTrue(*neg_abs))
+                            coefficient = sum(
+                                (coefficient_product(cs[(i,j,kk)], avarz[(i_prime,k,kk)], bvarz[(l,j_prime,kk)]) for kk in range(m)),
+                                Integer(0),
+                            )
+                            expected = 1 if k == l and i == i_prime and j == j_prime else 0
+                            formula.Add(coefficient == expected)
 
     return formula
 
 def print_solution(sol, *extra_args):
     n, m = extra_args
     dims = range(1,n+1)
-    # a:i:j:k is true iff a_{i,j} is part of product k
     for k in range(m):
         a, b = [], []
         for i in dims:
             for j in dims:
-                if sol[f'a:{i}:{j}:{k}']:
+                a_coefficient = sol.integer(f'a:{i}:{j}:{k}')
+                b_coefficient = sol.integer(f'b:{i}:{j}:{k}')
+                if a_coefficient == 1:
                     a.append(f'a_{{{i},{j}}}')
-                if sol[f'-a:{i}:{j}:{k}']:
+                if a_coefficient == -1:
                     a.append(f'-a_{{{i},{j}}}')
-                if sol[f'b:{i}:{j}:{k}']:
+                if b_coefficient == 1:
                     b.append(f'b_{{{i},{j}}}')
-                if sol[f'-b:{i}:{j}:{k}']:
+                if b_coefficient == -1:
                     b.append(f'-b_{{{i},{j}}}')
         a_sum = ' + '.join(a)
         b_sum = ' + '.join(b)
@@ -121,8 +107,9 @@ def print_solution(sol, *extra_args):
         for j in dims:
             ms = []
             for k in range(m):
-                if sol[f'C:{i}:{j}:{k}']: ms.append(f'm_{k}')
-                if sol[f'-C:{i}:{j}:{k}']: ms.append(f'-m_{k}')
+                coefficient = sol.integer(f'C:{i}:{j}:{k}')
+                if coefficient == 1: ms.append(f'm_{k}')
+                if coefficient == -1: ms.append(f'-m_{k}')
             m_sum = ' + '.join(ms)
             print(f'C_{{{i},{j}}} = {m_sum}')
 
