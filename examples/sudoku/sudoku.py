@@ -2,71 +2,47 @@ from cnfc import *
 
 import argparse
 
+DIGITS = range(1, 10)
+
 def parse_board(board_string):
-    assert len(board_string) == 81, " Sudoku board encoding must be exactly 81 characters, one per square."
-    board = []
-    while len(board_string) > 0:
-        board.append([int(ch) if ch.isnumeric() else None for ch in board_string[:9]])
-        board_string = board_string[9:]
-    return board
+    assert len(board_string) == 81, "Sudoku board encoding must be exactly 81 characters, one per square."
+    return [[int(ch) if ch.isnumeric() else None for ch in board_string[r:r+9]]
+            for r in range(0, 81, 9)]
 
 def print_board(board):
     for i, row in enumerate(board):
         if i % 3 == 0: print('+---------+---------+---------+')
         for j, cell in enumerate(row):
             if j % 3 == 0: print('|', end='')
-            if cell is None:
-                print('   ', end='')
-            else:
-                print(' {} '.format(cell), end='')
+            print('   ' if cell is None else f' {cell} ', end='')
         print('|')
     print('+---------+---------+---------+')
 
 def encode_board_as_sat(board, formula):
-    # Variable i:j:k is true if position (i,j) on the board is set to k.
-    vs = dict(((i,j,k), formula.AddVar('{}:{}:{}'.format(i,j,k)))
-              for i in range(1,10)
-              for j in range(1,10)
-              for k in range(1,10))
+    # Variable r:c:n is true if position (r,c) on the board is set to n.
+    vs = {(r,c,n): formula.AddVar(f'{r}:{c}:{n}') for r in range(9) for c in range(9) for n in DIGITS}
 
     # Add constraints from given clues.
     for r in range(9):
         for c in range(9):
-            if board[r][c] is not None: formula.AddClause(vs[(r+1,c+1,board[r][c])])
+            if board[r][c] is not None:
+                formula.Add(vs[(r,c,board[r][c])])
 
     # Each cell contains exactly one number 1-9.
-    for r in range(1,10):
-        for c in range(1,10):
-            cell_vars = (vs[(r,c,n)] for n in range(1,10))
-            formula.Add(NumTrue(*cell_vars) == 1)
+    for r in range(9):
+        for c in range(9):
+            formula.Add(NumTrue(*(vs[(r,c,n)] for n in DIGITS)) == 1)
 
-    # Each row contains each number 1-9 exactly once.
-    for r in range(1,10):
-        for n in range(1,10):
-            row_vars = (vs[(r,c,n)] for c in range(1,10))
-            formula.Add(NumTrue(*row_vars) == 1)
-
-    # Each column contains each number 1-9 exactly once.
-    for c in range(1,10):
-        for n in range(1,10):
-            col_vars = (vs[(r,c,n)] for r in range(1,10))
-            formula.Add(NumTrue(*col_vars) == 1)
-
-    # Each box contains each number 1-9 exactly once.
-    for b in range(9):
-        br, bc = 3 * (b // 3) + 1, 3 * (b % 3) + 1
-        for n in range(1,10):
-            box_vars = (vs[(r,c,n)] for r in range(br,br+3) for c in range(bc,bc+3))
-            formula.Add(NumTrue(*box_vars) == 1)
+    # Each row, column, and box contains each number 1-9 exactly once.
+    rows = [[(r,c) for c in range(9)] for r in range(9)]
+    cols = [[(r,c) for r in range(9)] for c in range(9)]
+    boxes = [[(br+r,bc+c) for r in range(3) for c in range(3)] for br in (0,3,6) for bc in (0,3,6)]
+    for group in rows + cols + boxes:
+        for n in DIGITS:
+            formula.Add(NumTrue(*(vs[(r,c,n)] for r,c in group)) == 1)
 
 def extract_board_from_solution(sol, *extra_args):
-    board = [[None for c in range(9)] for r in range(9)]
-    for r in range(1,10):
-        for c in range(1,10):
-            for n in range(1,10):
-                if sol['{}:{}:{}'.format(r,c,n)]:
-                    board[r-1][c-1] = n
-                    break
+    board = [[next(n for n in range(1, 10) if sol[f'{r}:{c}:{n}']) for c in range(9)] for r in range(9)]
     print("Solution: ")
     print_board(board)
 

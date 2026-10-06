@@ -8,14 +8,7 @@ NUM_BITS = Integer.bits_needed_for_range(1, 10)
 def encode():
     formula = Formula()
 
-    a = Integer(formula.AddVars('a', NUM_BITS))
-    b = Integer(formula.AddVars('b', NUM_BITS))
-    c = Integer(formula.AddVars('c', NUM_BITS))
-    d = Integer(formula.AddVars('d', NUM_BITS))
-    e = Integer(formula.AddVars('e', NUM_BITS))
-    f = Integer(formula.AddVars('f', NUM_BITS))
-
-    varz = [a,b,c,d,e,f]
+    a, b, c, d, e, f = varz = [Integer(formula.AddVars(name, NUM_BITS)) for name in 'abcdef']
 
     # Constraint: a,b,c,d,e,f between 1 and 10, inclusive.
     for v in varz:
@@ -47,16 +40,9 @@ def encode():
 
     return formula
 
-
 def print_solution(sol, *extra_args):
-    a = sol.integer('a')
-    b = sol.integer('b')
-    c = sol.integer('c')
-    d = sol.integer('d')
-    e = sol.integer('e')
-    f = sol.integer('f')
-    print(f'A = {a}\nB = {b}\nC = {c}\nD = {d}\nE = {e}\nF = {f}')
-
+    for name in 'abcdef':
+        print(f'{name.upper()} = {sol.integer(name)}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve a six variable logic puzzle")
@@ -68,4 +54,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[])
+        formula.WriteExtractor(f, print_solution)

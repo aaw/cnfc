@@ -39,8 +39,8 @@ shifts = [f'{day} {hour}' for day in days for hour in hours]
 
 # Associate a boolean variable with each pairing of employee and shift.
 formula = Formula()
-varz = dict(((employee, shift), formula.AddVar(f'{employee} {shift}'))
-            for employee in employees for shift in shifts)
+varz = {(employee, shift): formula.AddVar(f'{employee} {shift}')
+        for employee in employees for shift in shifts}
 
 # Every shift needs exactly two people scheduled.
 for shift in shifts:

@@ -19,35 +19,31 @@ STATES = [
     'SouthDakota', 'NorthDakota', 'Alaska', 'Vermont', 'Wyoming'
 ]
 
+def king_neighbors(r, c):
+    return [(r+dr, c+dc) for dr in (-1,0,1) for dc in (-1,0,1)
+            if (dr, dc) != (0, 0) and r+dr in COORDS and c+dc in COORDS]
+
 # Encodes the Altered States puzzle into a Formula.
 def encode(min_score):
     formula = Formula()
 
     # Variable varz[(r,c,v)] is true iff cell (r,c) has value v in VALS
-    varz = {}
-    for r in COORDS:
-        for c in COORDS:
-            for v in VALS:
-                varz[(r,c,v)] = formula.AddVar('v:{}:{}:{}'.format(r,c,v))
+    varz = {(r,c,v): formula.AddVar(f'v:{r}:{c}:{v}') for r in COORDS for c in COORDS for v in VALS}
 
     # Constraint: Each cell contains exactly one value.
     for r in COORDS:
         for c in COORDS:
-            cell_vars = (varz[(r,c,v)] for v in VALS)
-            formula.Add(NumTrue(*cell_vars) == 1)
+            formula.Add(NumTrue(*(varz[(r,c,v)] for v in VALS)) == 1)
 
-    # The total score achieved by the state configuration.
-    total = Integer(0)
+    # Variables that are true iff each state matches the grid.
+    state_matches = []
     for state in STATES:
         # Convert the state name to a sequence of numbers.
         pattern = [ord(ch.upper()) - ord('A') for ch in state]
 
         # svarz[(r,c,i)] means (r,c) matches position i of this state
-        svarz = {}
-        for r in COORDS:
-            for c in COORDS:
-                for i, _ in enumerate(pattern):
-                    svarz[(r,c,i)] = formula.AddVar('{}:{}:{}:{}'.format(state,r,c,i))
+        svarz = {(r,c,i): formula.AddVar(f'{state}:{r}:{c}:{i}')
+                 for r in COORDS for c in COORDS for i in range(len(pattern))}
 
         # Create a big conjunction that is true iff the current state has a
         # match on the grid.
@@ -55,82 +51,55 @@ def encode(min_score):
 
         # Constraint: For any position i in the state pattern, only one
         # svarz entry is set.
-        for i, _ in enumerate(pattern):
-            cell_vars = (svarz[(r,c,i)] for r in COORDS for c in COORDS)
-            sconj.append(NumTrue(*cell_vars) == 1)
+        for i in range(len(pattern)):
+            sconj.append(NumTrue(*(svarz[(r,c,i)] for r in COORDS for c in COORDS)) == 1)
 
         # Constraint: All svarz are consistent with the varz.
-        pos_matches = []
-        for i, _ in enumerate(pattern):
-            conj = []
-            for r in COORDS:
-                for c in COORDS:
-                    conj.append(If(svarz[(r,c,i)], varz[r,c,pattern[i]]))
-            pos_matches.append(And(*conj))
+        pos_matches = [And(*(If(svarz[(r,c,i)], varz[(r,c,letter)]) for r in COORDS for c in COORDS))
+                       for i, letter in enumerate(pattern)]
         sconj.append(And(*pos_matches))
 
         # Constraint: Any consecutive i and i+1 in the svarz are connected by a
         # king's move.
-        def kings_moves(r,c):
-            M = len(COORDS)-1
-            if r > 0 and c > 0: yield (r-1,c-1)
-            if r > 0: yield (r-1,c)
-            if r > 0 and c < M: yield (r-1,c+1)
-            if c > 0: yield (r,c-1)
-            if c < M: yield (r,c+1)
-            if r < M and c > 0: yield (r+1,c-1)
-            if r < M: yield (r+1,c)
-            if r < M and c < M: yield (r+1,c+1)
-
-        for i, _ in enumerate(pattern):
-            if i == 0: continue
+        for i in range(1, len(pattern)):
             for r in COORDS:
                 for c in COORDS:
-                    sconj.append(If(svarz[(r,c,i)], Or(*(svarz[(rr,cc,i-1)] for (rr,cc) in kings_moves(r,c)))))
+                    sconj.append(If(svarz[(r,c,i)], Or(*(svarz[(rr,cc,i-1)] for rr, cc in king_neighbors(r,c)))))
 
         sconj.append(Or(*(svarz[(r,c,len(pattern)-1)] for r in COORDS for c in COORDS)))
 
         # Create a var named after each state that's true iff the state matches
-        # the grid. Use these to calculate a conditional total score.
+        # the grid.
         v = formula.AddVar(state)
         formula.Add(v == And(*sconj))
+        state_matches.append(v)
 
-        total = total + If(v, Integer(len(state)), Integer(0))
-
-    formula.Add(total >= Integer(min_score))
+    # The total score achieved by the state configuration.
+    total = sum(If(v, Integer(len(state)), Integer(0)) for v, state in zip(state_matches, STATES))
+    formula.Add(total >= min_score)
 
     return formula
 
 def print_solution(sol, *extra_args):
     coords, vals, states = extra_args
     for r in coords:
-        for c in coords:
-            for v in vals:
-                if sol['v:{}:{}:{}'.format(r,c,v)]:
-                    print(' {} '.format(chr(v + ord('A'))), end='')
-                    break
-        print('')
-    matches = [sname for sname in states if sol[sname]]
-    score = sum(len(sname) for sname in matches)
+        print(''.join(f' {chr(v + ord("A"))} ' for c in coords for v in vals if sol[f'v:{r}:{c}:{v}']))
+    matches = [state for state in states if sol[state]]
+    score = sum(len(state) for state in matches)
 
+    # Cells used to match a state, marking any cell whose letter doesn't match with a '*'.
     def path(state):
-        pattern = [ord(ch.upper()) - ord('A') for ch in state]
         p = []
-        for i, val in enumerate(pattern):
-            for r in coords:
-                for c in coords:
-                    if sol['{}:{}:{}:{}'.format(state,r,c,i)]:
-                        if sol['v:{}:{}:{}'.format(r,c,val)]:
-                            p.append('({},{})'.format(r,c))
-                        else:
-                            p.append('({},{})*'.format(r,c))
-                        break
+        for i, letter in enumerate(state.upper()):
+            r, c = next((r, c) for r in coords for c in coords if sol[f'{state}:{r}:{c}:{i}'])
+            matched = sol[f'v:{r}:{c}:{ord(letter) - ord("A")}']
+            p.append(f'({r},{c})' + ('' if matched else '*'))
         return ' '.join(p)
 
     print('Matches:')
     for match in matches:
-        print('  {} : {}'.format(match, path(match)))
-    print('Score: {}'.format(score))
+        print(f'  {match} : {path(match)}')
+    print(f'Score: {score}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve Jane Street's Altered States puzzle")
@@ -143,4 +112,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[COORDS, VALS, STATES])
+        formula.WriteExtractor(f, print_solution, extra_args=[COORDS, VALS, STATES])

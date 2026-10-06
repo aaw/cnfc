@@ -1,4 +1,3 @@
-from collections import defaultdict
 from cnfc import *
 from itertools import product
 
@@ -6,11 +5,14 @@ import argparse
 
 F = {'000', '001', '010', '011', '100', '101', '110', '111', '112', '121', '122', '211', '212', '221', '222', '333'}
 
+def strings(alphabet, length):
+    return [''.join(chars) for chars in product(alphabet, repeat=length)]
+
 # DOMAIN is F x {0,1,2}
-DOMAIN = sorted(list(product(F, range(3))))
+DOMAIN = sorted(product(F, range(3)))
 
 # RANGE is all strings of length 3 over {0,1,2,3} that don't end in 0
-RANGE = sorted(list(''.join(str(x) for x in xs) for xs in product(range(4), range(4), range(1,4))))
+RANGE = [s for s in strings('0123', 3) if not s.endswith('0')]
 
 assert len(DOMAIN) == len(RANGE)  # Sanity check.
 
@@ -20,36 +22,27 @@ def leftmost_forbidden_block(word):
     if word[2:] in F: return 2
     return None
 
-WORDS = [word for word in list(''.join(str(ch) for ch in word) for word in product(range(4),range(4),range(4),range(4),range(4))) if leftmost_forbidden_block(word) is not None]
+# WORDS is all strings of length 5 over {0,1,2,3} that contain a forbidden block.
+WORDS = [word for word in strings('0123', 5) if leftmost_forbidden_block(word) is not None]
 
 def encode(n):
     formula = Formula()
 
     # Variable phi:d:r is true iff phi maps (x,y) to r.
-    phi = {}
-    for d in DOMAIN:
-        for r in RANGE:
-            phi[(d,r)] = formula.AddVar(f'phi:{d}:{r}')
+    phi = {(d,r): formula.AddVar(f'phi:{d}:{r}') for d in DOMAIN for r in RANGE}
 
     # Constraint: phi is a bijection.
     for r in RANGE:
-        domain_values_mapping_to_r = [phi[(d,r)] for d in DOMAIN]
-        formula.Add(NumTrue(*domain_values_mapping_to_r) == 1)
-
+        formula.Add(NumTrue(*(phi[(d,r)] for d in DOMAIN)) == 1)
     for d in DOMAIN:
-        range_values_mapped_from_d = [phi[(d,r)] for r in RANGE]
-        formula.Add(NumTrue(*range_values_mapped_from_d) == 1)
+        formula.Add(NumTrue(*(phi[(d,r)] for r in RANGE)) == 1)
 
     # Variable trace:i:x is true iff the ith element of the trace is x.
-    trace = {}
-    for i in range(n):
-        for w in WORDS:
-            trace[(i,w)] = formula.AddVar(f'trace:{i}:{w}')
+    trace = {(i,w): formula.AddVar(f'trace:{i}:{w}') for i in range(n) for w in WORDS}
 
     # Constraint: element i of the trace is associated with exactly one word.
     for i in range(n):
-        trace_assignments = [trace[(i,w)] for w in WORDS]
-        formula.Add(NumTrue(*trace_assignments) == 1)
+        formula.Add(NumTrue(*(trace[(i,w)] for w in WORDS)) == 1)
 
     # Constraint: first element of the trace ends with 0.
     for w in WORDS:

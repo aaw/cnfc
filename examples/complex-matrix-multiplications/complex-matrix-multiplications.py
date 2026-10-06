@@ -1,4 +1,6 @@
 from cnfc import *
+from itertools import product
+
 import argparse
 
 COEFFICIENT_BITS = Integer.bits_needed_for_range(-1, 1)
@@ -57,44 +59,24 @@ def encode(m):
     # these are what we expect.
 
     # Match every monomial's signed coefficient to the expected matrix product.
-    def assert_final_product(i, j, entries, component):
-        expected_coefficients = {tuple(entry[1:]): entry[0] for entry in entries}
-        for v1 in ('a','b'):
-            for v2 in ('c','d'):
-                for i1 in range(1,3):
-                    for i2 in range(1,3):
-                        for j1 in range(1,3):
-                            for j2 in range(1,3):
-                                coefficient = sum(
-                                    (coefficient_product(component[(i,j,kk)], varz[(v1,i1,j1,kk)], varz[(v2,i2,j2,kk)]) for kk in range(m)),
-                                    Integer(0),
-                                )
-                                expected = expected_coefficients.get((v1,i1,j1,v2,i2,j2), 0)
-                                formula.Add(coefficient == expected)
+    # expected maps monomials like ('a',1,2,'c',2,1), meaning a_{1,2}*c_{2,1}, to their coefficients.
+    def assert_final_product(i, j, expected, component):
+        for v1, v2, i1, i2, j1, j2 in product(('a','b'), ('c','d'), dims, dims, dims, dims):
+            coefficient = sum(coefficient_product(component[(i,j,kk)], varz[(v1,i1,j1,kk)], varz[(v2,i2,j2,kk)]) for kk in range(m))
+            formula.Add(coefficient == expected.get((v1,i1,j1,v2,i2,j2), 0))
 
-    # C_11 = (a11*c11 + a12*c21 - b11*d11 - b12*d21) + (a11*d11 + a12*d21 + b11*c11 + b12*c21)*I
-    c_11_reals = [(1,'a',1,1,'c',1,1), (1,'a',1,2,'c',2,1), (-1,'b',1,1,'d',1,1), (-1,'b',1,2,'d',2,1)]
-    c_11_imags = [(1,'a',1,1,'d',1,1), (1,'a',1,2,'d',2,1),  (1,'b',1,1,'c',1,1),  (1,'b',1,2,'c',2,1)]
-    assert_final_product(1, 1, c_11_reals, rcs)
-    assert_final_product(1, 1, c_11_imags, ics)
-
-    # C_12 = (a11*c12 + a12*c22 - b11*d12 - b12*d22) + (a11*d12 + a12*d22 + b11*c12 + b12*c22)*I
-    c_12_reals = [(1,'a',1,1,'c',1,2), (1,'a',1,2,'c',2,2), (-1,'b',1,1,'d',1,2), (-1,'b',1,2,'d',2,2)]
-    c_12_imags = [(1,'a',1,1,'d',1,2), (1,'a',1,2,'d',2,2),  (1,'b',1,1,'c',1,2),  (1,'b',1,2,'c',2,2)]
-    assert_final_product(1, 2, c_12_reals, rcs)
-    assert_final_product(1, 2, c_12_imags, ics)
-
-    # C_21 = (a21*c11 + a22*c21 - b21*d11 - b22*d21) + (a21*d11 + a22*d21 + b21*c11 + b22*c21)*I
-    c_21_reals = [(1,'a',2,1,'c',1,1), (1,'a',2,2,'c',2,1), (-1,'b',2,1,'d',1,1), (-1,'b',2,2,'d',2,1)]
-    c_21_imags = [(1,'a',2,1,'d',1,1), (1,'a',2,2,'d',2,1),  (1,'b',2,1,'c',1,1),  (1,'b',2,2,'c',2,1)]
-    assert_final_product(2, 1, c_21_reals, rcs)
-    assert_final_product(2, 1, c_21_imags, ics)
-
-    # C_22 = (a21*c12 + a22*c22 - b21*d12 - b22*d22) + (a21*d12 + a22*d22 + b21*c12 + b22*c22)*I
-    c_22_reals = [(1,'a',2,1,'c',1,2), (1,'a',2,2,'c',2,2), (-1,'b',2,1,'d',1,2), (-1,'b',2,2,'d',2,2)]
-    c_22_imags = [(1,'a',2,1,'d',1,2), (1,'a',2,2,'d',2,2),  (1,'b',2,1,'c',1,2),  (1,'b',2,2,'c',2,2)]
-    assert_final_product(2, 2, c_22_reals, rcs)
-    assert_final_product(2, 2, c_22_imags, ics)
+    # (A + Bi)(C + Di) = (AC - BD) + (AD + BC)i, so each entry C_{i,j} of the product is:
+    #
+    #   C_{i,j} = sum(a_{i,l}*c_{l,j} - b_{i,l}*d_{l,j} for l in dims) + sum(a_{i,l}*d_{l,j} + b_{i,l}*c_{l,j} for l in dims)*I
+    for i, j in product(dims, repeat=2):
+        reals, imags = {}, {}
+        for l in dims:
+            reals[('a',i,l,'c',l,j)] = 1
+            reals[('b',i,l,'d',l,j)] = -1
+            imags[('a',i,l,'d',l,j)] = 1
+            imags[('b',i,l,'c',l,j)] = 1
+        assert_final_product(i, j, reals, rcs)
+        assert_final_product(i, j, imags, ics)
 
     return formula
 
@@ -102,34 +84,21 @@ def print_solution(sol, *extra_args):
     m = extra_args[0]
     dims = range(1,3)
 
+    # Formats a sum of terms with coefficients in {-1, 0, 1}, given (coefficient, term) pairs.
+    def signed_sum(terms):
+        return ' + '.join(('-' if coefficient < 0 else '') + term for coefficient, term in terms if coefficient != 0)
+
     for k in range(m):
-        enabled = {'a': [], 'b': [], 'c': [], 'd': []}
-        for i in dims:
-            for j in dims:
-                for x in ('a','b','c','d'):
-                    coefficient = sol.integer(f'{x}:{i}:{j}:{k}')
-                    if coefficient == 1:
-                        enabled[x].append(f'{x}_{{{i},{j}}}')
-                    if coefficient == -1:
-                        enabled[x].append(f'-{x}_{{{i},{j}}}')
-        ab_sum = ' + '.join(enabled['a'] + enabled['b'])
-        cd_sum = ' + '.join(enabled['c'] + enabled['d'])
+        ab_sum = signed_sum((sol.integer(f'{x}:{i}:{j}:{k}'), f'{x}_{{{i},{j}}}') for x in 'ab' for i in dims for j in dims)
+        cd_sum = signed_sum((sol.integer(f'{x}:{i}:{j}:{k}'), f'{x}_{{{i},{j}}}') for x in 'cd' for i in dims for j in dims)
         print(f'm_{k} = ({ab_sum}) * ({cd_sum})')
 
     print('')
 
     for i in dims:
         for j in dims:
-            reals, imags = [], []
-            for k in range(m):
-                real = sol.integer(f'CR:{i}:{j}:{k}')
-                imag = sol.integer(f'CI:{i}:{j}:{k}')
-                if real == 1: reals.append(f'm_{k}')
-                if real == -1: reals.append(f'-m_{k}')
-                if imag == 1: imags.append(f'm_{k}')
-                if imag == -1: imags.append(f'-m_{k}')
-            real_sum = ' + '.join(reals)
-            imag_sum = ' + '.join(imags)
+            real_sum = signed_sum((sol.integer(f'CR:{i}:{j}:{k}'), f'm_{k}') for k in range(m))
+            imag_sum = signed_sum((sol.integer(f'CI:{i}:{j}:{k}'), f'm_{k}') for k in range(m))
             print(f'C_{{{i},{j}}} = {real_sum} + ({imag_sum})*I')
 
 if __name__ == '__main__':

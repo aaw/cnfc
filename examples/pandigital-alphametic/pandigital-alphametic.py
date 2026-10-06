@@ -7,23 +7,14 @@ import argparse
 
 BITLENGTH = Integer.bits_needed_for_range(0, 9)
 
+# Returns a constraint that rules out a known solution like '1 x 26 x 345 = 8970'.
 def block(solution, varz):
-    digits = [Integer(int(d)) for d in solution if d.isdigit()]
-    return (v != d for v,d in zip(varz,digits))
+    digits = [int(ch) for ch in solution if ch.isdigit()]
+    return Or(*(v != digit for v, digit in zip(varz, digits)))
 
 def encode_equation_as_sat():
     formula = Formula(FileBuffer)
-    a = Integer(formula.AddVars('a', BITLENGTH))
-    b = Integer(formula.AddVars('b', BITLENGTH))
-    c = Integer(formula.AddVars('c', BITLENGTH))
-    d = Integer(formula.AddVars('d', BITLENGTH))
-    e = Integer(formula.AddVars('e', BITLENGTH))
-    f = Integer(formula.AddVars('f', BITLENGTH))
-    g = Integer(formula.AddVars('g', BITLENGTH))
-    h = Integer(formula.AddVars('h', BITLENGTH))
-    i = Integer(formula.AddVars('i', BITLENGTH))
-    j = Integer(formula.AddVars('j', BITLENGTH))
-    varz = [a,b,c,d,e,f,g,h,i,j]
+    a, b, c, d, e, f, g, h, i, j = varz = [Integer(formula.AddVars(name, BITLENGTH)) for name in 'abcdefghij']
 
     # Block known solutions
     solutions = [
@@ -101,12 +92,11 @@ def encode_equation_as_sat():
         '9 x 38 x 016 = 5472',
     ]
     for solution in solutions:
-        formula.Add(Or(*block(solution, varz)))
+        formula.Add(block(solution, varz))
 
     # Every number 0-9 is assigned to a variable exactly once.
     for number in range(10):
-        equal_n = (x == number for x in varz)
-        formula.Add(NumTrue(*equal_n) == 1)
+        formula.Add(NumTrue(*(x == number for x in varz)) == 1)
 
     # A x BC x DEF = GHIJ
     bc = 10*b + c
@@ -117,17 +107,8 @@ def encode_equation_as_sat():
     return formula
 
 def print_solution(sol, *extra_args):
-    a = sol.integer('a')
-    b = sol.integer('b')
-    c = sol.integer('c')
-    d = sol.integer('d')
-    e = sol.integer('e')
-    f = sol.integer('f')
-    g = sol.integer('g')
-    h = sol.integer('h')
-    i = sol.integer('i')
-    j = sol.integer('j')
-    print('{} x {}{} x {}{}{} = {}{}{}{}'.format(a,b,c,d,e,f,g,h,i,j))
+    a, b, c, d, e, f, g, h, i, j = [sol.integer(name) for name in 'abcdefghij']
+    print(f'{a} x {b}{c} x {d}{e}{f} = {g}{h}{i}{j}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Find solutions to the pandigital alphametic A x BC x DEF = GHIJ")
@@ -139,4 +120,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[])
+        formula.WriteExtractor(f, print_solution)

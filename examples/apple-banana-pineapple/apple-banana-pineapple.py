@@ -16,25 +16,17 @@ BITLENGTH = Integer.bits_needed_for_range(1, MAX_VALUE)
 
 def encode_equation_as_sat():
     formula = Formula(FileBuffer)
-    a = Integer(formula.AddVars('a', BITLENGTH))
-    b = Integer(formula.AddVars('b', BITLENGTH))
-    c = Integer(formula.AddVars('c', BITLENGTH))
-    a2 = a*a
-    b2 = b*b
-    c2 = c*c
-    formula.Add(a2*a + b2*b + c2*c == 3*(a2*b + a*b2 + a2*c + b2*c + b*c2) + 5*a*b*c)
-    formula.Add(a > 0)
-    formula.Add(b > 0)
-    formula.Add(c > 0)
+    a, b, c = (Integer(formula.AddVars(name, BITLENGTH)) for name in 'abc')
+    # Clearing denominators turns a/(b+c) + b/(a+c) + c/(a+b) = 4 into this polynomial:
+    a2, b2, c2 = a*a, b*b, c*c
+    formula.Add(a2*a + b2*b + c2*c == 3*(a2*b + a*b2 + a2*c + a*c2 + b2*c + b*c2) + 5*a*b*c)
+    for x in (a, b, c):
+        formula.Add(x > 0)
     return formula
 
 def print_solution(sol, *extra_args):
-    a = sol.integer('a')
-    b = sol.integer('b')
-    c = sol.integer('c')
-    print('a = {}'.format(a))
-    print('b = {}'.format(b))
-    print('c = {}'.format(c))
+    for name in 'abc':
+        print(f'{name} = {sol.integer(name)}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve a tough diophantine equation.")
@@ -46,4 +38,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[])
+        formula.WriteExtractor(f, print_solution)

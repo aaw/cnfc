@@ -14,7 +14,7 @@ Example:
 ```
 $ uv run python examples/attacking-chessboard/attacking-chessboard.py --unique 15 /tmp/out.cnf /tmp/extractor.py
 $ kissat /tmp/out.cnf > /tmp/kissat.out
-$ python3 /tmp/extractor.py /tmp.out.cnf /tmp/kissat.out
+$ python3 /tmp/extractor.py /tmp/out.cnf /tmp/kissat.out
 Solution:
 N E N B N K N Q
 K K B N E N E N

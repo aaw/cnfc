@@ -47,37 +47,29 @@ def generate_formula(num_teams, num_rounds, num_players, symmetry):
                         And(varz[(player1,team2,rnd)],varz[(player2,team1,rnd)])) for rnd in rounds for team1,team2 in matchups]
         formula.Add(NumTrue(*face_offs) <= 1)
 
+    if symmetry != 'none':
+        # Symmetry breaking: Assume (1,2,3) vs (4,5,6), (7,8,9) vs. (10,11,12), etc. for first round.
+        for player in players:
+            formula.Add(varz[(player, (player-1) // players_per_team + 1, 1)])
+
     if symmetry == 'basic':
         print('Adding basic symmetry-breaking clauses.')
-
-        # Symmetry breaking: Assume (1,2,3) vs (4,5,6), (7,8,9) vs. (10,11,12), etc. for first round.
-        players_per_team = num_players // num_teams
-        player, team = 1,1
-        while player <= num_players:
-            for i in range(players_per_team):
-                formula.Add(varz[(player,team,1)])
-                player += 1
-            team += 1
 
         # Symmetry breaking: Assume 1 always on team 1 in each round (already assume this for first round).
         for rnd in rounds[1:]:
             formula.Add(varz[(1,1,rnd)])
 
         # Symmetry breaking: Rounds are ordered so that team 1 lexicographically increases throughout the tournament.
-        prev_round = Tuple(*(varz[(player,1,1)] for player in players))
-        for rnd in rounds[1:]:
-            curr_round = Tuple(*(varz[(player,1,rnd)] for player in players))
+        team1_by_round = [Tuple(*(varz[(player,1,rnd)] for player in players)) for rnd in rounds]
+        for prev_round, curr_round in zip(team1_by_round, team1_by_round[1:]):
             formula.Add(prev_round > curr_round)
-            prev_round = curr_round
 
         # Symmetry breaking: Teams are ordered within rounds so that (team1, team2) < (team3, team4) < ... each round.
         for rnd in rounds[1:]:
-            team1, team2 = matchups[0]
-            prev_match = Tuple(*(Or(varz[(player,team1,rnd)], varz[(player,team2,rnd)]) for player in players))
-            for team1, team2 in matchups[1:]:
-                curr_match = Tuple(*(Or(varz[(player,team1,rnd)], varz[(player,team2,rnd)]) for player in players))
+            matches = [Tuple(*(Or(varz[(player,team1,rnd)], varz[(player,team2,rnd)]) for player in players))
+                       for team1, team2 in matchups]
+            for prev_match, curr_match in zip(matches, matches[1:]):
                 formula.Add(prev_match > curr_match)
-                prev_match = curr_match
 
         # Symmetry breaking: for each round, team1 < team2, team3 < team4, etc.
         for rnd in rounds[1:]:
@@ -86,17 +78,8 @@ def generate_formula(num_teams, num_rounds, num_players, symmetry):
                 tuple2 = Tuple(*(varz[(player,team2,rnd)] for player in players))
                 formula.Add(tuple1 > tuple2)
 
-    elif symmetry == 'golden-triples' and num_rounds >= 7:
+    elif symmetry == 'golden-triples':
         print('Adding symmetry-breaking clauses assuming at least one golden triple.')
-
-        # Symmetry breaking: Assume (1,2,3) vs (4,5,6), (7,8,9) vs. (10,11,12), etc. for first round.
-        players_per_team = num_players // num_teams
-        player, team = 1,1
-        while player <= num_players:
-            for i in range(players_per_team):
-                formula.Add(varz[(player,team,1)])
-                player += 1
-            team += 1
 
         # Add restrictions for subsequent rounds based on existence of at least once "golden triple".
         # See https://puzzling.stackexchange.com/a/126394/84078.
@@ -129,16 +112,11 @@ def generate_formula(num_teams, num_rounds, num_players, symmetry):
 def print_solution(sol, *extra_args):
     players, teams, rounds = extra_args
     matchups = list(zip(teams[::2],teams[1::2]))
+    def roster(team, rnd):
+        return tuple(player for player in players if sol[f'{player}:{team}:{rnd}'])
     for rnd in rounds:
-        print('Round {}: '.format(rnd), end='')
-        for team1, team2 in matchups:
-            first_team = tuple(sorted(player for player in players if sol['{}:{}:{}'.format(player,team1,rnd)]))
-            second_team = tuple(sorted(player for player in players if sol['{}:{}:{}'.format(player,team2,rnd)]))
-            print('{} vs {}'.format(first_team, second_team), end='')
-            if team2 != teams[-1]:
-                print(', ', end='')
-            else:
-                print('')
+        games = [f'{roster(team1, rnd)} vs {roster(team2, rnd)}' for team1, team2 in matchups]
+        print(f'Round {rnd}: ' + ', '.join(games))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve a tournament matching problem")
@@ -154,10 +132,8 @@ if __name__ == '__main__':
 
     formula = generate_formula(args.teams, args.rounds, args.players, args.symmetry)
 
-    # Write the resulting CNF file to /tmp/cnf.
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
-    # Write an extractor script to /tmp/extractor.py.
     with open(args.extractor, 'w') as f:
         players = range(1,args.players+1)
         teams = range(1,args.teams+1)

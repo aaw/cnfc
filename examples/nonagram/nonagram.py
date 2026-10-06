@@ -15,38 +15,30 @@ def encode_nonagram_as_sat(hclues, vclues, formula):
     # We have an hclues-by-vclues bitmap. Variable i:j is true if
     # position (i,j) on the bitmap is set. hclues[j] are clues
     # about column j, vclues[i] are clues about row i.
-    vs = dict(((i,j), formula.AddVar('{}:{}'.format(i,j)))
-              for i in range(len(vclues))
-              for j in range(len(hclues)))
+    rows, cols = range(len(vclues)), range(len(hclues))
+    vs = {(i,j): formula.AddVar(f'{i}:{j}') for i in rows for j in cols}
 
     # Add column clues.
     for j, clues in enumerate(hclues):
-        col = Tuple(*[vs[(i,j)] for i in range(len(vclues))])
-        regex = clues_to_regex(clues)
-        formula.Add(RegexMatch(col, regex))
+        col = Tuple(*(vs[(i,j)] for i in rows))
+        formula.Add(RegexMatch(col, clues_to_regex(clues)))
 
     # Add row clues.
     for i, clues in enumerate(vclues):
-        row = Tuple(*[vs[(i,j)] for j in range(len(hclues))])
-        regex = clues_to_regex(clues)
-        formula.Add(RegexMatch(row, regex))
+        row = Tuple(*(vs[(i,j)] for j in cols))
+        formula.Add(RegexMatch(row, clues_to_regex(clues)))
 
 def extract_board_from_solution(sol, *extra_args):
     rows, cols = extra_args
     for r in range(rows):
-        for c in range(cols):
-            if sol['{}:{}'.format(r,c)]:
-                print(' X ', end='')
-            else:
-                print('   ', end='')
-        print('')
+        print(''.join(' X ' if sol[f'{r}:{c}'] else '   ' for c in range(cols)))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate a Nonagram solver")
     parser.add_argument('--out', type=str, help='Path to output CNF file.', required=True)
     parser.add_argument('--extractor', type=str, help='Path to output extractor script.', required=True)
     parser.add_argument('--hclues', type=str, help='Clues on the horizontal axis, starting from top left. Clues are separated by commas, columns separated by semicolons', required=True)
-    parser.add_argument('--vclues', type=str, help='Clues on the vorizontal axis, starting from top left. Clues are separated by commas, rows separated by semicolons', required=True)
+    parser.add_argument('--vclues', type=str, help='Clues on the vertical axis, starting from top left. Clues are separated by commas, rows separated by semicolons', required=True)
     args = parser.parse_args()
 
     hclues = parse_clues(args.hclues)
@@ -57,4 +49,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, extract_board_from_solution, [], extra_args=[len(vclues), len(hclues)])
+        formula.WriteExtractor(f, extract_board_from_solution, extra_args=[len(vclues), len(hclues)])

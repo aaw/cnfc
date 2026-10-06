@@ -1,4 +1,3 @@
-from collections import defaultdict
 from cnfc import *
 
 import argparse
@@ -21,7 +20,7 @@ def print_solution(sol, *extra_args):
     n = extra_args[0]
     p = sol.integer('p')
     q = sol.integer('q')
-    print('{} can be factored into {} * {}'.format(n, p, q))
+    print(f'{n} can be factored into {p} * {q}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Determine if a number is prime by attempting to factor it")
@@ -34,4 +33,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[args.n])
+        formula.WriteExtractor(f, print_solution, extra_args=[args.n])

@@ -6,52 +6,40 @@ from cnfc import *
 import argparse
 import math
 
-BITLENGTH = Integer.bits_needed_for_range(0, 9)
+DIGIT_BITS = Integer.bits_needed_for_range(0, 9)
+DIGIT_NAMES = ['d1', 'd2', 'm1', 'm2', 'y1', 'y2', 'y3', 'y4']
 
 def encode_equation_as_sat(min_year, max_year):
     formula = Formula(FileBuffer)
     # Date is d1d2/m1m2/y1y2y3y4
-    d1 = Integer(formula.AddVars('d1', BITLENGTH))
-    d2 = Integer(formula.AddVars('d2', BITLENGTH))
-    m1 = Integer(formula.AddVars('m1', BITLENGTH))
-    m2 = Integer(formula.AddVars('m2', BITLENGTH))
-    y1 = Integer(formula.AddVars('y1', BITLENGTH))
-    y2 = Integer(formula.AddVars('y2', BITLENGTH))
-    y3 = Integer(formula.AddVars('y3', BITLENGTH))
-    y4 = Integer(formula.AddVars('y4', BITLENGTH))
-    varz = [d1, d2, m1, m2, y1, y2, y3, y4]
+    d1, d2, m1, m2, y1, y2, y3, y4 = digits = [Integer(formula.AddVars(name, DIGIT_BITS)) for name in DIGIT_NAMES]
 
-    day = d1 * Integer(10) + d2
-    month = m1 * Integer(10) + m2
-    year = y1 * Integer(1000) + y2 * Integer(100) + y3 * Integer(10) + y4
+    day = 10*d1 + d2
+    month = 10*m1 + m2
+    year = 1000*y1 + 100*y2 + 10*y3 + y4
 
     # Constraint: Every digit is actually a digit
-    for v in varz:
-        formula.Add(0 <= v < 10)
+    for digit in digits:
+        formula.Add(0 <= digit < 10)
 
     # Constraint: Every number 0-9 is assigned to a digit variable at most once.
     for number in range(10):
-        equal_n = (x == number for x in varz)
-        formula.Add(NumTrue(*equal_n) <= 1)
+        formula.Add(NumTrue(*(digit == number for digit in digits)) <= 1)
 
     # Constraint: month is valid.
     formula.Add(0 < month <= 12)
 
     # Constraint: day is valid, given the month
     formula.Add(0 < day <= 31)
-    formula.Add(If(day == 31, Or(month == 1, month == 3, month == 5, month == 7, month == 8, month == 10, month == 12)))
-    formula.Add(If(day == 30, Or(month != 2)))
-    # The correct leap year constraint (divisible by 4, unless divisible by 100, unless divisible by 400) is hard
-    # to encode, so we'll just use a simpler check and deal with invalid leap years by blocking them if they
-    # arise as solutions to the other constraints.
-    x = Integer(formula.AddVars('x', Integer.bits_needed_for_range(0, 9999 // 4)))
-    formula.Add(If(day == 29, Or(month != 2, And(month == 2, year == x * Integer(4)))))
+    formula.Add(If(day == 31, Or(*(month == m for m in (1, 3, 5, 7, 8, 10, 12)))))
+    formula.Add(If(day == 30, month != 2))
+    # A year is a leap year if it's divisible by 4, except for centuries, which must be divisible
+    # by 400. A number is divisible by 4 iff its last two digits are, so we can work with digits:
+    is_leap_year = If(And(y3 == 0, y4 == 0), (10*y1 + y2) % 4 == 0, (10*y3 + y4) % 4 == 0)
+    formula.Add(If(And(day == 29, month == 2), is_leap_year))
 
     # Constraint: year is in the range we're searching.
-    # 2024 <= year <= max_year
-    formula.Add(year >= 2024)
-    formula.Add(year <= Integer(max_year))
-    formula.Add(year >= Integer(min_year))
+    formula.Add(min_year <= year <= max_year)
 
     # Constraint: product of day, month, year is a square.
     root_bits = Integer.bits_needed_for_range(0, math.isqrt(12 * 31 * 9999))
@@ -62,20 +50,13 @@ def encode_equation_as_sat(min_year, max_year):
     return formula
 
 def print_solution(sol, *extra_args):
-    d1 = sol.integer('d1')
-    d2 = sol.integer('d2')
-    m1 = sol.integer('m1')
-    m2 = sol.integer('m2')
-    y1 = sol.integer('y1')
-    y2 = sol.integer('y2')
-    y3 = sol.integer('y3')
-    y4 = sol.integer('y4')
-    print('{}{}/{}{}/{}{}{}{}'.format(d1,d2,m1,m2,y1,y2,y3,y4))
+    d1, d2, m1, m2, y1, y2, y3, y4 = [sol.integer(name) for name in extra_args[0]]
+    print(f'{d1}{d2}/{m1}{m2}/{y1}{y2}{y3}{y4}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Find pandigital solutions to DD/MM/YYYY with DD * MM * YYYY a square")
     parser.add_argument('--max_year', type=int, help='Maximum year to search (inclusive)', default=9999)
-    parser.add_argument('--min_year', type=int, help='Minimum year to search (inclusive)', default=0)
+    parser.add_argument('--min_year', type=int, help='Minimum year to search (inclusive)', default=2024)
     parser.add_argument('out', type=str, help='Path to output CNF file.')
     parser.add_argument('extractor', type=str, help='Path to output extractor script.')
     args = parser.parse_args()
@@ -84,4 +65,4 @@ if __name__ == '__main__':
     with open(args.out, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, extra_fns=[], extra_args=[])
+        formula.WriteExtractor(f, print_solution, extra_args=[DIGIT_NAMES])

@@ -60,38 +60,94 @@ STATES = {
     'Wyoming': 576851,
 }
 
+# State-to-state adjacencies. Note that the "Four Corners" states are not
+# considered adjacent when they touch diagonally.
+NEIGHBORS = {
+    'California': ['Oregon', 'Nevada', 'Arizona'],
+    'Texas': ['NewMexico', 'Oklahoma', 'Arkansas', 'Louisiana'],
+    'Florida': ['Alabama', 'Georgia'],
+    'NewYork': ['Pennsylvania', 'NewJersey', 'Connecticut', 'Massachusetts', 'Vermont'],
+    'Pennsylvania': ['NewYork', 'NewJersey', 'Delaware', 'Maryland', 'WestVirginia', 'Ohio'],
+    'Illinois': ['Indiana', 'Kentucky', 'Missouri', 'Iowa', 'Wisconsin'],
+    'Ohio': ['Pennsylvania', 'WestVirginia', 'Kentucky', 'Indiana', 'Michigan'],
+    'Georgia': ['Florida', 'Alabama', 'Tennessee', 'NorthCarolina', 'SouthCarolina'],
+    'NorthCarolina': ['SouthCarolina', 'Virginia', 'Tennessee', 'Georgia'],
+    'Michigan': ['Wisconsin', 'Indiana', 'Ohio'],
+    'NewJersey': ['Delaware', 'Pennsylvania', 'NewYork'],
+    'Virginia': ['NorthCarolina', 'Tennessee', 'Kentucky', 'WestVirginia', 'Maryland'],
+    'Washington': ['Idaho', 'Oregon'],
+    'Arizona': ['California', 'Nevada', 'Utah', 'NewMexico'],
+    'Massachusetts': ['RhodeIsland', 'Connecticut', 'NewYork', 'NewHampshire', 'Vermont'],
+    'Tennessee': ['Kentucky', 'Virginia', 'NorthCarolina', 'Georgia', 'Alabama', 'Mississippi', 'Arkansas', 'Missouri'],
+    'Indiana': ['Michigan', 'Ohio', 'Kentucky', 'Illinois'],
+    'Maryland': ['Virginia', 'WestVirginia', 'Pennsylvania', 'Delaware'],
+    'Missouri': ['Iowa', 'Illinois', 'Kentucky', 'Tennessee', 'Arkansas', 'Oklahoma', 'Kansas', 'Nebraska'],
+    'Wisconsin': ['Michigan', 'Minnesota', 'Iowa', 'Illinois'],
+    'Colorado': ['Wyoming', 'Nebraska', 'Kansas', 'Oklahoma', 'NewMexico', 'Utah'],
+    'Minnesota': ['NorthDakota', 'SouthDakota', 'Iowa', 'Wisconsin'],
+    'SouthCarolina': ['Georgia', 'NorthCarolina'],
+    'Alabama': ['Mississippi', 'Tennessee', 'Georgia', 'Florida'],
+    'Louisiana': ['Texas', 'Arkansas', 'Mississippi'],
+    'Kentucky': ['Indiana', 'Ohio', 'WestVirginia', 'Virginia', 'Tennessee', 'Missouri', 'Illinois'],
+    'Oregon': ['Washington', 'Idaho', 'Nevada', 'California'],
+    'Oklahoma': ['NewMexico', 'Colorado', 'Kansas', 'Missouri', 'Arkansas', 'Texas'],
+    'Connecticut': ['NewYork', 'Massachusetts', 'RhodeIsland'],
+    'Utah': ['Nevada', 'Idaho', 'Wyoming', 'Colorado', 'Arizona'],
+    'Iowa': ['Minnesota', 'Wisconsin', 'Illinois', 'Missouri', 'Nebraska', 'SouthDakota'],
+    'Nevada': ['California', 'Oregon', 'Idaho', 'Utah', 'Arizona'],
+    'Arkansas': ['Missouri', 'Tennessee', 'Mississippi', 'Louisiana', 'Texas', 'Oklahoma'],
+    'Mississippi': ['Louisiana', 'Arkansas', 'Tennessee', 'Alabama'],
+    'Kansas': ['Nebraska', 'Missouri', 'Oklahoma', 'Colorado'],
+    'NewMexico': ['Arizona', 'Colorado', 'Oklahoma', 'Texas'],
+    'Nebraska': ['Wyoming', 'SouthDakota', 'Iowa', 'Missouri', 'Kansas', 'Colorado'],
+    'Idaho': ['Washington', 'Montana', 'Wyoming', 'Utah', 'Nevada', 'Oregon'],
+    'WestVirginia': ['Ohio', 'Pennsylvania', 'Maryland', 'Virginia', 'Kentucky'],
+    'Hawaii': [],
+    'NewHampshire': ['Vermont', 'Maine', 'Massachusetts'],
+    'Maine': ['NewHampshire'],
+    'RhodeIsland': ['Connecticut', 'Massachusetts'],
+    'Montana': ['NorthDakota', 'SouthDakota', 'Wyoming', 'Idaho'],
+    'Delaware': ['Maryland', 'Pennsylvania', 'NewJersey'],
+    'SouthDakota': ['NorthDakota', 'Minnesota', 'Iowa', 'Nebraska', 'Wyoming', 'Montana'],
+    'NorthDakota': ['Minnesota', 'SouthDakota', 'Montana'],
+    'Alaska': [],
+    'Vermont': ['NewYork', 'NewHampshire', 'Massachusetts'],
+    'Wyoming': ['Idaho', 'Montana', 'SouthDakota', 'Nebraska', 'Colorado', 'Utah'],
+}
+EAST_COAST = [
+    'Maine', 'NewHampshire', 'Massachusetts', 'RhodeIsland', 'Connecticut',
+    'NewYork', 'NewJersey', 'Delaware', 'Maryland', 'Virginia', 'NorthCarolina',
+    'SouthCarolina', 'Georgia', 'Florida'
+]
+WEST_COAST = ['California', 'Oregon', 'Washington']
+# A max path of length 16 from the east coast to the west coast seems reasonable.
+MAX_PATH = 16
+
+def king_neighbors(r, c):
+    return [(r+dr, c+dc) for dr in (-1,0,1) for dc in (-1,0,1)
+            if (dr, dc) != (0, 0) and r+dr in COORDS and c+dc in COORDS]
+
 # Encodes the Altered States 2 puzzle into a Formula.
 def encode(min_score, extras, min_extras, num_states=None):
     formula = Formula()
 
-    # varz[(r,c,v)] is true iff cell (r,v) has value v in VALS
-    varz = {}
-    for r in COORDS:
-        for c in COORDS:
-            for v in VALS:
-                varz[(r,c,v)] = formula.AddVar('v:{}:{}:{}'.format(r,c,v))
+    # varz[(r,c,v)] is true iff cell (r,c) has value v in VALS
+    varz = {(r,c,v): formula.AddVar(f'v:{r}:{c}:{v}') for r in COORDS for c in COORDS for v in VALS}
 
     # Constraint: Each cell contains exactly one value.
     for r in COORDS:
         for c in COORDS:
-            cell_vars = (varz[(r,c,v)] for v in VALS)
-            formula.Add(NumTrue(*cell_vars) == 1)
+            formula.Add(NumTrue(*(varz[(r,c,v)] for v in VALS)) == 1)
 
-    # The total score achieved.
-    total = Integer(0)
     # Maps state names to a variable that's true iff that state is matched.
     state_vars = {}
-
-    for state in STATES.keys():
+    for state in STATES:
         # Convert the state name to a sequence of numbers.
         pattern = [ord(ch.upper()) - ord('A') for ch in state]
 
         # svarz[(r,c,i)] means (r,c) matches position i of this state
-        svarz = {}
-        for r in COORDS:
-            for c in COORDS:
-                for i, _ in enumerate(pattern):
-                    svarz[(r,c,i)] = formula.AddVar('{}:{}:{}:{}'.format(state,r,c,i))
+        svarz = {(r,c,i): formula.AddVar(f'{state}:{r}:{c}:{i}')
+                 for r in COORDS for c in COORDS for i in range(len(pattern))}
 
         # Create a big conjunction that is true iff the current state has a
         # match on the grid.
@@ -99,39 +155,21 @@ def encode(min_score, extras, min_extras, num_states=None):
 
         # Constraint: For any position i in the state pattern, only one
         # svarz entry is set.
-        for i, _ in enumerate(pattern):
-            cell_vars = (svarz[(r,c,i)] for r in COORDS for c in COORDS)
-            sconj.append(NumTrue(*cell_vars) == 1)
+        for i in range(len(pattern)):
+            sconj.append(NumTrue(*(svarz[(r,c,i)] for r in COORDS for c in COORDS)) == 1)
 
         # Constraint: svarz is consistent with varz BUT one letter in the state
         # is allowed not to match!
-        pos_matches = []
-        for i, _ in enumerate(pattern):
-            conj = []
-            for r in COORDS:
-                for c in COORDS:
-                    conj.append(If(svarz[(r,c,i)], varz[r,c,pattern[i]]))
-            pos_matches.append(And(*conj))
+        pos_matches = [And(*(If(svarz[(r,c,i)], varz[(r,c,letter)]) for r in COORDS for c in COORDS))
+                       for i, letter in enumerate(pattern)]
         sconj.append(NumFalse(*pos_matches) <= 1)
 
         # Constraint: Any consecutive i and i+1 in the svarz are connected by a
         # king's move.
-        def kings_moves(r,c):
-            M = len(COORDS)-1
-            if r > 0 and c > 0: yield (r-1,c-1)
-            if r > 0: yield (r-1,c)
-            if r > 0 and c < M: yield (r-1,c+1)
-            if c > 0: yield (r,c-1)
-            if c < M: yield (r,c+1)
-            if r < M and c > 0: yield (r+1,c-1)
-            if r < M: yield (r+1,c)
-            if r < M and c < M: yield (r+1,c+1)
-
-        for i, _ in enumerate(pattern):
-            if i == 0: continue
+        for i in range(1, len(pattern)):
             for r in COORDS:
                 for c in COORDS:
-                    sconj.append(If(svarz[(r,c,i)], Or(*(svarz[(rr,cc,i-1)] for (rr,cc) in kings_moves(r,c)))))
+                    sconj.append(If(svarz[(r,c,i)], Or(*(svarz[(rr,cc,i-1)] for rr, cc in king_neighbors(r,c)))))
 
         sconj.append(Or(*(svarz[(r,c,len(pattern)-1)] for r in COORDS for c in COORDS)))
 
@@ -142,193 +180,83 @@ def encode(min_score, extras, min_extras, num_states=None):
         state_vars[state] = v
         formula.Add(v == And(*sconj))
 
-        total = total + If(v, Integer(STATES[state]), Integer(0))
+    # The total score achieved.
+    total = sum(If(v, Integer(STATES[state]), Integer(0)) for state, v in state_vars.items())
+    formula.Add(total >= min_score)
 
-    formula.Add(total >= Integer(min_score))
+    # Each extra achievement gets a variable named extra_{name} that's true iff
+    # the achievement is satisfied. Achievements listed in extras are forced.
+    extra_vars = {}
+    def add_extra(name, achieved):
+        v = formula.AddVar(f'extra_{name}')
+        formula.Add(v == achieved)
+        if name in extras:
+            print(f'Forcing {name}.')
+            formula.Add(v)
+        extra_vars[name] = v
 
-    # Encode 200M, force it if requested.
-    extra_200M = formula.AddVar('extra_200M')
-    formula.Add((total >= Integer(200000000)) == extra_200M)
-    if '200M' in extras:
-        print('Forcing 200M.')
-        formula.Add(extra_200M)
-
-    # Encode 20S, force it if requested.
-    extra_20S = formula.AddVar('extra_20S')
-    formula.Add((NumTrue(*(v for v in state_vars.values())) >= 20) == extra_20S)
-    if '20S' in extras:
-        print('Forcing 20S.')
-        formula.Add(extra_20S)
-
-    # Encode PA, force it if requested.
-    extra_PA = formula.AddVar('extra_PA')
-    formula.Add(state_vars['Pennsylvania'] == extra_PA)
-    if 'PA' in extras:
-        print('Forcing PA.')
-        formula.Add(extra_PA)
-
-    # Encode M8, force it if requested.
-    extra_M8 = formula.AddVar('extra_M8')
-    formula.Add(And(state_vars['Michigan'], state_vars['Massachusetts'], state_vars['Maryland'], state_vars['Missouri'],
-                    state_vars['Minnesota'], state_vars['Mississippi'], state_vars['Maine'], state_vars['Montana']) == extra_M8)
-    if 'M8' in extras:
-        print('Forcing M8.')
-        formula.Add(extra_M8)
-
-    # Encode 4C, force it if requested.
-    extra_4C = formula.AddVar('extra_4C')
-    formula.Add(And(state_vars['Colorado'],state_vars['Utah'],state_vars['Arizona'],state_vars['NewMexico']) == extra_4C)
-    if '4C' in extras:
-        print('Forcing 4C.')
-        formula.Add(extra_4C)
-
-    # Encode NOCAL, force it if requested.
-    extra_NOCAL = formula.AddVar('extra_NOCAL')
-    formula.Add(~state_vars['California'] == extra_NOCAL)
-    if 'NOCAL' in extras:
-        print('   Forcing NOCAL.')
-        formula.Add(extra_NOCAL)
-
-    # Encode CRT, force it if requested.
+    add_extra('200M', total >= 200000000)
+    add_extra('20S', NumTrue(*state_vars.values()) >= 20)
+    add_extra('PA', state_vars['Pennsylvania'])
+    add_extra('M8', And(*(state_vars[s] for s in ['Michigan', 'Massachusetts', 'Maryland', 'Missouri',
+                                                  'Minnesota', 'Mississippi', 'Maine', 'Montana'])))
+    add_extra('4C', And(*(state_vars[s] for s in ['Colorado', 'Utah', 'Arizona', 'NewMexico'])))
+    add_extra('NOCAL', ~state_vars['California'])
     # CRT was not part of the original problem statement, it was mentioned after all submissions had been received.
-    extra_CRT = formula.AddVar('extra_CRT')
-    formula.Add(And(state_vars['Connecticut'], state_vars['RhodeIsland'], ~state_vars['Texas']) == extra_CRT)
-    if 'CRT' in extras:
-        print('   Forcing CRT.')
-        formula.Add(extra_CRT)
+    add_extra('CRT', And(state_vars['Connecticut'], state_vars['RhodeIsland'], ~state_vars['Texas']))
 
-    # Encode C2C, force it if requested.
-    extra_C2C = formula.AddVar('extra_C2C')
-    # State-to-state adjacencies. Note that the "Four Corners" states are not
-    # considered adjacent when they touch diagonally.
-    g = {
-        'California': ['Oregon', 'Nevada', 'Arizona'],
-        'Texas': ['NewMexico', 'Oklahoma', 'Arkansas', 'Louisiana'],
-        'Florida': ['Alabama', 'Georgia'],
-        'NewYork': ['Pennsylvania', 'NewJersey', 'Connecticut', 'Massachusetts', 'Vermont'],
-        'Pennsylvania': ['NewYork', 'NewJersey', 'Delaware', 'Maryland', 'WestVirginia', 'Ohio'],
-        'Illinois': ['Indiana', 'Kentucky', 'Missouri', 'Iowa', 'Wisconsin'],
-        'Ohio': ['Pennsylvania', 'WestVirginia', 'Kentucky', 'Indiana', 'Michigan'],
-        'Georgia': ['Florida', 'Alabama', 'Tennessee', 'NorthCarolina', 'SouthCarolina'],
-        'NorthCarolina': ['SouthCarolina', 'Virginia', 'Tennessee', 'Georgia'],
-        'Michigan': ['Wisconsin', 'Indiana', 'Ohio'],
-        'NewJersey': ['Delaware', 'Pennsylvania', 'NewYork'],
-        'Virginia': ['NorthCarolina', 'Tennessee', 'Kentucky', 'WestVirginia', 'Maryland'],
-        'Washington': ['Idaho', 'Oregon'],
-        'Arizona': ['California', 'Nevada', 'Utah', 'NewMexico'],
-        'Massachusetts': ['RhodeIsland', 'Connecticut', 'NewYork', 'NewHampshire', 'Vermont'],
-        'Tennessee': ['Kentucky', 'Virginia', 'NorthCarolina', 'Georgia', 'Alabama', 'Mississippi', 'Arkansas', 'Missouri'],
-        'Indiana': ['Mississippi', 'Ohio', 'Kentucky', 'Illinois'],
-        'Maryland': ['Virginia', 'WestVirginia', 'Pennsylvania', 'Delaware'],
-        'Missouri': ['Iowa', 'Illinois', 'Kentucky', 'Tennessee', 'Arkansas', 'Oklahoma', 'Kansas', 'Nebraska'],
-        'Wisconsin': ['Michigan', 'Minnesota', 'Iowa', 'Illinois'],
-        'Colorado': ['Wyoming', 'Nebraska', 'Kansas', 'Oklahoma', 'NewMexico', 'Utah'],
-        'Minnesota': ['NorthDakota', 'SouthDakota', 'Iowa', 'Wisconsin'],
-        'SouthCarolina': ['Georgia', 'NorthCarolina'],
-        'Alabama': ['Mississippi', 'Tennessee', 'Georgia', 'Florida'],
-        'Louisiana': ['Texas', 'Arkansas', 'Mississippi'],
-        'Kentucky': ['Indiana', 'Ohio', 'WestVirginia', 'Virginia', 'Tennessee', 'Missouri', 'Illinois'],
-        'Oregon': ['Washington', 'Idaho', 'Nevada', 'California'],
-        'Oklahoma': ['NewMexico', 'Colorado', 'Kansas', 'Missouri', 'Arkansas', 'Texas'],
-        'Connecticut': ['NewYork', 'Massachusetts', 'RhodeIsland'],
-        'Utah': ['Nevada', 'Idaho', 'Wyoming', 'Colorado', 'Arizona'],
-        'Iowa': ['Minnesota', 'Wisconsin', 'Illinois', 'Missouri', 'Nebraska', 'SouthDakota'],
-        'Nevada': ['California', 'Oregon', 'Idaho', 'Utah', 'Arizona'],
-        'Arkansas': ['Missouri', 'Tennessee', 'Mississippi', 'Louisiana', 'Texas', 'Oklahoma'],
-        'Mississippi': ['Louisiana', 'Arkansas', 'Tennessee', 'Alabama'],
-        'Kansas': ['Nebraska', 'Missouri', 'Oklahoma', 'Colorado'],
-        'NewMexico': ['Arizona', 'Colorado', 'Oklahoma', 'Texas'],
-        'Nebraska': ['Wyoming', 'SouthDakota', 'Iowa', 'Missouri', 'Kansas', 'Colorado'],
-        'Idaho': ['Washington', 'Montana', 'Wyoming', 'Utah', 'Nevada', 'Oregon'],
-        'WestVirginia': ['Ohio', 'Pennsylvania', 'Maryland', 'Virginia', 'Kentucky'],
-        'Hawaii': [],
-        'NewHampshire': ['Vermont', 'Maine', 'Massachusetts'],
-        'Maine': ['NewHampshire'],
-        'RhodeIsland': ['Connecticut', 'Massachusetts'],
-        'Montana': ['NorthDakota', 'SouthDakota', 'Wyoming', 'Idaho'],
-        'Delaware': ['Maryland', 'Pennsylvania', 'NewJersey'],
-        'SouthDakota': ['NorthDakota', 'Minnesota', 'Iowa', 'Nebraska', 'Wyoming', 'Montana'],
-        'NorthDakota': ['Minnesota', 'SouthDakota', 'Montana'],
-        'Alaska': [],
-        'Vermont': ['NewYork', 'NewHampshire', 'Massachusetts'],
-        'Wyoming': ['Idaho', 'Montana', 'NorthDakota', 'SouthDakota', 'Nebraska', 'Colorado', 'Utah'],
-    }
-    # gvarz[(s,i)] means state s is reachable by path of length i from east coast
-    gvarz = {}
-    # A max path of length 16 from the east coast to the west coast seems
-    # reasonable.
-    MAX_PATH = 16
-    for state in g.keys():
-        for i in range(MAX_PATH):
-            gvarz[(state,i)] = formula.AddVar('g:{}:{}'.format(state,i))
-
-    east_coast = [
-        'Maine', 'NewHampshire', 'Massachusetts', 'RhodeIsland', 'Connecticut',
-        'NewYork', 'NewJersey', 'Delaware', 'Maryland', 'Virginia', 'NorthCarolina',
-        'SouthCarolina', 'Georgia', 'Florida'
-    ]
+    # C2C: there's a path of adjacent matched states from the east coast to the west coast.
+    # reached[(s,i)] means state s is reachable by a path of length i from the east coast.
+    reached = {(state,i): formula.AddVar(f'g:{state}:{i}') for state in NEIGHBORS for i in range(MAX_PATH)}
 
     # Initialize paths of length 0.
-    for state in east_coast:
-        formula.Add(state_vars[state] == gvarz[(state,0)])
-    for state in g.keys() - east_coast:
-        formula.Add(~gvarz[(state,0)])
+    for state in NEIGHBORS:
+        if state in EAST_COAST:
+            formula.Add(reached[(state,0)] == state_vars[state])
+        else:
+            formula.Add(~reached[(state,0)])
 
     # Define paths of length i in terms of paths of length (i-1).
     for i in range(1, MAX_PATH):
-        for state, adj in g.items():
-            adj_state_reached = [gvarz[(adj_state,i-1)] for adj_state in adj]
-            formula.Add(gvarz[(state,i)] == And(state_vars[state], Or(*adj_state_reached)))
+        for state, neighbors in NEIGHBORS.items():
+            neighbor_reached = [reached[(neighbor,i-1)] for neighbor in neighbors]
+            formula.Add(reached[(state,i)] == And(state_vars[state], Or(*neighbor_reached)))
 
-    got_to_west_coast = Or(*[gvarz[(state,i)] for state in ['California', 'Oregon', 'Washington'] for i in range(MAX_PATH)])
-    formula.Add(got_to_west_coast == extra_C2C)
-    if 'C2C' in extras:
-        print('Forcing C2C.')
-        formula.Add(extra_C2C)
+    add_extra('C2C', Or(*(reached[(state,i)] for state in WEST_COAST for i in range(MAX_PATH))))
 
-    # Constraint: force a desired number of extras.
-    formula.Add(NumTrue(*[extra_200M, extra_20S, extra_PA, extra_M8, extra_4C, extra_NOCAL, extra_C2C]) >= min_extras)
+    # Constraint: force a desired number of extras. CRT doesn't count since it wasn't part of the original puzzle.
+    formula.Add(NumTrue(*(v for name, v in extra_vars.items() if name != 'CRT')) >= min_extras)
 
     # (Optional) Constraint: force a fixed number of states.
     if num_states is not None:
-        formula.Add(NumTrue(*(v for v in state_vars.values())) == num_states)
+        formula.Add(NumTrue(*state_vars.values()) == num_states)
 
     return formula
 
 def print_solution(sol, *extra_args):
     coords, vals, states = extra_args
     for r in coords:
-        for c in coords:
-            for v in vals:
-                if sol['v:{}:{}:{}'.format(r,c,v)]:
-                    print(' {} '.format(chr(v + ord('A'))), end='')
-                    break
-        print('')
-    matches = [sname for sname in states.keys() if sol[sname]]
-    score = sum(val for key, val in states.items() if sol[key])
+        print(''.join(f' {chr(v + ord("A"))} ' for c in coords for v in vals if sol[f'v:{r}:{c}:{v}']))
+    matches = [state for state in states if sol[state]]
+    score = sum(states[state] for state in matches)
 
+    # Cells used to match a state, marking any cell whose letter doesn't match with a '*'.
     def path(state):
-        pattern = [ord(ch.upper()) - ord('A') for ch in state]
         p = []
-        for i, val in enumerate(pattern):
-            for r in coords:
-                for c in coords:
-                    if sol['{}:{}:{}:{}'.format(state,r,c,i)]:
-                        if sol['v:{}:{}:{}'.format(r,c,val)]:
-                            p.append('({},{})'.format(r,c))
-                        else:
-                            p.append('({},{})*'.format(r,c))
-                        break
+        for i, letter in enumerate(state.upper()):
+            r, c = next((r, c) for r in coords for c in coords if sol[f'{state}:{r}:{c}:{i}'])
+            matched = sol[f'v:{r}:{c}:{ord(letter) - ord("A")}']
+            p.append(f'({r},{c})' + ('' if matched else '*'))
         return ' '.join(p)
 
     print('Matches:')
     for match in matches:
-        print('  {} : {}'.format(match, path(match)))
+        print(f'  {match} : {path(match)}')
     print('Extras:')
-    for extra in ['extra_20S', 'extra_200M', 'extra_PA', 'extra_M8', 'extra_4C', 'extra_NOCAL', 'extra_C2C']:
-        if sol[extra]:
-            print('  {}'.format(extra[6:]))
-    print('Score: {}'.format(score))
+    for extra in ['20S', '200M', 'PA', 'M8', '4C', 'NOCAL', 'CRT', 'C2C']:
+        if sol[f'extra_{extra}']:
+            print(f'  {extra}')
+    print(f'Score: {score}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Solve Jane Street's Altered States 2 puzzle")
@@ -346,4 +274,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[COORDS, VALS, STATES])
+        formula.WriteExtractor(f, print_solution, extra_args=[COORDS, VALS, STATES])

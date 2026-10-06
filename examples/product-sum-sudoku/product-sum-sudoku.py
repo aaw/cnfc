@@ -1,70 +1,49 @@
-from collections import defaultdict
 from cnfc import *
 from itertools import product
 
 import argparse
 
-LETTERS = ['a','b','c','d','e','f']
-NUMBERS = [1,2,3,4,5,6]
+# Cells are named like a chessboard: 'a1' is the top-left cell, 'f6' is the bottom-right.
+ROWS = 'abcdef'
+COLS = '123456'
 NUM_BITS = Integer.bits_needed_for_range(1, 6)
 
 def encode():
     formula = Formula()
 
-    varz = {}
-    for letter in LETTERS:
-        for number in NUMBERS:
-            i = Integer(formula.AddVars('v:{}:{}'.format(letter, number), NUM_BITS))
-            formula.Add(0 < i < 7)
-            varz[(letter,number)] = i
+    v = {}
+    for row in ROWS:
+        for col in COLS:
+            cell = Integer(formula.AddVars(f'v:{row}:{col}', NUM_BITS))
+            formula.Add(0 < cell < 7)
+            v[row + col] = cell
 
-    # Rows
-    for letter in LETTERS:
-        row = [varz[(letter,number)] for number in NUMBERS]
-        for number in NUMBERS:
-            equal_n = (x == number for x in row)
-            formula.Add(NumTrue(*equal_n) == 1)
+    # Normal Sudoku rules: each row, column, and 2x3 box contains each number exactly once.
+    rows = [[row + col for col in COLS] for row in ROWS]
+    cols = [[row + col for row in ROWS] for col in COLS]
+    boxes = [[row + col for row in box_rows for col in box_cols]
+             for box_rows, box_cols in product(['ab', 'cd', 'ef'], ['123', '456'])]
+    for group in rows + cols + boxes:
+        for number in range(1, 7):
+            formula.Add(NumTrue(*(v[cell] == number for cell in group)) == 1)
 
-    # Columns
-    for number in NUMBERS:
-        col = [varz[(letter,number)] for letter in LETTERS]
-        for number in NUMBERS:
-            equal_n = (x == number for x in col)
-            formula.Add(NumTrue(*equal_n) == 1)
-
-    # Boxes
-    for box_def in product([['a','b'],['c','d'],['e','f']], [[1,2,3],[4,5,6]]):
-        box = [varz[vpair] for vpair in product(box_def[0], box_def[1])]
-        for number in NUMBERS:
-            equal_n = (x == number for x in box)
-            formula.Add(NumTrue(*equal_n) == 1)
-
-    # Sum of blue box
-    box_sum = (varz[('a',1)] + varz[('a',2)] + varz[('a',3)] +
-               varz[('b',1)] + varz[('b',2)] + varz[('b',3)] +
-               varz[('c',1)] + varz[('c',2)] + varz[('c',3)])
-
-    # Diagonal products
-    d1_prod = varz[('a',1)] * varz[('b',2)] * varz[('c',3)] * varz[('d',4)] * varz[('e',5)] * varz[('f',6)]
-    d2_prod = varz[('d',1)] * varz[('e',2)] * varz[('f',3)]
-    d3_prod = varz[('b',6)] * varz[('c',5)] * varz[('d',4)] * varz[('e',3)] * varz[('f',2)]
-    d4_prod = varz[('a',3)] * varz[('b',2)] * varz[('c',1)]
-
-    formula.Add(box_sum == d1_prod)
-    formula.Add(box_sum == d2_prod)
-    formula.Add(box_sum == d3_prod)
-    formula.Add(box_sum == d4_prod)
+    # The sum of the blue box equals the product of each pink diagonal.
+    box_sum = (v['a1'] + v['a2'] + v['a3'] +
+               v['b1'] + v['b2'] + v['b3'] +
+               v['c1'] + v['c2'] + v['c3'])
+    formula.Add(box_sum == v['a1'] * v['b2'] * v['c3'] * v['d4'] * v['e5'] * v['f6'])
+    formula.Add(box_sum == v['d1'] * v['e2'] * v['f3'])
+    formula.Add(box_sum == v['b6'] * v['c5'] * v['d4'] * v['e3'] * v['f2'])
+    formula.Add(box_sum == v['a3'] * v['b2'] * v['c1'])
 
     return formula
 
-def print_solution(sol):
-    for letter in ['a','b','c','d','e','f']:
-        for number in [1,2,3,4,5,6]:
-            print(' {} '.format(sol.integer('v:{}:{}'.format(letter, number))), end='')
-        print('')
+def print_solution(sol, *extra_args):
+    for row in 'abcdef':
+        print(''.join(f" {sol.integer(f'v:{row}:{col}')} " for col in '123456'))
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Determine if a number is prime by attempting to factor it")
+    parser = argparse.ArgumentParser(description="Solve the Product-Sum Sudoku from the RSS Christmas Quiz 2023")
     parser.add_argument('outfile', type=str, help='Path to output CNF file.')
     parser.add_argument('extractor', type=str, help='Path to output extractor script.')
     args = parser.parse_args()

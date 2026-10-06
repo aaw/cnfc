@@ -27,13 +27,15 @@
 
 from cnfc import *
 from cnfc.funcs import IsPalindrome
-from itertools import combinations, product
+from itertools import product
 
 import argparse
 import math
 
 # 11 x 11 grid coordinates.
-COORDS = [0,1,2,3,4,5,6,7,8,9,10]
+COORDS = list(range(11))
+# Each row has at most 4 runs of unshaded cells.
+RUNS = range(4)
 # Cells contain digits 0-9, or -1 to indicate shading.
 SHADED = Integer(-1)
 CELL_BITS = Integer.bits_needed_for_range(-1, 9)
@@ -109,7 +111,7 @@ def generate_mask_constraints(row, mask, cell_var, row_var):
     # it's already enforced implicitly by the row pattern generation.
     for start, end in runs:
         # Constraint: No leading zeros in a run.
-        conjuncts.append(cell_var[(row,start)] != Integer(0))
+        conjuncts.append(cell_var[(row,start)] != 0)
         # Constraint: No shaded cells in a run.
         for i in range(start, end+1):
             conjuncts.append(cell_var[(row,i)] != SHADED)
@@ -118,12 +120,12 @@ def generate_mask_constraints(row, mask, cell_var, row_var):
     for i, (start, end) in enumerate(runs):
         num = Integer(0)
         for j in range(start, end+1):
-            num = num * Integer(10) + cell_var[(row,j)]
+            num = num * 10 + cell_var[(row,j)]
         conjuncts.append(row_var[(row,i)][VAL] == num)
 
     # Set the row existence variables appropriately, given the number of
     # runs in this particular mask.
-    for i in [0,1,2,3]:
+    for i in RUNS:
         if i < len(runs):
             conjuncts.append(row_var[(row,i)][EXISTS])
         else:
@@ -147,130 +149,10 @@ def generate_mask_constraints(row, mask, cell_var, row_var):
 
     return And(*conjuncts)
 
-# Encodes the Number Cross 4 puzzle into a Formula.
-def encode():
-    formula = Formula(FileBuffer)
-
-    # Cell vars are integers representing the choice of number or shaded for any
-    # cell in the grid.
-    cell_var = {}
-    for r in COORDS:
-        for c in COORDS:
-            # v:r:c:i is the ith bit of the number in row r, column c.
-            i = Integer(*(formula.AddVar('v:{}:{}:{}'.format(r, c, i)) for i in range(CELL_BITS)))
-            formula.Add(SHADED <= i <= 9)
-            cell_var[(r,c)] = i
-
-    # Row vars are tuples representing the integer value of a run, whether that
-    # run exists in a row, and the sum and product of a run. They're indexed by
-    # a (row, run) tuple, where row ranges from 0 to 3.
-    row_var = {}
-    for j in [0,1,2,3]:
-        for r in COORDS:
-            # n:r:j:i is the ith bit of the jth run in row r, for j in [0,1,2,3]
-            val = Integer(*(formula.AddVar('n:{}:{}:{}'.format(r, j, i)) for i in range(ROW_BITS)))
-            formula.Add(val >= 0)
-            # b:r:j is true iff there is a jth run in row r for j in [0,1,2,3]
-            exists = formula.AddVar('b:{}:{}'.format(r,j))
-            # sod:r:j:i is the ith bit of the sum of digits of the jth run in row r for j in [0,1,2,3].
-            # The sum of all numbers in a row is at most 99.
-            rsum = Integer(*(formula.AddVar('sod:{}:{}:{}'.format(r,j,i)) for i in range(Integer.bits_needed_for_range(0, 99))))
-            formula.Add(rsum >= 0)
-            # pod:r:j:i is the ith bit of the product of digits of the jth run in row r for j in [0,1,2,3]
-            rprod = Integer(*(formula.AddVar('pod:{}:{}:{}'.format(r,j,i)) for i in range(ROW_BITS)))
-            formula.Add(rprod >= 0)
-            # row_var is a tuple of (VAL, EXISTS, SUM, PRODUCT)
-            row_var[(r,j)] = (val, exists, rsum, rprod)
-
-    # Constraint: No two shaded cells can share an edge. We already enforce this
-    # implicitly for adjacent cells in a row when generating masks, so we only
-    # need to enforce it explicitly for columns here.
-    for x in COORDS:
-        for y1, y2 in zip(COORDS, COORDS[1:]):
-            formula.Add(Or(cell_var[(x,y1)] != SHADED, cell_var[(x,y2)] != SHADED))
-
-    # Constraint: Each row matches some valid mask of shaded cells, each run in
-    # a row is connected to individual cell values appropriately.
-    for row in COORDS:
-        print('Generating row {} cell constraints...'.format(row))
-        disjuncts = []
-        for mask in row_patterns():
-            disjuncts.append(generate_mask_constraints(row, mask, cell_var, row_var))
-        formula.Add(Or(*disjuncts))
-
-    # Constraint: adjacent cells in the same region contain the same digit unless one is shaded.
-    for r in COORDS:
-        for c in COORDS[:-1]:
-            if BOARD[r][c] == BOARD[r][c+1]:
-                formula.Add(Or(cell_var[(r,c)] == SHADED, cell_var[(r,c+1)] == SHADED, cell_var[(r,c)] == cell_var[(r,c+1)]))
-
-    for r in COORDS[:-1]:
-        for c in COORDS:
-            if BOARD[r][c] == BOARD[r+1][c]:
-                formula.Add(Or(cell_var[(r,c)] == SHADED, cell_var[(r+1,c)] == SHADED, cell_var[(r,c)] == cell_var[(r+1,c)]))
-
-    # Constraint: adjacent cells in adjacent regions contain different digits unless one is shaded.
-    for r in COORDS:
-        for c in COORDS[:-1]:
-            if BOARD[r][c] != BOARD[r][c+1]:
-                formula.Add(Or(cell_var[(r,c)] == SHADED, cell_var[(r,c+1)] == SHADED, cell_var[(r,c)] != cell_var[(r,c+1)]))
-
-    for r in COORDS[:-1]:
-        for c in COORDS:
-            if BOARD[r][c] != BOARD[r+1][c]:
-                formula.Add(Or(cell_var[(r,c)] == SHADED, cell_var[(r+1,c)] == SHADED, cell_var[(r,c)] != cell_var[(r+1,c)]))
-
-    # At this point, we've connected all cell vars to row vars and asserted all
-    # constraints about individual cell values and adjacent cell values. So we
-    # can now focus on constraints about the runs in each row, most of which are
-    # algebraic.
-
-    # Constraint: Row 0 is a square.
-    print('Generating row 0 run constraints...')
-    row00, row00on, _, _ = row_var[(0,0)]
-    row01, row01on, _, _ = row_var[(0,1)]
-    row02, row02on, _, _ = row_var[(0,2)]
-    row03, row03on, _, _ = row_var[(0,3)]
-    x0 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x0 >= 0)
-    formula.Add(If(row00on, x0 * x0 == row00))
-    x1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x1 >= 0)
-    formula.Add(If(row01on, x1 * x1 == row01))
-    x2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x2 >= 0)
-    formula.Add(If(row02on, x2 * x2 == row02))
-    x3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x3 >= 0)
-    formula.Add(If(row03on, x3 * x3 == row03))
-
-    # Constraint: Row 1 is one more than a palindrome.
-    print('Generating row 1 run constraints...')
-    row10, row10on, _, _ = row_var[(1,0)]
-    row11, row11on, _, _ = row_var[(1,1)]
-    row12, row12on, _, _ = row_var[(1,2)]
-    row13, row13on, _, _ = row_var[(1,3)]
-    formula.Add(If(row10on, IsPalindrome(row10 - Integer(1))))
-    formula.Add(If(row11on, IsPalindrome(row11 - Integer(1))))
-    formula.Add(If(row12on, IsPalindrome(row12 - Integer(1))))
-    formula.Add(If(row13on, IsPalindrome(row13 - Integer(1))))
-
-    # Constraint: Row 2 is a prime raised to a prime.
-    # This is the trickiest run constraint, since you can encode "not a prime" easily
-    # with SAT but it's difficult to encode "is a prime". Maybe there's a simple
-    # algebraic test for a prime raised to a prime that I don't know about using some
-    # variant of Fermat's little theorem, but since I don't know one and prime powers
-    # are relatively sparse, I'm just going to enumerate all prime powers that are
-    # less than 12 digits and test against those explicitly in a big disjunction.
-    print('Generating row 2 run constraints...')
+# All prime powers p^q (p, q prime) with 2 to 11 digits.
+def prime_powers():
     def prime(a):
-        return not (a < 2 or any(a % x == 0 for x in range(2, int(math.sqrt(a)) + 1)))
-    def num_digits(a):
-        count = 0
-        while a > 0:
-            a //= 10
-            count += 1
-        return count
+        return a >= 2 and all(a % x != 0 for x in range(2, math.isqrt(a) + 1))
     # 316228 is the first number whose square is 12 digits, so we only need to consider prime
     # bases below that.
     primes = [x for x in range(316228) if prime(x)]
@@ -278,132 +160,115 @@ def encode():
     exps = [x for x in range(37) if prime(x)]
     # The final set of possible prime powers has 27981 elements and only takes a second or
     # two to calculate.
-    ptop = [x**y for x in primes for y in exps if 2 <= num_digits(x**y) <= 11]
-    row20, row20on, _, _ = row_var[(2,0)]
-    row21, row21on, _, _ = row_var[(2,1)]
-    row22, row22on, _, _ = row_var[(2,2)]
-    row23, row23on, _, _ = row_var[(2,3)]
-    formula.Add(If(row20on, Or(*(row20 == x for x in ptop))))
-    formula.Add(If(row21on, Or(*(row21 == x for x in ptop))))
-    formula.Add(If(row22on, Or(*(row22 == x for x in ptop))))
-    formula.Add(If(row23on, Or(*(row23 == x for x in ptop))))
+    return [x**y for x in primes for y in exps if 10 <= x**y < 10**11]
 
-    # Constraint: Sum of Row 3 digits is 7.
-    print('Generating row 3 run constraints...')
-    _, row30on, sod30, _ = row_var[(3,0)]
-    _, row31on, sod31, _ = row_var[(3,1)]
-    _, row32on, sod32, _ = row_var[(3,2)]
-    _, row33on, sod33, _ = row_var[(3,3)]
-    formula.Add(If(row30on, sod30 == Integer(7)))
-    formula.Add(If(row31on, sod31 == Integer(7)))
-    formula.Add(If(row32on, sod32 == Integer(7)))
-    formula.Add(If(row33on, sod33 == Integer(7)))
+# Encodes the Number Cross 4 puzzle into a Formula.
+def encode():
+    formula = Formula(FileBuffer)
 
-    # Constraint: Row 4 is a Fibonacci number.
-    # Uses Gessel's test: n is a Fibonacci number iff 5n^2 + 4 or 5n^2 - 4 is a square.
-    print('Generating row 4 run constraints...')
-    row40, row40on, _, _ = row_var[(4,0)]
-    row41, row41on, _, _ = row_var[(4,1)]
-    row42, row42on, _, _ = row_var[(4,2)]
-    row43, row43on, _, _ = row_var[(4,3)]
-    five_n_squared0 = Integer(5) * row40 * row40
-    x4a0 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4a0 >= 0)
-    x4b0 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4b0 >= 0)
-    formula.Add(If(row40on, Or(x4a0 * x4a0 == five_n_squared0 + Integer(4), x4b0 * x4b0 == five_n_squared0 - Integer(4))))
-    five_n_squared1 = Integer(5) * row41 * row41
-    x4a1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4a1 >= 0)
-    x4b1 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4b1 >= 0)
-    formula.Add(If(row41on, Or(x4a1 * x4a1 == five_n_squared1 + Integer(4), x4b1 * x4b1 == five_n_squared1 - Integer(4))))
-    five_n_squared2 = Integer(5) * row42 * row42
-    x4a2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4a2 >= 0)
-    x4b2 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4b2 >= 0)
-    formula.Add(If(row42on, Or(x4a2 * x4a2 == five_n_squared2 + Integer(4), x4b2 * x4b2 == five_n_squared2 - Integer(4))))
-    five_n_squared3 = Integer(5) * row43 * row43
-    x4a3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4a3 >= 0)
-    x4b3 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x4b3 >= 0)
-    formula.Add(If(row43on, Or(x4a3 * x4a3 == five_n_squared3 + Integer(4), x4b3 * x4b3 == five_n_squared3 - Integer(4))))
+    # Cell vars are integers representing the choice of number or shaded for any
+    # cell in the grid. v:r:c:i is the ith bit of the number in row r, column c.
+    cell_var = {}
+    for r in COORDS:
+        for c in COORDS:
+            cell = Integer(formula.AddVars(f'v:{r}:{c}', CELL_BITS))
+            formula.Add(SHADED <= cell <= 9)
+            cell_var[(r,c)] = cell
 
-    # Constraint: Row 5 is a square.
-    # print('Generating row 5 run constraints...')
-    row50, row50on, _, _ = row_var[(5,0)]
-    row51, row51on, _, _ = row_var[(5,1)]
-    row52, row52on, _, _ = row_var[(5,2)]
-    row53, row53on, _, _ = row_var[(5,3)]
-    x50 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x50 >= 0)
-    formula.Add(If(row50on, x50 * x50 == row50))
-    x51 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x51 >= 0)
-    formula.Add(If(row51on, x51 * x51 == row51))
-    x52 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x52 >= 0)
-    formula.Add(If(row52on, x52 * x52 == row52))
-    x53 = Integer(*(formula.AddVar() for i in range(ROOT_BITS)))
-    formula.Add(x53 >= 0)
-    formula.Add(If(row53on, x53 * x53 == row53))
+    # Row vars are tuples representing the integer value of a run, whether that
+    # run exists in a row, and the sum and product of a run. They're indexed by
+    # a (row, run) tuple, where run ranges from 0 to 3.
+    row_var = {}
+    for j in RUNS:
+        for r in COORDS:
+            # n:r:j:i is the ith bit of the jth run in row r.
+            val = Integer(formula.AddVars(f'n:{r}:{j}', ROW_BITS))
+            formula.Add(val >= 0)
+            # b:r:j is true iff there is a jth run in row r.
+            exists = formula.AddVar(f'b:{r}:{j}')
+            # sod:r:j:i is the ith bit of the sum of digits of the jth run in row r.
+            # The sum of all numbers in a row is at most 99.
+            rsum = Integer(formula.AddVars(f'sod:{r}:{j}', Integer.bits_needed_for_range(0, 99)))
+            formula.Add(rsum >= 0)
+            # pod:r:j:i is the ith bit of the product of digits of the jth run in row r.
+            rprod = Integer(formula.AddVars(f'pod:{r}:{j}', ROW_BITS))
+            formula.Add(rprod >= 0)
+            # row_var is a tuple of (VAL, EXISTS, SUM, PRODUCT)
+            row_var[(r,j)] = (val, exists, rsum, rprod)
 
-    # Constraint: Row 6 is a multiple of 37.
-    print('Generating row 6 run constraints...')
-    row60, row60on, _, _ = row_var[(6,0)]
-    row61, row61on, _, _ = row_var[(6,1)]
-    row62, row62on, _, _ = row_var[(6,2)]
-    row63, row63on, _, _ = row_var[(6,3)]
-    formula.Add(If(row60on, row60 % Integer(37) == Integer(0)))
-    formula.Add(If(row61on, row61 % Integer(37) == Integer(0)))
-    formula.Add(If(row62on, row62 % Integer(37) == Integer(0)))
-    formula.Add(If(row63on, row63 % Integer(37) == Integer(0)))
+    # Constraint: No two shaded cells can share an edge. We already enforce this
+    # implicitly for adjacent cells in a row when generating masks, so we only
+    # need to enforce it explicitly for columns here.
+    for c in COORDS:
+        for r1, r2 in zip(COORDS, COORDS[1:]):
+            formula.Add(Or(cell_var[(r1,c)] != SHADED, cell_var[(r2,c)] != SHADED))
 
-    # Constraint: Row 7 is a palindrome and a multiple of 23
-    print('Generating row 7 run constraints...')
-    row70, row70on, _, _ = row_var[(7,0)]
-    row71, row71on, _, _ = row_var[(7,1)]
-    row72, row72on, _, _ = row_var[(7,2)]
-    row73, row73on, _, _ = row_var[(7,3)]
-    formula.Add(If(row70on, And(IsPalindrome(row70), row70 % Integer(23) == 0)))
-    formula.Add(If(row71on, And(IsPalindrome(row71), row71 % Integer(23) == 0)))
-    formula.Add(If(row72on, And(IsPalindrome(row72), row72 % Integer(23) == 0)))
-    formula.Add(If(row73on, And(IsPalindrome(row73), row73 % Integer(23) == 0)))
+    # Constraint: Each row matches some valid mask of shaded cells, each run in
+    # a row is connected to individual cell values appropriately.
+    for row in COORDS:
+        print(f'Generating row {row} cell constraints...')
+        formula.Add(Or(*(generate_mask_constraints(row, mask, cell_var, row_var) for mask in row_patterns())))
 
-    # Constraint: Product of Row 8 digits ends in 1.
-    print('Generating row 8 run constraints...')
-    _, row80on, _, pod80 = row_var[(8,0)]
-    _, row81on, _, pod81 = row_var[(8,1)]
-    _, row82on, _, pod82 = row_var[(8,2)]
-    _, row83on, _, pod83 = row_var[(8,3)]
-    formula.Add(If(row80on, pod80 % Integer(10) == Integer(1)))
-    formula.Add(If(row81on, pod81 % Integer(10) == Integer(1)))
-    formula.Add(If(row82on, pod82 % Integer(10) == Integer(1)))
-    formula.Add(If(row83on, pod83 % Integer(10) == Integer(1)))
+    # Constraint: adjacent unshaded cells contain the same digit if they're in
+    # the same region and different digits if they're in different regions.
+    neighbors = ([((r,c), (r,c+1)) for r in COORDS for c in COORDS[:-1]] +
+                 [((r,c), (r+1,c)) for r in COORDS[:-1] for c in COORDS])
+    for same in (True, False):
+        for (r1,c1), (r2,c2) in neighbors:
+            if (BOARD[r1][c1] == BOARD[r2][c2]) != same: continue
+            x, y = cell_var[(r1,c1)], cell_var[(r2,c2)]
+            formula.Add(Or(x == SHADED, y == SHADED, x == y if same else x != y))
 
-    # Constraint: Row 9 is a multiple of 88.
-    print('Generating row 9 run constraints...')
-    row90, row90on, _, _ = row_var[(9,0)]
-    row91, row91on, _, _ = row_var[(9,1)]
-    row92, row92on, _, _ = row_var[(9,2)]
-    row93, row93on, _, _ = row_var[(9,3)]
-    formula.Add(If(row90on, row90 % Integer(88) == Integer(0)))
-    formula.Add(If(row91on, row91 % Integer(88) == Integer(0)))
-    formula.Add(If(row92on, row92 % Integer(88) == Integer(0)))
-    formula.Add(If(row93on, row93 % Integer(88) == Integer(0)))
+    # At this point, we've connected all cell vars to row vars and asserted all
+    # constraints about individual cell values and adjacent cell values. So we
+    # can now focus on constraints about the runs in each row, most of which are
+    # algebraic.
 
-    # Constraint: Row 10 is 1 less than a palindrome
-    print('Generating row 10 run constraints...')
-    row100, row100on, _, _ = row_var[(10,0)]
-    row101, row101on, _, _ = row_var[(10,1)]
-    row102, row102on, _, _ = row_var[(10,2)]
-    row103, row103on, _, _ = row_var[(10,3)]
-    formula.Add(If(row100on, IsPalindrome(row100 + Integer(1))))
-    formula.Add(If(row101on, IsPalindrome(row101 + Integer(1))))
-    formula.Add(If(row102on, IsPalindrome(row102 + Integer(1))))
-    formula.Add(If(row103on, IsPalindrome(row103 + Integer(1))))
+    def is_square(n):
+        root = Integer(*(formula.AddVar() for _ in range(ROOT_BITS)))
+        formula.Add(root >= 0)
+        return root * root == n
+
+    # Row 2 is the trickiest run constraint, since you can encode "not a prime" easily
+    # with SAT but it's difficult to encode "is a prime". Maybe there's a simple
+    # algebraic test for a prime raised to a prime that I don't know about using some
+    # variant of Fermat's little theorem, but since I don't know one and prime powers
+    # are relatively sparse, I'm just going to enumerate all prime powers that are
+    # less than 12 digits and test against those explicitly in a big disjunction.
+    ptop = prime_powers()
+
+    # Each row's constraint, applied to every run in the row. Each constraint
+    # takes the run's value, sum of digits, and product of digits.
+    run_constraints = [
+        # Row 0 is a square.
+        lambda n, sod, pod: is_square(n),
+        # Row 1 is one more than a palindrome.
+        lambda n, sod, pod: IsPalindrome(n - 1),
+        # Row 2 is a prime raised to a prime.
+        lambda n, sod, pod: Or(*(n == x for x in ptop)),
+        # Sum of Row 3 digits is 7.
+        lambda n, sod, pod: sod == 7,
+        # Row 4 is a Fibonacci number.
+        # Uses Gessel's test: n is a Fibonacci number iff 5n^2 + 4 or 5n^2 - 4 is a square.
+        lambda n, sod, pod: Or(is_square(5*n*n + 4), is_square(5*n*n - 4)),
+        # Row 5 is a square.
+        lambda n, sod, pod: is_square(n),
+        # Row 6 is a multiple of 37.
+        lambda n, sod, pod: n % 37 == 0,
+        # Row 7 is a palindrome and a multiple of 23.
+        lambda n, sod, pod: And(IsPalindrome(n), n % 23 == 0),
+        # Product of Row 8 digits ends in 1.
+        lambda n, sod, pod: pod % 10 == 1,
+        # Row 9 is a multiple of 88.
+        lambda n, sod, pod: n % 88 == 0,
+        # Row 10 is 1 less than a palindrome.
+        lambda n, sod, pod: IsPalindrome(n + 1),
+    ]
+    for row, constraint in enumerate(run_constraints):
+        print(f'Generating row {row} run constraints...')
+        for j in RUNS:
+            n, exists, sod, pod = row_var[(row,j)]
+            formula.Add(If(exists, constraint(n, sod, pod)))
 
     return formula
 

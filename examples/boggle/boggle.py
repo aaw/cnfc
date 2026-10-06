@@ -1,5 +1,7 @@
 import argparse
+import re
 import string
+import sys
 import time
 
 from pathlib import Path
@@ -20,14 +22,14 @@ ALPHABET = list(string.ascii_uppercase)
 
 def word_score(word):
     # The input to this function is a cleaned word, so it has length at least
-    # 3, is upper case only, and has any Qu replace by Q.
-    word_length = len(word) + sum(1 for ch in word if ch == 'Q')
-    if len(word) in [3,4]: return Integer(1)
-    if len(word) == 5: return Integer(2)
-    if len(word) == 6: return Integer(3)
-    if len(word) == 7: return Integer(5)
-    if len(word) >= 8: return Integer(11)
-    raise ValueError(f"Invalid word: {word}, can't calculate score.")
+    # 3, is upper case only, and has any Qu replaced by Q. Since the "Qu" die
+    # face counts as two letters, each Q adds one to the scored length.
+    length = len(word) + word.count('Q')
+    if length <= 4: return 1
+    if length == 5: return 2
+    if length == 6: return 3
+    if length == 7: return 5
+    return 11
 
 def king_neighbors(r, c, rows, cols):
     return [
@@ -60,35 +62,26 @@ def encode(score, dice, rows, cols, words):
         ds = CLASSIC_DICE if dice == 'classic' else NEW_DICE
 
         # Variable rolls:i:j is true iff die i rolls the jth face.
-        rolls = {}
-        for i,d in enumerate(ds):
-            for j,x in enumerate(d):
-                rolls[(i,j)] = formula.AddVar(f'rolls:{i}:{j}')
+        rolls = {(i,j): formula.AddVar(f'rolls:{i}:{j}') for i,d in enumerate(ds) for j in range(len(d))}
 
         # Constraint: die i has exactly one roll result.
         for i,d in enumerate(ds):
-            roll_results = [rolls[(i,j)] for j in range(len(d))]
-            formula.Add(NumTrue(*roll_results) == 1)
+            formula.Add(NumTrue(*(rolls[(i,j)] for j in range(len(d)))) == 1)
 
         # Variable die_match:i:r:c is true iff die i is rolled into board position (r,c)
-        die_match = {}
-        for r in rows:
-            for c in cols:
-                for i in range(len(ds)):
-                    die_match[(i,r,c)] = formula.AddVar(f'die_match:{i}:{r}:{c}')
+        die_match = {(i,r,c): formula.AddVar(f'die_match:{i}:{r}:{c}')
+                     for r in rows for c in cols for i in range(len(ds))}
 
         # Constraint: board position (r,c) is matched to exactly one die.
         for r in rows:
             for c in cols:
-                die_matches = [die_match[(i,r,c)] for i in range(len(ds))]
-                formula.Add(NumTrue(*die_matches) == 1)
+                formula.Add(NumTrue(*(die_match[(i,r,c)] for i in range(len(ds)))) == 1)
 
         # TODO: I guess boards like 5-by-5 with more than 16 dice just allow re-use???
         if len(rows) == 4 and len(cols) == 4:
             # Constraint: each die is matched to at most one board position.
             for i in range(len(ds)):
-                die_matches = [die_match[(i,r,c)] for r in rows for c in cols]
-                formula.Add(NumTrue(*die_matches) <= 1)
+                formula.Add(NumTrue(*(die_match[(i,r,c)] for r in rows for c in cols)) <= 1)
 
         # Constraint: board position (r,c) agrees with a face on die i if it's matched to it
         for r in rows:
@@ -101,9 +94,7 @@ def encode(score, dice, rows, cols, words):
                         if x not in d: formula.Add(Or(~board[(r,c,x)], ~die_match[(i,r,c)]))
 
     # Variable word_found:i is true iff word i can be found on the board.
-    word_found = {}
-    for i,word in enumerate(words):
-        word_found[i] = formula.AddVar(f'word_found:{i}')
+    word_found = [formula.AddVar(f'word_found:{i}') for i in range(len(words))]
 
     start_time = time.time()
     word_vars = {}
@@ -141,22 +132,19 @@ def encode(score, dice, rows, cols, words):
         # Finally, connect a full word match with word_found vars.
         formula.Add(word_found[i] == And(*constraints))
 
-        elapsed_sec = time.time() - start_time
-        elapsed_hr = elapsed_sec / 3600
-        avg_time_per_item = elapsed_sec / (i + 1)
-        remaining_sec = avg_time_per_item * (len(words) - i - 1)
-        remaining_hr = remaining_sec / 3600
-
-        print(f'Generated clauses for {word} ({i}/{len(words)}) | Elapsed: {elapsed_hr:.2f}h | Remaining: {remaining_hr:.2f}h', flush=True)
+        # Generating the full enable2k formula takes hours, so report progress.
+        elapsed_hr = (time.time() - start_time) / 3600
+        remaining_hr = elapsed_hr / (i + 1) * (len(words) - i - 1)
+        print(f'Generated clauses for {word} ({i+1}/{len(words)}) | Elapsed: {elapsed_hr:.2f}h | Remaining: {remaining_hr:.2f}h', flush=True)
 
     # Constraint: total score is at least the desired score
-    scores = [If(word_found[i], word_score(words[i]), Integer(0)) for i in range(len(words))]
+    scores = [If(found, Integer(word_score(word)), Integer(0)) for found, word in zip(word_found, words)]
     formula.Add(sum(scores) >= score)
 
-    if len(rows) <= 4 and len(cols) <= 4:
-        # Symmetry breaking: Under reflections and rotations of a board with at most 4 rows and
-        # at most 4 columns, there are only 3 unique positions. So constrain the first die to
-        # one of these (diagrammed with X's below):
+    if dice != 'none' and len(rows) == 4 and len(cols) == 4:
+        # Symmetry breaking: On a 4-by-4 board, every die is used, and under reflections and
+        # rotations there are only 3 unique positions. So constrain the first die to one of
+        # these (diagrammed with X's below):
         #
         #     X X . .
         #     . X . .
@@ -170,31 +158,18 @@ def encode(score, dice, rows, cols, words):
 def print_solution(sol, *extra_args):
     score, rows, cols, alphabet, words = extra_args
 
-    def ws(word):
-        word_length = len(word) + sum(1 for ch in word if ch == 'Q')
-        if len(word) in [3,4]: return 1
-        if len(word) == 5: return 2
-        if len(word) == 6: return 3
-        if len(word) == 7: return 5
-        if len(word) >= 8: return 11
-
     total = 0
     for i,word in enumerate(words):
         if sol[f'word_found:{i}']:
-            points = ws(word)
+            points = word_score(word)
             total += points
-            print(f'{word}: {points} points')
+            print(f"{word.replace('Q', 'QU')}: {points} points")
     print('')
     print(f'Total score: {total}')
     print('')
 
     for r in rows:
-        row = []
-        for c in cols:
-            for x in alphabet:
-                if sol[f'board:{r}:{c}:{x}']:
-                    row.append(x)
-        print(' '.join(row))
+        print(' '.join(x for c in cols for x in alphabet if sol[f'board:{r}:{c}:{x}']))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Search for Boggle boards.')
@@ -211,29 +186,27 @@ if __name__ == '__main__':
 
     if not Path(args.words).is_file():
         print(f"{args.words} does not exist. Download a file from https://github.com/danvk/hybrid-boggle/tree/main/wordlists if you're missing one.")
-        import sys; sys.exit(1)
-    words = open(args.words).read().strip().split('\n')
+        sys.exit(1)
+    words = Path(args.words).read_text().split()
+    rows, cols = list(range(args.rows)), list(range(args.cols))
 
     # The Boggle dice have a "Qu" and no "Q". So we'll clean the words by
-    # removing anything that has a "QX" for X != U or ends with Q, then replace
-    # any "Qu" with "Q" since our dice just have "Q" on them. We'll just need to
-    # remember to account for this when scoring since "Qu" counts as 2 letters.
-    # Words with less than 3 letters don't score in Boggle, so we'll just remove
-    # those.
+    # removing anything with a Q that isn't followed by a U, then replace any
+    # "Qu" with "Q" since our dice just have "Q" on them. "Qu" counts as 2
+    # letters, which word_score accounts for. Words with less than 3 letters
+    # don't score in Boggle and words needing more dice than the board has
+    # can't be found, so we'll just remove those.
     cleaned_words = []
     for word in words:
-        if len(word) < 3: continue
         word = word.upper()
         if any(ch not in ALPHABET for ch in word): continue
-        if 'QU' in word or word.endswith('Q'): continue
-        word = word.replace("QU", "Q")
-        if len(word) > 16: continue
-        cleaned_words.append(word)
-
-    rows, cols = list(range(args.rows)), list(range(args.cols))
+        if re.search('Q(?!U)', word): continue
+        word = word.replace('QU', 'Q')
+        if len(word) + word.count('Q') >= 3 and len(word) <= len(rows) * len(cols):
+            cleaned_words.append(word)
 
     formula = encode(args.score, args.dice, rows, cols, cleaned_words)
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[args.score, rows, cols, ALPHABET, cleaned_words])
+        formula.WriteExtractor(f, print_solution, [word_score], extra_args=[args.score, rows, cols, ALPHABET, cleaned_words])

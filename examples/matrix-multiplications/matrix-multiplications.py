@@ -1,4 +1,5 @@
 from cnfc import *
+from itertools import product
 
 import argparse
 
@@ -63,54 +64,33 @@ def encode(n, m, max_additions_per_term, max_total_additions):
     # Finally, we know what each element of the matrix product should be in
     # terms of a_{i,k}s and b_{k,j}s, so we add constraints that ensure that
     # these are what we expect.
-    for i in dims:
-        for j in dims:
-            for i_prime in dims:
-                for j_prime in dims:
-                    for k in dims:
-                        for l in dims:
-                            # C_{i,j} = sum(a_{i,k} * b_{k,j} for k in dims)
-                            # So we only want a contribution of a_{i_prime,k} * b_{l,j_prime} when k == l, i == i_prime, j == j_prime
-                            coefficient = sum(
-                                (coefficient_product(cs[(i,j,kk)], avarz[(i_prime,k,kk)], bvarz[(l,j_prime,kk)]) for kk in range(m)),
-                                Integer(0),
-                            )
-                            expected = 1 if k == l and i == i_prime and j == j_prime else 0
-                            formula.Add(coefficient == expected)
+    for i, j, i_prime, j_prime, k, l in product(dims, repeat=6):
+        # C_{i,j} = sum(a_{i,k} * b_{k,j} for k in dims)
+        # So we only want a contribution of a_{i_prime,k} * b_{l,j_prime} when k == l, i == i_prime, j == j_prime
+        coefficient = sum(coefficient_product(cs[(i,j,kk)], avarz[(i_prime,k,kk)], bvarz[(l,j_prime,kk)]) for kk in range(m))
+        expected = 1 if k == l and i == i_prime and j == j_prime else 0
+        formula.Add(coefficient == expected)
 
     return formula
 
 def print_solution(sol, *extra_args):
     n, m = extra_args
     dims = range(1,n+1)
+
+    # Formats a sum of terms with coefficients in {-1, 0, 1}, given (coefficient, term) pairs.
+    def signed_sum(terms):
+        return ' + '.join(('-' if coefficient < 0 else '') + term for coefficient, term in terms if coefficient != 0)
+
     for k in range(m):
-        a, b = [], []
-        for i in dims:
-            for j in dims:
-                a_coefficient = sol.integer(f'a:{i}:{j}:{k}')
-                b_coefficient = sol.integer(f'b:{i}:{j}:{k}')
-                if a_coefficient == 1:
-                    a.append(f'a_{{{i},{j}}}')
-                if a_coefficient == -1:
-                    a.append(f'-a_{{{i},{j}}}')
-                if b_coefficient == 1:
-                    b.append(f'b_{{{i},{j}}}')
-                if b_coefficient == -1:
-                    b.append(f'-b_{{{i},{j}}}')
-        a_sum = ' + '.join(a)
-        b_sum = ' + '.join(b)
+        a_sum = signed_sum((sol.integer(f'a:{i}:{j}:{k}'), f'a_{{{i},{j}}}') for i in dims for j in dims)
+        b_sum = signed_sum((sol.integer(f'b:{i}:{j}:{k}'), f'b_{{{i},{j}}}') for i in dims for j in dims)
         print(f'm_{k} = ({a_sum}) * ({b_sum})')
 
     print('')
 
     for i in dims:
         for j in dims:
-            ms = []
-            for k in range(m):
-                coefficient = sol.integer(f'C:{i}:{j}:{k}')
-                if coefficient == 1: ms.append(f'm_{k}')
-                if coefficient == -1: ms.append(f'-m_{k}')
-            m_sum = ' + '.join(ms)
+            m_sum = signed_sum((sol.integer(f'C:{i}:{j}:{k}'), f'm_{k}') for k in range(m))
             print(f'C_{{{i},{j}}} = {m_sum}')
 
 if __name__ == '__main__':

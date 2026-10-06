@@ -5,40 +5,31 @@ import argparse
 
 def encode(n, m):
     formula = Formula()
-    POSITIONS = range(m)
-    VALS = range(1,n+1)
-    varz = {}
+    positions = range(m)
+    symbols = range(1, n+1)
 
     # variable i:j is true iff position i in the superpermutation is set to j
-    for i in POSITIONS:
-        for j in VALS:
-            varz[(i,j)] = formula.AddVar(f'{i}:{j}')
+    varz = {(i,j): formula.AddVar(f'{i}:{j}') for i in positions for j in symbols}
 
     # Constraint: each position in the superpermutation is set to exactly one value.
-    for i in POSITIONS:
-        vals = [varz[(i,j)] for j in VALS]
-        formula.Add(NumTrue(*vals) == 1)
+    for i in positions:
+        formula.Add(NumTrue(*(varz[(i,j)] for j in symbols)) == 1)
 
     # Constraint: each permutation of order n occurs at least once in the string.
-    for perm in permutations(VALS):
-        perm_in_string = []
-        for i in range(m-n+1):
-            perm_in_string.append(And(*[varz[(i+pi,pv)] for pi, pv in enumerate(perm)]))
-        formula.Add(Or(*perm_in_string))
+    for perm in permutations(symbols):
+        perm_at = [And(*(varz[(start+offset,j)] for offset, j in enumerate(perm))) for start in range(m-n+1)]
+        formula.Add(Or(*perm_at))
 
     # Symmetry-breaking: first n chars of superpermutation are 1,2,...,n
-    for pi,pv in enumerate(VALS):
-        formula.Add(varz[(pi,pv)])
+    for i, j in enumerate(symbols):
+        formula.Add(varz[(i,j)])
 
     return formula
 
 
 def print_solution(sol, *extra_args):
     n, m = extra_args
-    for i in range(m):
-        for j in range(1,n+1):
-            if sol[f'{i}:{j}']: print(j, end='')
-    print('')
+    print(''.join(str(j) for i in range(m) for j in range(1, n+1) if sol[f'{i}:{j}']))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate a superpermutation of order n.")
@@ -52,4 +43,4 @@ if __name__ == '__main__':
     with open(args.outfile, 'w') as f:
         formula.WriteCNF(f)
     with open(args.extractor, 'w') as f:
-        formula.WriteExtractor(f, print_solution, [], extra_args=[args.n, args.m])
+        formula.WriteExtractor(f, print_solution, extra_args=[args.n, args.m])
