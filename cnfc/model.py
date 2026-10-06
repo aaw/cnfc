@@ -43,10 +43,13 @@ class BoolExpr:
         return Not(self)
 
     def __and__(self, other):
-        return And(self, other)
+        return And(*_operands(And, self), *_operands(And, other))
 
     def __or__(self, other):
-        return Or(self, other)
+        return Or(*_operands(Or, self), *_operands(Or, other))
+
+def _operands(clazz, expr):
+    return expr.exprs if type(expr) is clazz else (expr,)
 
 class NumExpr:
     def __eq__(self, other):
