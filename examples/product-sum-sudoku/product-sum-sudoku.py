@@ -1,5 +1,6 @@
 from cnfc import *
 from itertools import product
+import math
 
 import argparse
 
@@ -28,13 +29,15 @@ def encode():
             formula.Add(NumTrue(*(v[cell] == number for cell in group)) == 1)
 
     # The sum of the blue box equals the product of each pink diagonal.
-    box_sum = (v['a1'] + v['a2'] + v['a3'] +
-               v['b1'] + v['b2'] + v['b3'] +
-               v['c1'] + v['c2'] + v['c3'])
-    formula.Add(box_sum == v['a1'] * v['b2'] * v['c3'] * v['d4'] * v['e5'] * v['f6'])
-    formula.Add(box_sum == v['d1'] * v['e2'] * v['f3'])
-    formula.Add(box_sum == v['b6'] * v['c5'] * v['d4'] * v['e3'] * v['f2'])
-    formula.Add(box_sum == v['a3'] * v['b2'] * v['c1'])
+    box_sum = sum(v[row + col] for row in 'abc' for col in '123')
+    diagonals = [
+        ['a1', 'b2', 'c3', 'd4', 'e5', 'f6'],
+        ['d1', 'e2', 'f3'],
+        ['b6', 'c5', 'd4', 'e3', 'f2'],
+        ['a3', 'b2', 'c1'],
+    ]
+    for diagonal in diagonals:
+        formula.Add(box_sum == math.prod(v[cell] for cell in diagonal))
 
     return formula
 
