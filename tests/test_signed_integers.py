@@ -2,7 +2,9 @@ import unittest
 
 from cnfc import *
 from cnfc.funcs import Min, Max
-from .util import SatTestCase
+from .util import SatTestCase, write_cnf_to_string
+
+import math
 
 
 class TestSignedIntegers(unittest.TestCase, SatTestCase):
@@ -417,3 +419,41 @@ class TestSignedIntegers(unittest.TestCase, SatTestCase):
     def test_non_integer_range_is_rejected(self):
         with self.assertRaises(TypeError):
             Integer.bits_needed_for_range(-1.5, 3)
+
+    def test_sum_and_prod_cost_the_same_as_explicit_expressions(self):
+        # Operands may be combined in a different order, so compare the
+        # "p cnf <vars> <clauses>" header rather than the full CNF.
+        def cnf(build):
+            f = Formula()
+            x, y, z = (Integer(f.AddVars(name, 4)) for name in 'xyz')
+            f.Add(build(x, y, z) == 6)
+            return write_cnf_to_string(f).split('\n')[0]
+        self.assertEqual(cnf(lambda x, y, z: sum([x, y, z])), cnf(lambda x, y, z: x + y + z))
+        self.assertEqual(cnf(lambda x, y, z: math.prod([x, y, z])), cnf(lambda x, y, z: x * y * z))
+
+    def test_identity_operands_are_dropped(self):
+        x = Integer(Var('x', 1), Var('y', 2))
+        one = Integer(BooleanLiteral(False), BooleanLiteral(False), BooleanLiteral(True))
+        self.assertEqual(len((0 + x + Integer(0)).args), 1)
+        self.assertEqual(len((1 * x * one).args), 1)
+        # Other constants still take part in the arithmetic.
+        self.assertEqual(len((x + 1).args), 2)
+        self.assertEqual(len((x * -1).args), 2)
+        self.assertEqual(len((x * 0).args), 2)
+
+    def test_arithmetic_on_only_identity_operands(self):
+        f = Formula()
+        x = Integer(f.AddVars('x', 3))
+        f.Add(x == sum([Integer(0), Integer(0)]) + math.prod([Integer(1), Integer(1)]))
+        f.Add(x != 1)
+        self.assertUnsat(f)
+
+    def test_sum_and_prod_of_one_operand(self):
+        f = Formula()
+        x = Integer(f.AddVars('x', 3))
+        f.Add(sum([x]) == -3)
+        f.Add(math.prod([x]) == -3)
+        self.assertSat(f)
+
+        f.Add(x != -3)
+        self.assertUnsat(f)

@@ -401,10 +401,25 @@ class TupleCompositeExpr(TupleExpr, ABC):
         # actually computed, which is why defining len like this is useful.
         pass
 
+# Returns the value of a constant Integer, or None if arg isn't one.
+def _constant_value(arg):
+    if not isinstance(arg, Integer) or not all(isinstance(e, BooleanLiteral) for e in arg.exprs):
+        return None
+    bits = [e.val for e in arg.exprs]
+    value = int(''.join('1' if b else '0' for b in bits), 2)
+    return value - (1 << len(bits)) if bits[0] else value
+
+# Drops operands equal to identity, like the implicit 0 in sum(xs) or the
+# implicit 1 in math.prod(xs), so they don't add circuitry. Keeps one operand
+# if every operand is the identity.
+def _drop_identity(args, identity):
+    kept = [arg for arg in args if _constant_value(arg) != identity]
+    return kept or [Integer(identity)]
+
 class TupleAdd(TupleCompositeExpr):
     def __init__(self, *args):
         super().__init__(*args)
-        self.args = gather_common_operands(self.__class__, self.args)
+        self.args = _drop_identity(gather_common_operands(self.__class__, self.args), 0)
 
     @cached_evaluate_bits
     def evaluate(self, formula):
@@ -416,7 +431,7 @@ class TupleAdd(TupleCompositeExpr):
 class TupleMul(TupleCompositeExpr):
     def __init__(self, *args):
         super().__init__(*args)
-        self.args = gather_common_operands(self.__class__, self.args)
+        self.args = _drop_identity(gather_common_operands(self.__class__, self.args), 1)
 
     @cached_evaluate_bits
     def evaluate(self, formula):

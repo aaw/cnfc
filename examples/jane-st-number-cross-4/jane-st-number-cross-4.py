@@ -58,11 +58,6 @@ BOARD = [
     ['J', 'L', 'L', 'J', 'J', 'J', 'K', 'D', 'D', 'D', 'M'],
     ['J', 'J', 'J', 'J', 'J', 'K', 'K', 'K', 'D', 'D', 'M']
 ]
-# Enums for the row variables we maintain
-VAL=0
-EXISTS=1
-SUM=2
-PRODUCT=3
 
 # Generates all 54 valid row patterns as a boolean list where True means
 # unshaded and False means shaded.
@@ -116,36 +111,23 @@ def generate_mask_constraints(row, mask, cell_var, row_var):
         for i in range(start, end+1):
             conjuncts.append(cell_var[(row,i)] != SHADED)
 
-    # Connect row integers to individual cells
-    for i, (start, end) in enumerate(runs):
-        num = Integer(0)
-        for j in range(start, end+1):
-            num = num * 10 + cell_var[(row,j)]
-        conjuncts.append(row_var[(row,i)][VAL] == num)
-
-    # Set the row existence variables appropriately, given the number of
-    # runs in this particular mask.
+    # Connect each run's value, sum of digits, and product of digits to the
+    # cells in the run. The sum and product of digits are only needed for
+    # rows 3 and 8 in the puzzle, respectively.
     for i in RUNS:
-        if i < len(runs):
-            conjuncts.append(row_var[(row,i)][EXISTS])
-        else:
-            conjuncts.append(~row_var[(row,i)][EXISTS])
-
-    # Connect the cell values to a sum-of-digits variable. We really
-    # only need this for row 3 in the puzzle.
-    for i, (start, end) in enumerate(runs):
-        num = cell_var[(row,start)]
-        for j in range(start+1, end+1):
-            num = num + cell_var[(row,j)]
-        conjuncts.append(row_var[(row,i)][SUM] == num)
-
-    # Connect the cell values to a product-of-digits variable. We really
-    # only need this for row 8 in the puzzle.
-    for i, (start, end) in enumerate(runs):
-        num = cell_var[(row,start)]
-        for j in range(start+1, end+1):
-            num = num * cell_var[(row,j)]
-        conjuncts.append(row_var[(row,i)][PRODUCT] == num)
+        val, exists, digit_sum, digit_product = row_var[(row,i)]
+        if i >= len(runs):
+            conjuncts.append(~exists)
+            continue
+        start, end = runs[i]
+        digits = [cell_var[(row,j)] for j in range(start, end+1)]
+        conjuncts.append(exists)
+        number = digits[0]
+        for digit in digits[1:]:
+            number = number * 10 + digit
+        conjuncts.append(val == number)
+        conjuncts.append(digit_sum == sum(digits))
+        conjuncts.append(digit_product == math.prod(digits))
 
     return And(*conjuncts)
 
@@ -193,7 +175,7 @@ def encode():
             # pod:r:j:i is the ith bit of the product of digits of the jth run in row r.
             rprod = Integer(formula.AddVars(f'pod:{r}:{j}', ROW_BITS))
             formula.Add(rprod >= 0)
-            # row_var is a tuple of (VAL, EXISTS, SUM, PRODUCT)
+            # row_var is a tuple of (value, exists, sum of digits, product of digits)
             row_var[(r,j)] = (val, exists, rsum, rprod)
 
     # Constraint: No two shaded cells can share an edge. We already enforce this
