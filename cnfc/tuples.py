@@ -217,8 +217,11 @@ def tuple_add(formula, x_a, x_b):
 #    --------------------------
 #
 def tuple_mul(formula, x_a, x_b):
-    # Keep the shorter operand as the multiplier.
-    if len(x_a) < len(x_b): x_a, x_b = x_b, x_a
+    # Each multiplier bit that isn't a constant 0 needs a partial product, so
+    # use the operand with fewer of those bits as the multiplier.
+    def partial_products(bits):
+        return sum(1 for bit in bits if not (isinstance(bit, BooleanLiteral) and not bit.val))
+    if (partial_products(x_a), len(x_a)) < (partial_products(x_b), len(x_b)): x_a, x_b = x_b, x_a
     width = len(x_a) + len(x_b)
     nonnegative = all(isinstance(bits[0], BooleanLiteral) and not bits[0].val for bits in (x_a, x_b))
     if nonnegative:
@@ -227,12 +230,20 @@ def tuple_mul(formula, x_a, x_b):
         return [BooleanLiteral(False)]
     partials = []
     for i, bit in enumerate(reversed(x_b)):
+        if isinstance(bit, BooleanLiteral) and not bit.val:
+            continue  # This partial product is zero.
         bits = x_a if nonnegative else sign_extend(x_a, width - i)
-        partial = []
-        for a in bits:
-            v = formula.AddVar()
-            yield from gen_and((a, bit), v)
-            partial.append(v)
+        if isinstance(bit, BooleanLiteral):
+            partial = list(bits)  # Multiplying by a constant 1 bit.
+        else:
+            partial = []
+            for a in bits:
+                if isinstance(a, BooleanLiteral):
+                    partial.append(bit if a.val else a)  # Multiplying by a constant bit.
+                    continue
+                v = formula.AddVar()
+                yield from gen_and((a, bit), v)
+                partial.append(v)
         partial = rpad(partial, i)
         if nonnegative:
             partial = [BooleanLiteral(False)] + partial
@@ -243,6 +254,8 @@ def tuple_mul(formula, x_a, x_b):
             partial = negate.result
         partials.append(partial)
 
+    if not partials:
+        return [BooleanLiteral(False)]
     while len(partials) > 1:
         reduced = []
         for a, b in zip(partials[:-1:2], partials[1::2]):
