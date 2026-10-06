@@ -6,6 +6,7 @@ Examples
    * [boggle](boggle): Finds Boggle boards that achieve high scores.
    * [complex-matrix-multiplications](complex-matrix-multiplications): Minimize the number of multiplications needed for the product of two 2-by-2 complex matrices.
    * [cuboid](cuboid): Finds a [Perfect Cuboid](https://mathworld.wolfram.com/PerfectCuboid.html).
+   * [hitori](hitori): Solves [Hitori](https://en.wikipedia.org/wiki/Hitori) puzzles, whose unshaded cells must be connected.
    * [jane-st-altered-states](jane-st-altered-states): Solves the Jane Street [Altered States](https://www.janestreet.com/puzzles/altered-states-index/) puzzle.
    * [jane-st-altered-states-2](jane-st-altered-states-2): Solves the Jane Street [Altered States 2](https://www.janestreet.com/puzzles/altered-states-2-index/) puzzle.
    * [jane-st-number-cross-4](jane-st-number-cross-4): Solves the Jane Street [Number Cross 4](https://www.janestreet.com/puzzles/number-cross-4-index/) puzzle.
@@ -22,6 +23,7 @@ Examples
    * [product-sum sudoku](product-sum-sudoku): A variant of sudoku with sum and product constraints from the Royal Statistical Society Christmas Quiz 2023.
    * [scheduling](scheduling): A simple work scheduling example from the [main README](../README.md#example).
    * [six-variable-logic-puzzle](six-variable-logic-puzzle): A simple logic puzzle with six variables.
+   * [slitherlink](slitherlink): Solves [Slitherlink](https://en.wikipedia.org/wiki/Slitherlink) puzzles, which require drawing a single loop.
    * [somewhat-square-sudoku](somewhat-square-sudoku): Solves the Jane Street [Somewhat Square Sudoku](https://www.janestreet.com/puzzles/somewhat-square-sudoku-index) puzzle.
    * [strongly-regular-graph](strongly-regular-graph): A [strongly regular graph](https://en.wikipedia.org/wiki/Strongly_regular_graph) generator.
    * [sudoku](sudoku): A Sudoku solver.

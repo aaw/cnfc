@@ -193,6 +193,7 @@ Constraints can be built, composed, and added to formulas with:
    * `Integer`s with two's-complement arithmetic (`+`, `-`, `*`, `//`, `%`, `**`) and comparisons (see [examples/prime](examples/prime)).
    * `NumTrue` and `NumFalse` for cardinality constraints (see [examples/nqueens](examples/nqueens)).
    * `RegexMatch` to apply binary regular expressions to `Tuple`s (see [examples/nonagram](examples/nonagram)).
+   * `Graph` with `Connected` and `Reachable` for connectivity constraints (see [examples/slitherlink](examples/slitherlink)).
    * A ternary operator: `If(condition, x, y)` selects between integers, tuples, or boolean expressions based on `condition`.
    * Higher-level [helper functions](cnfc/funcs.py) for working with `Integer`s like `Min`, `Max`, and `AllDifferent`.
 

@@ -401,6 +401,100 @@ class TestExamplesIntegration(unittest.TestCase):
         # Every cell in a 2x2 board touches every other cell, so both words exist.
         self.assertEqual(set(board[0] + board[1]), {'C', 'A', 'T', 'R'})
 
+    def test_hitori(self):
+        grid = ['2234', '2331', '3112', '4124']
+        output = self.run_example_end_to_end(
+            'hitori',
+            lambda cnf, ext: [cnf, ext, '--puzzle', ' '.join(grid)]
+        )
+        rows = [line.split() for line in output.strip().splitlines()]
+        self.assertEqual(len(rows), 4)
+        shaded = {(r, c) for r in range(4) for c in range(4) if rows[r][c] == '#'}
+        for r in range(4):
+            for c in range(4):
+                if (r, c) not in shaded:
+                    self.assertEqual(rows[r][c], grid[r][c])
+        # No repeated numbers among unshaded cells in any row or column.
+        for i in range(4):
+            row = [grid[i][c] for c in range(4) if (i, c) not in shaded]
+            col = [grid[r][i] for r in range(4) if (r, i) not in shaded]
+            self.assertEqual(len(row), len(set(row)))
+            self.assertEqual(len(col), len(set(col)))
+        # No adjacent shaded cells.
+        for r, c in shaded:
+            self.assertNotIn((r+1, c), shaded)
+            self.assertNotIn((r, c+1), shaded)
+        # Unshaded cells are connected.
+        unshaded = {(r, c) for r in range(4) for c in range(4)} - shaded
+        start = next(iter(unshaded))
+        seen, stack = {start}, [start]
+        while stack:
+            r, c = stack.pop()
+            for cell in [(r+1, c), (r-1, c), (r, c+1), (r, c-1)]:
+                if cell in unshaded and cell not in seen:
+                    seen.add(cell)
+                    stack.append(cell)
+        self.assertEqual(seen, unshaded)
+
+    def test_hitori_requires_connected_cells(self):
+        # Every shading without repeats or adjacent shaded cells cuts off a
+        # corner, so there's no solution.
+        output = self.run_example_end_to_end(
+            'hitori',
+            lambda cnf, ext: [cnf, ext, '--puzzle', '111 112 121']
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
+    def test_slitherlink(self):
+        clues = ['2.2.', '.1.1', '1..0', '0...']
+        output = self.run_example_end_to_end(
+            'slitherlink',
+            lambda cnf, ext: [cnf, ext, '--puzzle', ' '.join(clues)]
+        )
+        lines = output.rstrip('\n').split('\n')
+        self.assertEqual(len(lines), 9)
+        # Read the drawn edges as pairs of dots, where dots are (row, col) lattice points.
+        edges = set()
+        for r in range(5):
+            for c in range(4):
+                if lines[2*r][4*c+1:4*c+4] == '---':
+                    edges.add(((r, c), (r, c+1)))
+        for r in range(4):
+            for c in range(5):
+                if lines[2*r+1][4*c] == '|':
+                    edges.add(((r, c), (r+1, c)))
+        # Each clue counts the loop edges around its cell.
+        for r in range(4):
+            for c in range(4):
+                if clues[r][c] != '.':
+                    sides = {((r, c), (r, c+1)), ((r+1, c), (r+1, c+1)), ((r, c), (r+1, c)), ((r, c+1), (r+1, c+1))}
+                    self.assertEqual(len(sides & edges), int(clues[r][c]))
+        # Every dot on the loop has exactly two loop edges, and the loop is connected.
+        degree = {}
+        for a, b in edges:
+            degree[a] = degree.get(a, 0) + 1
+            degree[b] = degree.get(b, 0) + 1
+        self.assertTrue(edges)
+        self.assertTrue(all(d == 2 for d in degree.values()))
+        start = next(iter(degree))
+        seen, stack = {start}, [start]
+        while stack:
+            dot = stack.pop()
+            for a, b in edges:
+                for x, y in ((a, b), (b, a)):
+                    if x == dot and y not in seen:
+                        seen.add(y)
+                        stack.append(y)
+        self.assertEqual(seen, set(degree))
+
+    def test_slitherlink_requires_a_single_loop(self):
+        # Each 4 needs its own one-cell loop, so there's no single loop.
+        output = self.run_example_end_to_end(
+            'slitherlink',
+            lambda cnf, ext: [cnf, ext, '--puzzle', '4.4']
+        )
+        self.assertEqual(output.strip(), 'UNSATISFIABLE')
+
     def test_xkcd287(self):
         """Test the xkcd287 Diophantine equation example."""
         output = self.run_example_end_to_end(

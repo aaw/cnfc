@@ -120,8 +120,6 @@ EAST_COAST = [
     'SouthCarolina', 'Georgia', 'Florida'
 ]
 WEST_COAST = ['California', 'Oregon', 'Washington']
-# A max path of length 16 from the east coast to the west coast seems reasonable.
-MAX_PATH = 16
 
 def king_neighbors(r, c):
     return [(r+dr, c+dc) for dr in (-1,0,1) for dc in (-1,0,1)
@@ -206,23 +204,11 @@ def encode(min_score, extras, min_extras, num_states=None):
     add_extra('CRT', And(state_vars['Connecticut'], state_vars['RhodeIsland'], ~state_vars['Texas']))
 
     # C2C: there's a path of adjacent matched states from the east coast to the west coast.
-    # reached[(s,i)] means state s is reachable by a path of length i from the east coast.
-    reached = {(state,i): formula.AddVar(f'g:{state}:{i}') for state in NEIGHBORS for i in range(MAX_PATH)}
-
-    # Initialize paths of length 0.
-    for state in NEIGHBORS:
-        if state in EAST_COAST:
-            formula.Add(reached[(state,0)] == state_vars[state])
-        else:
-            formula.Add(~reached[(state,0)])
-
-    # Define paths of length i in terms of paths of length (i-1).
-    for i in range(1, MAX_PATH):
-        for state, neighbors in NEIGHBORS.items():
-            neighbor_reached = [reached[(neighbor,i-1)] for neighbor in neighbors]
-            formula.Add(reached[(state,i)] == And(state_vars[state], Or(*neighbor_reached)))
-
-    add_extra('C2C', Or(*(reached[(state,i)] for state in WEST_COAST for i in range(MAX_PATH))))
+    us = Graph()
+    for state, neighbors in NEIGHBORS.items():
+        for neighbor in neighbors:
+            us.AddEdge(state_vars[state], state_vars[neighbor])
+    add_extra('C2C', Reachable(us, [state_vars[s] for s in EAST_COAST], [state_vars[s] for s in WEST_COAST]))
 
     # Constraint: force a desired number of extras. CRT doesn't count since it wasn't part of the original puzzle.
     formula.Add(NumTrue(*(v for name, v in extra_vars.items() if name != 'CRT')) >= min_extras)
