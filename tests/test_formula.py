@@ -685,6 +685,34 @@ class TestFormula(unittest.TestCase, SatTestCase):
         f.Add(3 < Integer(2) < Integer(3) < 4)
         self.assertUnsat(f)
 
+    def test_chained_comparison_costs_the_same_as_separate_comparisons(self):
+        def cnf(add_bounds):
+            f = Formula()
+            x = Integer(f.AddVars('x', 8))
+            count = NumTrue(*f.AddVars('c', 6))
+            add_bounds(f, x, count)
+            return write_cnf_to_string(f)
+        def chained(f, x, count):
+            f.Add(0 < x <= 100)
+            f.Add(2 <= count <= 4)
+        def separate(f, x, count):
+            f.Add(0 < x)
+            f.Add(x <= 100)
+            f.Add(2 <= count)
+            f.Add(count <= 4)
+        self.assertEqual(cnf(chained), cnf(separate))
+
+    def test_conjunction_of_compound_expressions(self):
+        f = Formula()
+        x, y, z = f.AddVars('x y z')
+        f.Add(And(Or(x, y), ~x, Implies(y, z)))
+        f.PushCheckpoint()
+        f.Add(~z)
+        self.assertUnsat(f)
+        f.PopCheckpoint()
+        f.Add(z)
+        self.assertSat(f)
+
     def test_compound_inequality(self):
         f = Formula()
         x,y = f.AddVars('x y')

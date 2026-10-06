@@ -11,19 +11,6 @@ from .regex import regex_match, regex_match_states
 from .util import Generator, gather_common_operands, reduce_evaluated
 from .cache import cached_evaluate, cached_evaluate_bits
 
-# Build a result literal from the expression's clauses.
-def evaluate_from_clauses(instance, formula):
-    vars_to_and = []
-    for clause in instance.constraint_clauses(formula):
-        v = formula.AddVar()
-        vars_to_and.append(v)
-        # Set v equal to the original clause
-        for c in gen_or(clause, v):
-            formula.AddClause(*c)
-
-    # AND the clause variables to recreate the CNF as a single variable
-    return And(*vars_to_and).evaluate(formula)
-
 def _combine_comparisons(operand, comparison):
     pending = getattr(operand, '_pending_chain', None)
     if pending is None:
@@ -184,9 +171,11 @@ class And(MultiBoolExpr):
             formula.AddClause(*clause)
         return v
 
+    # Asserting a conjunction is the same as asserting each conjunct, so we
+    # don't need a variable for each conjunct.
     def constraint_clauses(self, formula):
         for expr in self.exprs:
-            yield (expr.evaluate(formula),)
+            yield from expr.constraint_clauses(formula)
 
 class _ChainedComparison(_ChainableComparison, And):
     pass
@@ -267,22 +256,28 @@ class OrderedBinaryTupleBoolExpr(BoolExpr):
         return '{}({},{})'.format(self.__class__.__name__, self.first, self.second)
 
 class TupleEq(OrderedBinaryTupleBoolExpr):
+    def _bitwise(self, formula):
+        t1, t2 = _comparison_bits(self.first, self.second, formula)
+        return And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2)))
+
     @cached_evaluate
     def evaluate(self, formula):
-        return evaluate_from_clauses(self, formula)
+        return self._bitwise(formula).evaluate(formula)
 
     def constraint_clauses(self, formula):
-        t1, t2 = _comparison_bits(self.first, self.second, formula)
-        yield from And(*(Eq(c1, c2) for c1, c2 in zip(t1, t2))).constraint_clauses(formula)
+        yield from self._bitwise(formula).constraint_clauses(formula)
 
 class TupleNeq(OrderedBinaryTupleBoolExpr):
+    def _bitwise(self, formula):
+        t1, t2 = _comparison_bits(self.first, self.second, formula)
+        return Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2)))
+
     @cached_evaluate
     def evaluate(self, formula):
-        return evaluate_from_clauses(self, formula)
+        return self._bitwise(formula).evaluate(formula)
 
     def constraint_clauses(self, formula):
-        t1, t2 = _comparison_bits(self.first, self.second, formula)
-        yield from Or(*(Neq(c1, c2) for c1, c2 in zip(t1, t2))).constraint_clauses(formula)
+        yield from self._bitwise(formula).constraint_clauses(formula)
 
 class TupleInequality(_ChainableComparison, OrderedBinaryTupleBoolExpr):
     def _make_generator(self, formula):
