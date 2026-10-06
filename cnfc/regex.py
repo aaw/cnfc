@@ -1,11 +1,10 @@
 from collections import defaultdict
 from functools import reduce
-from itertools import combinations
+from itertools import combinations, count
 from .tseytin import *
 from .cardinality import at_most_one_true
 from .util import Generator
 import sre_parse
-import uuid
 
 # Functions in this module rely on Python's built-in sre_parse library to do the
 # initial parsing of a regex string into an abstract syntax tree. We then
@@ -63,12 +62,12 @@ class NFA:
         self.delta = delta
 
     def debug(self):
-        print('initial: {}'.format(self.initial[:6]))
-        print('accept:  {}'.format([x[:6] for x in self.accepting]))
+        print('initial: {}'.format(self.initial))
+        print('accept:  {}'.format(sorted(self.accepting)))
         for k,v in self.delta.items():
-            if v.get(ZERO) is not None: print('d[{}][0] = {}'.format(k[:6], [vv[:6] for vv in v[ZERO]]))
-            if v.get(ONE) is not None: print('d[{}][1] = {}'.format(k[:6], [vv[:6] for vv in v[ONE]]))
-            if v.get(EPSILON) is not None: print('d[{}][ε] = {}'.format(k[:6], [vv[:6] for vv in v[EPSILON]]))
+            if v.get(ZERO) is not None: print('d[{}][0] = {}'.format(k, sorted(v[ZERO])))
+            if v.get(ONE) is not None: print('d[{}][1] = {}'.format(k, sorted(v[ONE])))
+            if v.get(EPSILON) is not None: print('d[{}][ε] = {}'.format(k, sorted(v[EPSILON])))
 
 class DFA:
     def __init__(self, initial, accepting, delta):
@@ -77,14 +76,21 @@ class DFA:
         self.delta = delta
 
     def debug(self):
-        print('initial: {}'.format(self.initial[:6]))
-        print('accept:  {}'.format([x[:6] for x in self.accepting]))
+        print('initial: {}'.format(self.initial))
+        print('accept:  {}'.format(sorted(self.accepting)))
         for k,v in self.delta.items():
-            if v.get(ZERO) is not None: print('d[{}][0] = {}'.format(k[:6], v[ZERO][:6]))
-            if v.get(ONE) is not None: print('d[{}][1] = {}'.format(k[:6], v[ONE][:6]))
+            if v.get(ZERO) is not None: print('d[{}][0] = {}'.format(k, v[ZERO]))
+            if v.get(ONE) is not None: print('d[{}][1] = {}'.format(k, v[ONE]))
+
+# NFA states are integers. They only need to be unique; the DFA renumbers them.
+_nfa_states = count()
 
 def new_state():
-    return uuid.uuid4().hex
+    return next(_nfa_states)
+
+# The DFA's dead state. Other DFA states are numbered from 1 in the order
+# they're discovered, so the encoding is the same every time.
+DEAD = 0
 
 # Delta transitions map a state to a map of literal to set of states
 def new_nfa_delta():
@@ -186,16 +192,18 @@ def epsilon_closure(nfa, states):
         if len(old_image) == len(image): break
     return image
 
-def set_id(s):
-    return '{:x}'.format(reduce(lambda x,y: x ^ y, (int(h, 16) for h in s), 0))
-
 def nfa_to_dfa(nfa):
-    # DFA id -> NFA set of states
+    # Each DFA state is a set of NFA states. Number them in the order we find them.
+    ids = {}
+    def set_id(s):
+        if not s: return DEAD
+        return ids.setdefault(frozenset(s), len(ids) + 1)
+
     delta = defaultdict(dict)
     initial = epsilon_closure(nfa, {nfa.initial})
     accepting = set()
     # We add an explicit dead state because it makes minimization easier
-    delta['dead'] = {ONE: 'dead', ZERO: 'dead'}
+    delta[DEAD] = {ONE: DEAD, ZERO: DEAD}
     if initial & nfa.accepting:
         accepting.add(set_id(initial))
     stack = [initial]
@@ -206,9 +214,7 @@ def nfa_to_dfa(nfa):
             trans_state = epsilon_closure(
                 nfa, reduce(lambda x,y: x | y, (nfa.delta[s][transition] for s in state), set()))
             trans_state_id = set_id(trans_state)
-            if trans_state_id == '0':
-                trans_state_id = 'dead'
-            else:
+            if trans_state_id != DEAD:
                 if trans_state & nfa.accepting:
                     accepting.add(trans_state_id)
                 if delta.get(trans_state_id) is None:
@@ -254,7 +260,7 @@ def minimize_dfa(dfa):
     def initial_ineq(p,q):
         return (p in dfa.accepting and q not in dfa.accepting) or \
                (p not in dfa.accepting and q in dfa.accepting)
-    ineq = dict((canonical(p,q), initial_ineq(p,q)) for p,q in combinations(states, 2))
+    ineq = dict((canonical(p,q), initial_ineq(p,q)) for p,q in combinations(sorted(states), 2))
 
     # Until we don't mark any new states, mark any two states p and q where
     # delta(p, a) and delta(q, a) have inconsistent previous marks for some a.
@@ -275,7 +281,7 @@ def minimize_dfa(dfa):
         ineq = new_ineq
 
     # Merge all equivalent states.
-    uf = UnionFind(states)
+    uf = UnionFind(sorted(states))
     for (p,q), mark in ineq.items():
         if mark: continue
         if p is None: continue
@@ -289,17 +295,17 @@ def minimize_dfa(dfa):
         delta[s] = {ZERO: uf.find(d[ZERO]), ONE: uf.find(d[ONE])}
 
     new_dfa = DFA(initial, accepting, delta)
-    return new_dfa, uf.find('dead') != 'dead'
+    return new_dfa, uf.find(DEAD) != DEAD
 
 def remove_dead_state(dfa):
-    if dfa.initial == 'dead' or 'dead' in dfa.accepting:
+    if dfa.initial == DEAD or DEAD in dfa.accepting:
         raise Exception('Attempted dead state removal but dead state is used by DFA.')
     new_delta = defaultdict(dict)
     for s,d in dfa.delta.items():
-        if s == 'dead': continue
+        if s == DEAD: continue
         new_d = {}
-        if d[ONE] != 'dead': new_d[ONE] = d[ONE]
-        if d[ZERO] != 'dead': new_d[ZERO] = d[ZERO]
+        if d[ONE] != DEAD: new_d[ONE] = d[ONE]
+        if d[ZERO] != DEAD: new_d[ZERO] = d[ZERO]
         if new_d: new_delta[s] = new_d
     return DFA(dfa.initial, dfa.accepting, new_delta)
 
@@ -312,7 +318,7 @@ def regex_match(formula, tup, regex):
 # Define the state transitions and return the final accepting-state literals.
 def regex_match_states(formula, tup, regex):
     dfa = regex_to_dfa(regex)
-    all_states = all_dfa_states(dfa)
+    all_states = sorted(all_dfa_states(dfa))
 
     # zero_trans[s] = {a,b,c} if there's a transition from a,b,c to s on zero
     zero_trans = defaultdict(set)
@@ -348,12 +354,12 @@ def regex_match_states(formula, tup, regex):
             zero_conj, one_conj = None, None
             if zero_trans[state]:
                 big_or = formula.AddVar()
-                yield from gen_or([vs[(s,i-1)] for s in zero_trans[state]], big_or)
+                yield from gen_or([vs[(s,i-1)] for s in sorted(zero_trans[state])], big_or)
                 zero_conj = formula.AddVar()
                 yield from gen_and((big_or, ~tup[i-1]), zero_conj)
             if one_trans[state]:
                 big_or = formula.AddVar()
-                yield from gen_or([vs[(s,i-1)] for s in one_trans[state]], big_or)
+                yield from gen_or([vs[(s,i-1)] for s in sorted(one_trans[state])], big_or)
                 one_conj = formula.AddVar()
                 yield from gen_and((big_or, tup[i-1]), one_conj)
             # We can optimize the encoding a little bit because we know the transitions
@@ -368,4 +374,4 @@ def regex_match_states(formula, tup, regex):
             else:
                 yield from gen_or((one_conj, zero_conj), vs[(state,i)])
 
-    return [vs[(state,len(tup))] for state in dfa.accepting]
+    return [vs[(state,len(tup))] for state in sorted(dfa.accepting)]
