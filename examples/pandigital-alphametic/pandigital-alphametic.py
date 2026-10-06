@@ -2,6 +2,7 @@
 # See https://puzzling.stackexchange.com/questions/126266/a-pandigital-alphametic
 
 from cnfc import *
+from cnfc.funcs import AllDifferent
 
 import argparse
 
@@ -94,9 +95,10 @@ def encode_equation_as_sat():
     for solution in solutions:
         formula.Add(block(solution, varz))
 
-    # Every number 0-9 is assigned to a variable exactly once.
-    for number in range(10):
-        formula.Add(NumTrue(*(x == number for x in varz)) == 1)
+    # Every number 0-9 is assigned to exactly one variable.
+    for x in varz:
+        formula.Add(0 <= x <= 9)
+    formula.Add(AllDifferent(varz, values=range(10)))
 
     # A x BC x DEF = GHIJ
     bc = 10*b + c

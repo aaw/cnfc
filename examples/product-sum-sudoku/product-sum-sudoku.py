@@ -1,4 +1,5 @@
 from cnfc import *
+from cnfc.funcs import AllDifferent
 from itertools import product
 import math
 
@@ -25,8 +26,7 @@ def encode():
     boxes = [[row + col for row in box_rows for col in box_cols]
              for box_rows, box_cols in product(['ab', 'cd', 'ef'], ['123', '456'])]
     for group in rows + cols + boxes:
-        for number in range(1, 7):
-            formula.Add(NumTrue(*(v[cell] == number for cell in group)) == 1)
+        formula.Add(AllDifferent([v[cell] for cell in group], values=range(1, 7)))
 
     # The sum of the blue box equals the product of each pink diagonal.
     box_sum = sum(v[row + col] for row in 'abc' for col in '123')

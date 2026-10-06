@@ -1,4 +1,5 @@
 from cnfc import *
+from cnfc.funcs import AllDifferent
 from itertools import product
 
 import argparse
@@ -34,13 +35,13 @@ def encode(min_gcd):
     formula.Add(varz[(8,6)] == 2)
     formula.Add(varz[(9,7)] == 5)
 
-    # Each row, column, and box contains every digit except the excluded one exactly once.
+    # Each row, column, and box has 9 different digits, so it contains every digit
+    # except the excluded one exactly once.
     rows = [[(r,c) for c in COORDS] for r in COORDS]
     cols = [[(r,c) for r in COORDS] for c in COORDS]
     boxes = [list(product(box_rows, box_cols)) for box_rows, box_cols in product(BOXES, BOXES)]
     for group in rows + cols + boxes:
-        for v in VALS:
-            formula.Add(If(v != exclude, NumTrue(*(varz[cell] == v for cell in group)) == 1))
+        formula.Add(AllDifferent([varz[cell] for cell in group], values=VALS))
 
     # Every row, interpreted as a 9-digit number, is divisible by a common divisor.
     divisor = Integer(formula.AddVars('divisor', GCD_BITS))

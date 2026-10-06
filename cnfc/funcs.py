@@ -1,3 +1,4 @@
+from itertools import combinations
 import math
 
 from .model import *
@@ -46,3 +47,14 @@ def Min(*args):
         a, b = args.pop(), args.pop()
         args.append(TupleMin(a,b))
     return args[0]
+
+# True iff no two arguments are equal. If you know every argument's value lies
+# in values, passing it usually gives a smaller encoding: one "at most one
+# argument equals v" constraint per value instead of one constraint per pair.
+# values is only an encoding hint; it doesn't constrain the arguments.
+def AllDifferent(*args, values=None):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        args = list(args[0])
+    if values is None:
+        return And(*(x != y for x, y in combinations(args, 2)))
+    return And(*(NumTrue(*(x == v for x in args)) <= 1 for v in values))

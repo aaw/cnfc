@@ -2,6 +2,7 @@
 # Problem posed in https://puzzling.stackexchange.com/questions/126447
 
 from cnfc import *
+from cnfc.funcs import AllDifferent
 
 import argparse
 import math
@@ -22,9 +23,8 @@ def encode_equation_as_sat(min_year, max_year):
     for digit in digits:
         formula.Add(0 <= digit < 10)
 
-    # Constraint: Every number 0-9 is assigned to a digit variable at most once.
-    for number in range(10):
-        formula.Add(NumTrue(*(digit == number for digit in digits)) <= 1)
+    # Constraint: All digits are different.
+    formula.Add(AllDifferent(digits, values=range(10)))
 
     # Constraint: month is valid.
     formula.Add(0 < month <= 12)

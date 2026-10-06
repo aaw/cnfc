@@ -1,5 +1,6 @@
 from itertools import combinations
 from cnfc import *
+from cnfc.funcs import AllDifferent
 
 import argparse
 
@@ -15,8 +16,7 @@ def encode():
         formula.Add(1 <= v <= 10)
 
     # Constraint: a,b,c,d,e,f all distinct.
-    for x,y in combinations(varz, 2):
-        formula.Add(x != y)
+    formula.Add(AllDifferent(varz))
 
     # Constraint: 1. B - D = 2
     formula.Add(b - d == 2)
