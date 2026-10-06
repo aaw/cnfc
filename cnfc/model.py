@@ -192,12 +192,26 @@ class Or(MultiBoolExpr):
     def constraint_clauses(self, formula):
         yield tuple(expr.evaluate(formula) for expr in self.exprs)
 
+# Comparing a literal to a constant doesn't need a new variable: x == True is
+# just x and x == False is ~x. Returns None if neither side is constant.
+def _compare_to_constant(fv, sv, equal):
+    if isinstance(fv, BooleanLiteral):
+        fv, sv = sv, fv
+    if not isinstance(sv, BooleanLiteral):
+        return None
+    if isinstance(fv, BooleanLiteral):
+        return BooleanLiteral((fv.val == sv.val) == equal)
+    return fv if sv.val == equal else ~fv
+
 class Eq(OrderedBinaryBoolExpr):
     @cached_evaluate
     def evaluate(self, formula):
-        v = formula.AddVar()
         fv = self.first.evaluate(formula)
         sv = self.second.evaluate(formula)
+        constant = _compare_to_constant(fv, sv, equal=True)
+        if constant is not None:
+            return constant
+        v = formula.AddVar()
         for clause in gen_eq((fv, sv), v):
             formula.AddClause(*clause)
         return v
@@ -211,9 +225,12 @@ class Eq(OrderedBinaryBoolExpr):
 class Neq(OrderedBinaryBoolExpr):
     @cached_evaluate
     def evaluate(self, formula):
-        v = formula.AddVar()
         fv = self.first.evaluate(formula)
         sv = self.second.evaluate(formula)
+        constant = _compare_to_constant(fv, sv, equal=False)
+        if constant is not None:
+            return constant
+        v = formula.AddVar()
         for clause in gen_neq((fv, sv), v):
             formula.AddClause(*clause)
         return v
